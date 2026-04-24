@@ -14,6 +14,8 @@ const PAGESPEED = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   const params = new URLSearchParams({ url, strategy });
   ["performance", "accessibility", "best-practices", "seo"].forEach((c) => params.append("category", c));
+  const apiKey = Deno.env.get("PAGESPEED_API_KEY");
+  if (apiKey) params.append("key", apiKey);
   const res = await fetch(`${PAGESPEED}?${params}`);
   if (!res.ok) throw new Error(`PageSpeed ${strategy} falhou: ${res.status}`);
   const data = await res.json();
