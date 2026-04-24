@@ -167,21 +167,24 @@ const Index = () => {
               </Card>
             )}
 
-            {result.improvements?.length > 0 && (
-              <Card className="p-6 bg-card border-border">
-                <h3 className="text-lg font-semibold mb-4 text-foreground flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" /> Sugestões de melhoria
-                </h3>
-                <ol className="space-y-4">
-                  {result.improvements.map((imp, i) => (
-                    <li key={i} className="border-l-2 border-primary pl-4">
-                      <h4 className="font-semibold text-foreground">{i + 1}. {imp.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{imp.problem}</p>
-                    </li>
-                  ))}
-                </ol>
-              </Card>
-            )}
+            <Card className="p-6 bg-card border-border">
+              <h3 className="text-lg font-semibold mb-4 text-foreground flex items-center gap-2">
+                <Eye className="w-4 h-4 text-primary" /> Preview do relatório (.docx)
+              </h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Confira abaixo o layout exato do documento que será baixado — cores, tipografia e estrutura no padrão Tupiniquim.
+              </p>
+              <div className="bg-muted/40 -mx-6 -mb-6 px-4 py-8 rounded-b-lg overflow-x-auto">
+                <DocxPreview
+                  url={url.startsWith("http") ? url : "https://" + url}
+                  mobile={result.summary.mobile}
+                  desktop={result.summary.desktop}
+                  improvements={result.improvements}
+                  uiux={result.uiux}
+                  extras={result.extras}
+                />
+              </div>
+            </Card>
 
             <div className="sticky bottom-4">
               <Button onClick={downloadDocx} size="lg" variant="hero" className="w-full font-semibold" style={{ boxShadow: "var(--shadow-glow)" }}>
