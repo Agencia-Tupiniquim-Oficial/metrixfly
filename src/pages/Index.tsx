@@ -4,17 +4,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Gauge, Sparkles, FileText, Globe } from "lucide-react";
+import { Loader2, Download, Gauge, Sparkles, FileText, Globe, Eye } from "lucide-react";
+import DocxPreview from "@/components/DocxPreview";
 
 type Scores = { performance: number; accessibility: number; bestPractices: number; seo: number };
 type Metrics = { fcp: string; lcp: string; tbt: string; cls: string; si: string };
+type SideData = {
+  scores: Scores;
+  metrics: Metrics;
+  screenshot?: string | null;
+  opportunities?: { title: string; displayValue?: string }[];
+};
+type Improvement = {
+  title: string;
+  description?: string;
+  problem?: string;
+  impact?: string[];
+  causes?: string[];
+  recommendations?: string[];
+};
 type Result = {
-  summary: {
-    mobile: { scores: Scores; metrics: Metrics };
-    desktop: { scores: Scores; metrics: Metrics };
-    screenshot: string | null;
-  };
-  improvements: { title: string; problem: string }[];
+  summary: { mobile: SideData; desktop: SideData; screenshot: string | null };
+  improvements: Improvement[];
+  uiux?: { overview?: string; diagnosis?: string[]; recommendations?: string[] } | null;
+  extras?: { title: string; description: string }[];
   docx: string;
 };
 
