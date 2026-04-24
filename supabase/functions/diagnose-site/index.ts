@@ -379,11 +379,23 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       summary: {
-        mobile: { scores: mobile.scores, metrics: mobile.metrics },
-        desktop: { scores: desktop.scores, metrics: desktop.metrics },
+        mobile: {
+          scores: mobile.scores,
+          metrics: mobile.metrics,
+          screenshot: mobile.screenshot,
+          opportunities: mobile.opportunities ?? [],
+        },
+        desktop: {
+          scores: desktop.scores,
+          metrics: desktop.metrics,
+          screenshot: desktop.screenshot,
+          opportunities: desktop.opportunities ?? [],
+        },
         screenshot: mobile.screenshot,
       },
       improvements: ai.improvements ?? [],
+      uiux: ai.uiux ?? null,
+      extras: ai.extras ?? [],
       docx: docxB64,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
