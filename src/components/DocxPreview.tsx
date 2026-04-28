@@ -1,3 +1,5 @@
+import coverHeader from "@/assets/tupiniquim-report-cover.png";
+
 type Improvement = {
   title: string;
   description?: string;
@@ -21,34 +23,10 @@ type Props = {
   improvements: Improvement[];
   uiux?: { overview?: string; diagnosis?: string[]; recommendations?: string[] } | null;
   extras?: { title: string; description: string }[];
+  editable?: boolean;
+  onImprovementChange?: (index: number, field: keyof Improvement, value: string) => void;
+  onUiuxOverviewChange?: (value: string) => void;
 };
-
-const GREEN = "#008F45";
-const DARK_GREEN = "#006633";
-
-// Banner replica do header do .docx
-function Header() {
-  return (
-    <div className="relative h-20 overflow-hidden" style={{ background: GREEN }}>
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(45deg, rgba(255,255,255,.15) 0 8px, transparent 8px 16px)",
-        }}
-      />
-      <div className="relative h-full flex items-center px-10">
-        <span
-          className="text-white text-2xl tracking-wide"
-          style={{ fontFamily: "'Bree Serif', Georgia, serif" }}
-        >
-          tupiniquim
-        </span>
-      </div>
-      <div className="h-1.5" style={{ background: DARK_GREEN }} />
-    </div>
-  );
-}
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
