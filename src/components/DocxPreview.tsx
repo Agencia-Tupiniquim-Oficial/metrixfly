@@ -79,7 +79,17 @@ function Page({ children, withHeader = false }: { children: React.ReactNode; wit
   );
 }
 
-export default function DocxPreview({ url, mobile, desktop, improvements, uiux, extras }: Props) {
+export default function DocxPreview({
+  url,
+  mobile,
+  desktop,
+  improvements,
+  uiux,
+  extras,
+  editable = false,
+  onImprovementChange,
+  onUiuxOverviewChange,
+}: Props) {
   const hostname = (() => {
     try {
       return new URL(url).hostname.replace("www.", "").toUpperCase();
@@ -91,22 +101,48 @@ export default function DocxPreview({ url, mobile, desktop, improvements, uiux, 
   return (
     <div className="space-y-6">
       {/* Capa */}
-      <Page>
-        <div className="text-center py-24">
-          <p className="text-xs tracking-widest text-neutral-500 font-bold mb-3">DIAGNÓSTICO DE SITE</p>
+      <Page withHeader>
+        <div>
           <h1
-            className="text-5xl mb-4"
-            style={{ fontFamily: "'Bree Serif', Georgia, serif", color: GREEN }}
+            className="text-[28px] mb-12 text-report-green"
+            style={{ fontFamily: "'Bree Serif', Georgia, serif" }}
           >
-            {hostname}
+            {hostname} - DIAGNÓSTICO DE SITE
           </h1>
-          <p className="text-sm italic text-neutral-500">{url}</p>
+          <SectionTitle>Sugestões de melhoria</SectionTitle>
+          {improvements.slice(0, 2).map((imp, i) => (
+            <div key={i} className="mb-8">
+              <h3 className="text-[18px] font-bold text-report-heading mt-6 mb-5">
+                {i + 1}. <EditableText value={imp.title} onChange={editable ? (value) => onImprovementChange?.(i, "title", value) : undefined} />
+              </h3>
+              {(imp.description || imp.problem) && (
+                <>
+                  <SubTitle>Descrição</SubTitle>
+                  <p className="text-[16px] text-report-text leading-relaxed">
+                    <EditableText value={imp.description ?? imp.problem ?? ""} onChange={editable ? (value) => onImprovementChange?.(i, "description", value) : undefined} />
+                  </p>
+                </>
+              )}
+              {imp.impact?.length ? (
+                <>
+                  <SubTitle>Impacto</SubTitle>
+                  <Bullets items={imp.impact} />
+                </>
+              ) : null}
+              {imp.recommendations?.length ? (
+                <>
+                  <SubTitle>Recomendações</SubTitle>
+                  <Bullets items={imp.recommendations} />
+                </>
+              ) : null}
+            </div>
+          ))}
         </div>
       </Page>
 
       {/* Conteúdo */}
       <Page>
-        <h3 className="text-base font-bold mb-2" style={{ color: DARK_GREEN }}>
+        <h3 className="text-[22px] font-bold mb-2 text-report-green" style={{ fontFamily: "'Bree Serif', Georgia, serif" }}>
           {hostname} - DIAGNÓSTICO DE SITE
         </h3>
 
