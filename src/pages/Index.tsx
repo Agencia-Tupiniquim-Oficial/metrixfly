@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Gauge, Sparkles, FileText, Globe, Eye } from "lucide-react";
+import { Loader2, Download, Gauge, Sparkles, FileText, Globe, Eye, Pencil } from "lucide-react";
 import DocxPreview from "@/components/DocxPreview";
 
 type Scores = { performance: number; accessibility: number; bestPractices: number; seo: number };
@@ -72,7 +72,9 @@ function ScoresGrid({ title, scores, metrics }: { title: string; scores: Scores;
 const Index = () => {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   const { toast } = useToast();
 
   const onSubmit = async (e: FormEvent) => {
@@ -96,9 +98,39 @@ const Index = () => {
     }
   };
 
-  const downloadDocx = () => {
+  const updateImprovement = (index: number, field: keyof Improvement, value: string) => {
+    setResult((current) => current && {
+      ...current,
+      improvements: current.improvements.map((item, i) => i === index ? { ...item, [field]: value } : item),
+    });
+  };
+
+  const updateUiuxOverview = (value: string) => {
+    setResult((current) => current && { ...current, uiux: { ...(current.uiux ?? {}), overview: value } });
+  };
+
+  const downloadDocx = async () => {
     if (!result) return;
-    const bin = atob(result.docx);
+    setDownloading(true);
+    let docx = result.docx;
+    try {
+      const normalized = url.startsWith("http") ? url : "https://" + url;
+      const { data, error } = await supabase.functions.invoke("diagnose-site", {
+        body: {
+          docxOnly: true,
+          url: normalized,
+          mobile: result.summary.mobile,
+          desktop: result.summary.desktop,
+          ai: { improvements: result.improvements, uiux: result.uiux, extras: result.extras },
+        },
+      });
+      if (error) throw error;
+      if (data?.docx) docx = data.docx;
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Baixando versão original", description: "Não consegui aplicar as edições no arquivo agora." });
+    }
+    const bin = atob(docx);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
@@ -108,6 +140,7 @@ const Index = () => {
     a.download = `${host}_diagnostico.docx`;
     a.click();
     URL.revokeObjectURL(a.href);
+    setDownloading(false);
   };
 
   return (
