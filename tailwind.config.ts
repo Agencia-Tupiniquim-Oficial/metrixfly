@@ -21,6 +21,13 @@ export default {
         foreground: "hsl(var(--foreground))",
         warning: "hsl(var(--warning))",
         success: "hsl(var(--success))",
+        report: {
+          green: "hsl(var(--report-green))",
+          "green-soft": "hsl(var(--report-green-soft))",
+          text: "hsl(var(--report-text))",
+          heading: "hsl(var(--report-heading))",
+          paper: "hsl(var(--report-paper))",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
