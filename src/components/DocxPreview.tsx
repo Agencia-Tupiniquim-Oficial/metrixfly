@@ -191,7 +191,9 @@ export default function DocxPreview({
           <>
             <SectionTitle>Melhorias de UI/UX</SectionTitle>
             {uiux.overview && (
-              <p className="text-[13px] text-neutral-800 leading-relaxed mb-3">{uiux.overview}</p>
+              <p className="text-[15px] text-report-text leading-relaxed mb-3">
+                <EditableText value={uiux.overview} onChange={editable ? onUiuxOverviewChange : undefined} />
+              </p>
             )}
             {uiux.diagnosis?.length ? (
               <>
@@ -213,8 +215,8 @@ export default function DocxPreview({
             <SectionTitle>Sugestões extras</SectionTitle>
             {extras.map((ex, i) => (
               <div key={i} className="mb-4">
-                <h3 className="text-base font-bold text-black mb-1">{ex.title}</h3>
-                <p className="text-[13px] text-neutral-800 leading-relaxed">{ex.description}</p>
+                <h3 className="text-base font-bold text-report-heading mb-1">{ex.title}</h3>
+                <p className="text-[15px] text-report-text leading-relaxed">{ex.description}</p>
               </div>
             ))}
           </>
@@ -226,8 +228,8 @@ export default function DocxPreview({
         <SectionTitle>Performance</SectionTitle>
         {([["Desktop", desktop], ["Mobile", mobile]] as const).map(([label, data]) => (
           <div key={label} className="mb-8">
-            <h3 className="text-base font-bold text-black mb-2">{label}:</h3>
-            <p className="text-[13px] text-neutral-800 leading-relaxed mb-3">
+            <h3 className="text-base font-bold text-report-heading mb-2">{label}:</h3>
+            <p className="text-[15px] text-report-text leading-relaxed mb-3">
               De acordo com a ferramenta PageSpeed Insights, a performance da página em dispositivos{" "}
               {label.toLowerCase()} está com a pontuação de {data.scores.performance}/100 em desempenho,{" "}
               {data.scores.accessibility}/100 em acessibilidade, {data.scores.bestPractices}/100 em práticas
