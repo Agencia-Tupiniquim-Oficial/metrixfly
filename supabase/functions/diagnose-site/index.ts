@@ -143,6 +143,15 @@ function dataUrlToBytes(dataUrl: string): Uint8Array | null {
   try { return b64ToBytes(dataUrl.split(",")[1]); } catch { return null; }
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
 // Cabeçalho com banner verde Tupiniquim (igual aos relatórios oficiais)
 function buildHeader() {
   return new Header({
@@ -374,7 +383,7 @@ Deno.serve(async (req) => {
     console.log("IA ok. Gerando docx…");
 
     const docx = await buildDocx(url, mobile, desktop, ai);
-    const docxB64 = btoa(String.fromCharCode(...docx));
+    const docxB64 = bytesToBase64(docx);
 
     return new Response(JSON.stringify({
       success: true,
