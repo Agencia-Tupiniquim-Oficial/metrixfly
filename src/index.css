@@ -35,6 +35,12 @@ All colors MUST be HSL.
     --warning: 38 95% 55%;
     --success: 142 70% 45%;
 
+    --report-green: 149 100% 28%;
+    --report-green-soft: 103 38% 63%;
+    --report-text: 0 0% 48%;
+    --report-heading: 0 0% 38%;
+    --report-paper: 0 0% 100%;
+
     --border: 240 8% 18%;
     --input: 240 8% 14%;
     --ring: 22 95% 55%;
