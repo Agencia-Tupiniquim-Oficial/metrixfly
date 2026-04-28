@@ -220,6 +220,18 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
   // ===== PRIMEIRA PÁGINA =====
   children.push(
     new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { after: 260 },
+      children: [
+        new ImageRun({
+          type: "png",
+          data: b64ToBytes(HEADER_PNG_B64),
+          transformation: { width: 600, height: 96 },
+          altText: { title: "Tupiniquim", description: "Cabeçalho Tupiniquim", name: "header" },
+        }),
+      ],
+    }),
+    new Paragraph({
       spacing: { before: 200, after: 420 },
       children: [new TextRun({ text: `${hostname} - DIAGNÓSTICO DE SITE`, font: "Bree Serif", size: 32, color: GREEN })],
     }),
@@ -332,10 +344,9 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
       properties: {
         page: {
           size: { width: 12240, height: 15840 },
-          margin: { top: 2200, right: 1440, bottom: 1440, left: 1440 },
+          margin: { top: 720, right: 1440, bottom: 1440, left: 1440 },
         },
       },
-      headers: { default: buildHeader() },
       children,
     }],
   });
