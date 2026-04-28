@@ -368,10 +368,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { url } = await req.json();
+    const { url, docxOnly, mobile: editedMobile, desktop: editedDesktop, ai: editedAi } = await req.json();
     if (!url || !/^https?:\/\//.test(url)) {
       return new Response(JSON.stringify({ error: "Informe uma URL válida (com http/https)" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (docxOnly) {
+      const docx = await buildDocx(url, editedMobile, editedDesktop, editedAi);
+      return new Response(JSON.stringify({ success: true, docx: bytesToBase64(docx) }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
