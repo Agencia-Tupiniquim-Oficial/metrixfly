@@ -129,6 +129,12 @@ export default function DocxPreview({
                   <Bullets items={imp.impact} />
                 </>
               ) : null}
+              {imp.causes?.length ? (
+                <>
+                  <SubTitle>Causas comuns</SubTitle>
+                  <Bullets items={imp.causes} />
+                </>
+              ) : null}
               {imp.recommendations?.length ? (
                 <>
                   <SubTitle>Recomendações</SubTitle>
@@ -147,15 +153,15 @@ export default function DocxPreview({
         </h3>
 
         <SectionTitle>Sugestões de melhoria</SectionTitle>
-        {improvements.map((imp, i) => (
+        {improvements.slice(2).map((imp, i) => (
           <div key={i} className="mb-6">
-            <h3 className="text-base font-bold text-black mt-4 mb-2">
-              {i + 1}. {imp.title}
+            <h3 className="text-base font-bold text-report-heading mt-4 mb-2">
+              {i + 3}. {imp.title}
             </h3>
             {(imp.description || imp.problem) && (
               <>
                 <SubTitle>Descrição</SubTitle>
-                <p className="text-[13px] text-neutral-800 leading-relaxed">
+                <p className="text-[15px] text-report-text leading-relaxed">
                   {imp.description ?? imp.problem}
                 </p>
               </>
