@@ -31,8 +31,8 @@ type Props = {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2
-      className="text-3xl pb-2 mt-10 mb-5 border-b-2"
-      style={{ fontFamily: "'Bree Serif', Georgia, serif", color: GREEN, borderColor: GREEN }}
+      className="text-[27px] pb-2 mt-10 mb-5 text-report-green-soft"
+      style={{ fontFamily: "'Bree Serif', Georgia, serif" }}
     >
       {children}
     </h2>
@@ -40,12 +40,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function SubTitle({ children }: { children: React.ReactNode }) {
-  return <h4 className="text-base font-bold text-black mt-4 mb-1.5">{children}</h4>;
+  return <h4 className="text-base font-bold text-report-heading mt-4 mb-1.5">{children}</h4>;
 }
 
 function Bullets({ items }: { items: string[] }) {
   return (
-    <ul className="list-disc pl-6 space-y-1 text-[13px] text-neutral-800 leading-relaxed">
+    <ul className="list-disc pl-10 space-y-0.5 text-[15px] text-report-text leading-relaxed">
       {items.map((it, i) => (
         <li key={i}>{it}</li>
       ))}
@@ -53,14 +53,28 @@ function Bullets({ items }: { items: string[] }) {
   );
 }
 
-function Page({ children }: { children: React.ReactNode }) {
+function EditableText({ value, onChange, className = "" }: { value: string; onChange?: (value: string) => void; className?: string }) {
+  if (!onChange) return <>{value}</>;
+  return (
+    <span
+      contentEditable
+      suppressContentEditableWarning
+      className={`outline-none focus:bg-report-green-soft/10 focus:ring-1 focus:ring-report-green-soft ${className}`}
+      onBlur={(event) => onChange(event.currentTarget.textContent ?? "")}
+    >
+      {value}
+    </span>
+  );
+}
+
+function Page({ children, withHeader = false }: { children: React.ReactNode; withHeader?: boolean }) {
   return (
     <div
-      className="bg-white text-black mx-auto shadow-lg"
-      style={{ width: "100%", maxWidth: 780, fontFamily: "Arial, Helvetica, sans-serif" }}
+      className="bg-report-paper text-report-text mx-auto shadow-lg overflow-hidden"
+      style={{ width: "100%", maxWidth: 780, minHeight: 1100, fontFamily: "Arial, Helvetica, sans-serif" }}
     >
-      <Header />
-      <div className="px-12 py-10">{children}</div>
+      {withHeader && <img src={coverHeader} alt="Cabeçalho Tupiniquim" className="w-full h-auto block" />}
+      <div className={withHeader ? "px-[92px] pt-12 pb-16" : "px-[92px] py-16"}>{children}</div>
     </div>
   );
 }
