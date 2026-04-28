@@ -201,12 +201,24 @@ const Index = () => {
             )}
 
             <Card className="p-6 bg-card border-border">
-              <h3 className="text-lg font-semibold mb-4 text-foreground flex items-center gap-2">
-                <Eye className="w-4 h-4 text-primary" /> Preview do relatório (.docx)
-              </h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                Confira abaixo o layout exato do documento que será baixado — cores, tipografia e estrutura no padrão Tupiniquim.
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-primary" /> Preview do relatório (.docx)
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Visualize o padrão Tupiniquim e ajuste textos antes de baixar.
+                  </p>
+                </div>
+                <div className="inline-flex rounded-md border border-border bg-secondary p-1">
+                  <Button type="button" size="sm" variant={previewMode === "view" ? "default" : "ghost"} onClick={() => setPreviewMode("view")}>
+                    <Eye className="w-4 h-4" /> Visualizar
+                  </Button>
+                  <Button type="button" size="sm" variant={previewMode === "edit" ? "default" : "ghost"} onClick={() => setPreviewMode("edit")}>
+                    <Pencil className="w-4 h-4" /> Editar
+                  </Button>
+                </div>
+              </div>
               <div className="bg-muted/40 -mx-6 -mb-6 px-4 py-8 rounded-b-lg overflow-x-auto">
                 <DocxPreview
                   url={url.startsWith("http") ? url : "https://" + url}
@@ -215,13 +227,16 @@ const Index = () => {
                   improvements={result.improvements}
                   uiux={result.uiux}
                   extras={result.extras}
+                  editable={previewMode === "edit"}
+                  onImprovementChange={updateImprovement}
+                  onUiuxOverviewChange={updateUiuxOverview}
                 />
               </div>
             </Card>
 
             <div className="sticky bottom-4">
-              <Button onClick={downloadDocx} size="lg" variant="hero" className="w-full font-semibold" style={{ boxShadow: "var(--shadow-glow)" }}>
-                <Download className="w-5 h-5 mr-2" /> Baixar relatório .docx completo
+              <Button onClick={downloadDocx} size="lg" variant="hero" className="w-full font-semibold" disabled={downloading} style={{ boxShadow: "var(--shadow-glow)" }}>
+                {downloading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Download className="w-5 h-5 mr-2" />} Baixar relatório .docx completo
               </Button>
             </div>
           </section>
