@@ -185,8 +185,7 @@ function body(text: string, opts: any = {}) {
 function sectionTitle(text: string) {
   return new Paragraph({
     spacing: { before: 400, after: 280 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: GREEN, space: 6 } },
-    children: [new TextRun({ text, font: "Bree Serif", size: 36, color: GREEN })],
+    children: [new TextRun({ text, font: "Bree Serif", size: 34, color: "8BBC74" })],
   });
 }
 
@@ -218,31 +217,11 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
   const hostname = new URL(url).hostname.replace("www.", "").toUpperCase();
   const children: any[] = [];
 
-  // ===== CAPA =====
+  // ===== PRIMEIRA PÁGINA =====
   children.push(
     new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 2400, after: 200 },
-      children: [new TextRun({ text: "DIAGNÓSTICO DE SITE", bold: true, size: 32, color: GRAY, font: "Arial" })],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 240 },
-      children: [new TextRun({ text: hostname, font: "Bree Serif", size: 56, color: GREEN })],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 600 },
-      children: [new TextRun({ text: url, italics: true, size: 22, color: GRAY, font: "Arial" })],
-    }),
-    new Paragraph({ children: [new PageBreak()] }),
-  );
-
-  // ===== TÍTULO DO RELATÓRIO =====
-  children.push(
-    new Paragraph({
-      spacing: { after: 200 },
-      children: [new TextRun({ text: `${hostname} - DIAGNÓSTICO DE SITE`, bold: true, size: 24, color: DARK_GREEN, font: "Arial" })],
+      spacing: { before: 200, after: 420 },
+      children: [new TextRun({ text: `${hostname} - DIAGNÓSTICO DE SITE`, font: "Bree Serif", size: 32, color: GREEN })],
     }),
   );
 
