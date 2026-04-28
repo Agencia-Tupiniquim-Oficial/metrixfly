@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Gauge, Sparkles, FileText, Globe, Eye } from "lucide-react";
+import { Loader2, Download, Gauge, Sparkles, FileText, Globe, Eye, Pencil } from "lucide-react";
 import DocxPreview from "@/components/DocxPreview";
 
 type Scores = { performance: number; accessibility: number; bestPractices: number; seo: number };
@@ -72,7 +72,9 @@ function ScoresGrid({ title, scores, metrics }: { title: string; scores: Scores;
 const Index = () => {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   const { toast } = useToast();
 
   const onSubmit = async (e: FormEvent) => {
@@ -96,9 +98,39 @@ const Index = () => {
     }
   };
 
-  const downloadDocx = () => {
+  const updateImprovement = (index: number, field: keyof Improvement, value: string) => {
+    setResult((current) => current && {
+      ...current,
+      improvements: current.improvements.map((item, i) => i === index ? { ...item, [field]: value } : item),
+    });
+  };
+
+  const updateUiuxOverview = (value: string) => {
+    setResult((current) => current && { ...current, uiux: { ...(current.uiux ?? {}), overview: value } });
+  };
+
+  const downloadDocx = async () => {
     if (!result) return;
-    const bin = atob(result.docx);
+    setDownloading(true);
+    let docx = result.docx;
+    try {
+      const normalized = url.startsWith("http") ? url : "https://" + url;
+      const { data, error } = await supabase.functions.invoke("diagnose-site", {
+        body: {
+          docxOnly: true,
+          url: normalized,
+          mobile: result.summary.mobile,
+          desktop: result.summary.desktop,
+          ai: { improvements: result.improvements, uiux: result.uiux, extras: result.extras },
+        },
+      });
+      if (error) throw error;
+      if (data?.docx) docx = data.docx;
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Baixando versão original", description: "Não consegui aplicar as edições no arquivo agora." });
+    }
+    const bin = atob(docx);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
@@ -108,6 +140,7 @@ const Index = () => {
     a.download = `${host}_diagnostico.docx`;
     a.click();
     URL.revokeObjectURL(a.href);
+    setDownloading(false);
   };
 
   return (
@@ -168,12 +201,24 @@ const Index = () => {
             )}
 
             <Card className="p-6 bg-card border-border">
-              <h3 className="text-lg font-semibold mb-4 text-foreground flex items-center gap-2">
-                <Eye className="w-4 h-4 text-primary" /> Preview do relatório (.docx)
-              </h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                Confira abaixo o layout exato do documento que será baixado — cores, tipografia e estrutura no padrão Tupiniquim.
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-primary" /> Preview do relatório (.docx)
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Visualize o padrão Tupiniquim e ajuste textos antes de baixar.
+                  </p>
+                </div>
+                <div className="inline-flex rounded-md border border-border bg-secondary p-1">
+                  <Button type="button" size="sm" variant={previewMode === "view" ? "default" : "ghost"} onClick={() => setPreviewMode("view")}>
+                    <Eye className="w-4 h-4" /> Visualizar
+                  </Button>
+                  <Button type="button" size="sm" variant={previewMode === "edit" ? "default" : "ghost"} onClick={() => setPreviewMode("edit")}>
+                    <Pencil className="w-4 h-4" /> Editar
+                  </Button>
+                </div>
+              </div>
               <div className="bg-muted/40 -mx-6 -mb-6 px-4 py-8 rounded-b-lg overflow-x-auto">
                 <DocxPreview
                   url={url.startsWith("http") ? url : "https://" + url}
@@ -182,13 +227,16 @@ const Index = () => {
                   improvements={result.improvements}
                   uiux={result.uiux}
                   extras={result.extras}
+                  editable={previewMode === "edit"}
+                  onImprovementChange={updateImprovement}
+                  onUiuxOverviewChange={updateUiuxOverview}
                 />
               </div>
             </Card>
 
             <div className="sticky bottom-4">
-              <Button onClick={downloadDocx} size="lg" variant="hero" className="w-full font-semibold" style={{ boxShadow: "var(--shadow-glow)" }}>
-                <Download className="w-5 h-5 mr-2" /> Baixar relatório .docx completo
+              <Button onClick={downloadDocx} size="lg" variant="hero" className="w-full font-semibold" disabled={downloading} style={{ boxShadow: "var(--shadow-glow)" }}>
+                {downloading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Download className="w-5 h-5 mr-2" />} Baixar relatório .docx completo
               </Button>
             </div>
           </section>

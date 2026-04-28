@@ -1,3 +1,5 @@
+import coverHeader from "@/assets/tupiniquim-report-cover.png";
+
 type Improvement = {
   title: string;
   description?: string;
@@ -21,40 +23,16 @@ type Props = {
   improvements: Improvement[];
   uiux?: { overview?: string; diagnosis?: string[]; recommendations?: string[] } | null;
   extras?: { title: string; description: string }[];
+  editable?: boolean;
+  onImprovementChange?: (index: number, field: keyof Improvement, value: string) => void;
+  onUiuxOverviewChange?: (value: string) => void;
 };
-
-const GREEN = "#008F45";
-const DARK_GREEN = "#006633";
-
-// Banner replica do header do .docx
-function Header() {
-  return (
-    <div className="relative h-20 overflow-hidden" style={{ background: GREEN }}>
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(45deg, rgba(255,255,255,.15) 0 8px, transparent 8px 16px)",
-        }}
-      />
-      <div className="relative h-full flex items-center px-10">
-        <span
-          className="text-white text-2xl tracking-wide"
-          style={{ fontFamily: "'Bree Serif', Georgia, serif" }}
-        >
-          tupiniquim
-        </span>
-      </div>
-      <div className="h-1.5" style={{ background: DARK_GREEN }} />
-    </div>
-  );
-}
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2
-      className="text-3xl pb-2 mt-10 mb-5 border-b-2"
-      style={{ fontFamily: "'Bree Serif', Georgia, serif", color: GREEN, borderColor: GREEN }}
+      className="text-[27px] pb-2 mt-10 mb-5 text-report-green-soft"
+      style={{ fontFamily: "'Bree Serif', Georgia, serif" }}
     >
       {children}
     </h2>
@@ -62,12 +40,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function SubTitle({ children }: { children: React.ReactNode }) {
-  return <h4 className="text-base font-bold text-black mt-4 mb-1.5">{children}</h4>;
+  return <h4 className="text-base font-bold text-report-heading mt-4 mb-1.5">{children}</h4>;
 }
 
 function Bullets({ items }: { items: string[] }) {
   return (
-    <ul className="list-disc pl-6 space-y-1 text-[13px] text-neutral-800 leading-relaxed">
+    <ul className="list-disc pl-10 space-y-0.5 text-[15px] text-report-text leading-relaxed">
       {items.map((it, i) => (
         <li key={i}>{it}</li>
       ))}
@@ -75,19 +53,43 @@ function Bullets({ items }: { items: string[] }) {
   );
 }
 
-function Page({ children }: { children: React.ReactNode }) {
+function EditableText({ value, onChange, className = "" }: { value: string; onChange?: (value: string) => void; className?: string }) {
+  if (!onChange) return <>{value}</>;
+  return (
+    <span
+      contentEditable
+      suppressContentEditableWarning
+      className={`outline-none focus:bg-report-green-soft/10 focus:ring-1 focus:ring-report-green-soft ${className}`}
+      onBlur={(event) => onChange(event.currentTarget.textContent ?? "")}
+    >
+      {value}
+    </span>
+  );
+}
+
+function Page({ children, withHeader = false }: { children: React.ReactNode; withHeader?: boolean }) {
   return (
     <div
-      className="bg-white text-black mx-auto shadow-lg"
-      style={{ width: "100%", maxWidth: 780, fontFamily: "Arial, Helvetica, sans-serif" }}
+      className="bg-report-paper text-report-text mx-auto shadow-lg overflow-hidden"
+      style={{ width: "100%", maxWidth: 780, minHeight: 1100, fontFamily: "Arial, Helvetica, sans-serif" }}
     >
-      <Header />
-      <div className="px-12 py-10">{children}</div>
+      {withHeader && <img src={coverHeader} alt="Cabeçalho Tupiniquim" className="w-full h-auto block" />}
+      <div className={withHeader ? "px-[92px] pt-12 pb-16" : "px-[92px] py-16"}>{children}</div>
     </div>
   );
 }
 
-export default function DocxPreview({ url, mobile, desktop, improvements, uiux, extras }: Props) {
+export default function DocxPreview({
+  url,
+  mobile,
+  desktop,
+  improvements,
+  uiux,
+  extras,
+  editable = false,
+  onImprovementChange,
+  onUiuxOverviewChange,
+}: Props) {
   const hostname = (() => {
     try {
       return new URL(url).hostname.replace("www.", "").toUpperCase();
@@ -99,35 +101,67 @@ export default function DocxPreview({ url, mobile, desktop, improvements, uiux, 
   return (
     <div className="space-y-6">
       {/* Capa */}
-      <Page>
-        <div className="text-center py-24">
-          <p className="text-xs tracking-widest text-neutral-500 font-bold mb-3">DIAGNÓSTICO DE SITE</p>
+      <Page withHeader>
+        <div>
           <h1
-            className="text-5xl mb-4"
-            style={{ fontFamily: "'Bree Serif', Georgia, serif", color: GREEN }}
+            className="text-[28px] mb-12 text-report-green"
+            style={{ fontFamily: "'Bree Serif', Georgia, serif" }}
           >
-            {hostname}
+            {hostname} - DIAGNÓSTICO DE SITE
           </h1>
-          <p className="text-sm italic text-neutral-500">{url}</p>
+          <SectionTitle>Sugestões de melhoria</SectionTitle>
+          {improvements.slice(0, 2).map((imp, i) => (
+            <div key={i} className="mb-8">
+              <h3 className="text-[18px] font-bold text-report-heading mt-6 mb-5">
+                {i + 1}. <EditableText value={imp.title} onChange={editable ? (value) => onImprovementChange?.(i, "title", value) : undefined} />
+              </h3>
+              {(imp.description || imp.problem) && (
+                <>
+                  <SubTitle>Descrição</SubTitle>
+                  <p className="text-[16px] text-report-text leading-relaxed">
+                    <EditableText value={imp.description ?? imp.problem ?? ""} onChange={editable ? (value) => onImprovementChange?.(i, "description", value) : undefined} />
+                  </p>
+                </>
+              )}
+              {imp.impact?.length ? (
+                <>
+                  <SubTitle>Impacto</SubTitle>
+                  <Bullets items={imp.impact} />
+                </>
+              ) : null}
+              {imp.causes?.length ? (
+                <>
+                  <SubTitle>Causas comuns</SubTitle>
+                  <Bullets items={imp.causes} />
+                </>
+              ) : null}
+              {imp.recommendations?.length ? (
+                <>
+                  <SubTitle>Recomendações</SubTitle>
+                  <Bullets items={imp.recommendations} />
+                </>
+              ) : null}
+            </div>
+          ))}
         </div>
       </Page>
 
       {/* Conteúdo */}
       <Page>
-        <h3 className="text-base font-bold mb-2" style={{ color: DARK_GREEN }}>
+        <h3 className="text-[22px] font-bold mb-2 text-report-green" style={{ fontFamily: "'Bree Serif', Georgia, serif" }}>
           {hostname} - DIAGNÓSTICO DE SITE
         </h3>
 
         <SectionTitle>Sugestões de melhoria</SectionTitle>
-        {improvements.map((imp, i) => (
+        {improvements.slice(2).map((imp, i) => (
           <div key={i} className="mb-6">
-            <h3 className="text-base font-bold text-black mt-4 mb-2">
-              {i + 1}. {imp.title}
+            <h3 className="text-base font-bold text-report-heading mt-4 mb-2">
+              {i + 3}. {imp.title}
             </h3>
             {(imp.description || imp.problem) && (
               <>
                 <SubTitle>Descrição</SubTitle>
-                <p className="text-[13px] text-neutral-800 leading-relaxed">
+                <p className="text-[15px] text-report-text leading-relaxed">
                   {imp.description ?? imp.problem}
                 </p>
               </>
@@ -157,7 +191,9 @@ export default function DocxPreview({ url, mobile, desktop, improvements, uiux, 
           <>
             <SectionTitle>Melhorias de UI/UX</SectionTitle>
             {uiux.overview && (
-              <p className="text-[13px] text-neutral-800 leading-relaxed mb-3">{uiux.overview}</p>
+              <p className="text-[15px] text-report-text leading-relaxed mb-3">
+                <EditableText value={uiux.overview} onChange={editable ? onUiuxOverviewChange : undefined} />
+              </p>
             )}
             {uiux.diagnosis?.length ? (
               <>
@@ -179,8 +215,8 @@ export default function DocxPreview({ url, mobile, desktop, improvements, uiux, 
             <SectionTitle>Sugestões extras</SectionTitle>
             {extras.map((ex, i) => (
               <div key={i} className="mb-4">
-                <h3 className="text-base font-bold text-black mb-1">{ex.title}</h3>
-                <p className="text-[13px] text-neutral-800 leading-relaxed">{ex.description}</p>
+                <h3 className="text-base font-bold text-report-heading mb-1">{ex.title}</h3>
+                <p className="text-[15px] text-report-text leading-relaxed">{ex.description}</p>
               </div>
             ))}
           </>
@@ -192,8 +228,8 @@ export default function DocxPreview({ url, mobile, desktop, improvements, uiux, 
         <SectionTitle>Performance</SectionTitle>
         {([["Desktop", desktop], ["Mobile", mobile]] as const).map(([label, data]) => (
           <div key={label} className="mb-8">
-            <h3 className="text-base font-bold text-black mb-2">{label}:</h3>
-            <p className="text-[13px] text-neutral-800 leading-relaxed mb-3">
+            <h3 className="text-base font-bold text-report-heading mb-2">{label}:</h3>
+            <p className="text-[15px] text-report-text leading-relaxed mb-3">
               De acordo com a ferramenta PageSpeed Insights, a performance da página em dispositivos{" "}
               {label.toLowerCase()} está com a pontuação de {data.scores.performance}/100 em desempenho,{" "}
               {data.scores.accessibility}/100 em acessibilidade, {data.scores.bestPractices}/100 em práticas

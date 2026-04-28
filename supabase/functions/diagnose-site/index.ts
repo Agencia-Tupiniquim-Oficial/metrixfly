@@ -185,8 +185,7 @@ function body(text: string, opts: any = {}) {
 function sectionTitle(text: string) {
   return new Paragraph({
     spacing: { before: 400, after: 280 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: GREEN, space: 6 } },
-    children: [new TextRun({ text, font: "Bree Serif", size: 36, color: GREEN })],
+    children: [new TextRun({ text, font: "Bree Serif", size: 34, color: "8BBC74" })],
   });
 }
 
@@ -218,31 +217,23 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
   const hostname = new URL(url).hostname.replace("www.", "").toUpperCase();
   const children: any[] = [];
 
-  // ===== CAPA =====
+  // ===== PRIMEIRA PÁGINA =====
   children.push(
     new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 2400, after: 200 },
-      children: [new TextRun({ text: "DIAGNÓSTICO DE SITE", bold: true, size: 32, color: GRAY, font: "Arial" })],
+      alignment: AlignmentType.LEFT,
+      spacing: { after: 260 },
+      children: [
+        new ImageRun({
+          type: "png",
+          data: b64ToBytes(HEADER_PNG_B64),
+          transformation: { width: 600, height: 96 },
+          altText: { title: "Tupiniquim", description: "Cabeçalho Tupiniquim", name: "header" },
+        }),
+      ],
     }),
     new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 240 },
-      children: [new TextRun({ text: hostname, font: "Bree Serif", size: 56, color: GREEN })],
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 600 },
-      children: [new TextRun({ text: url, italics: true, size: 22, color: GRAY, font: "Arial" })],
-    }),
-    new Paragraph({ children: [new PageBreak()] }),
-  );
-
-  // ===== TÍTULO DO RELATÓRIO =====
-  children.push(
-    new Paragraph({
-      spacing: { after: 200 },
-      children: [new TextRun({ text: `${hostname} - DIAGNÓSTICO DE SITE`, bold: true, size: 24, color: DARK_GREEN, font: "Arial" })],
+      spacing: { before: 200, after: 420 },
+      children: [new TextRun({ text: `${hostname} - DIAGNÓSTICO DE SITE`, font: "Bree Serif", size: 32, color: GREEN })],
     }),
   );
 
@@ -353,10 +344,9 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
       properties: {
         page: {
           size: { width: 12240, height: 15840 },
-          margin: { top: 2200, right: 1440, bottom: 1440, left: 1440 },
+          margin: { top: 720, right: 1440, bottom: 1440, left: 1440 },
         },
       },
-      headers: { default: buildHeader() },
       children,
     }],
   });
@@ -368,10 +358,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { url } = await req.json();
+    const { url, docxOnly, mobile: editedMobile, desktop: editedDesktop, ai: editedAi } = await req.json();
     if (!url || !/^https?:\/\//.test(url)) {
       return new Response(JSON.stringify({ error: "Informe uma URL válida (com http/https)" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (docxOnly) {
+      const docx = await buildDocx(url, editedMobile, editedDesktop, editedAi);
+      return new Response(JSON.stringify({ success: true, docx: bytesToBase64(docx) }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
