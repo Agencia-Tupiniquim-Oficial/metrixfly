@@ -14,6 +14,15 @@ const corsHeaders = {
 
 const PAGESPEED = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
 async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   const params = new URLSearchParams({ url, strategy });
   ["performance", "accessibility", "best-practices", "seo"].forEach((c) => params.append("category", c));
@@ -176,14 +185,6 @@ function dataUrlToBytes(dataUrl: string): Uint8Array | null {
   try { return b64ToBytes(dataUrl.split(",")[1]); } catch { return null; }
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
-}
 
 // Cabeçalho com banner verde Tupiniquim (igual aos relatórios oficiais)
 function buildHeader() {
