@@ -336,7 +336,26 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
       ),
     );
 
-    if (data.screenshot) {
+    const psShot = data.pagespeedScreenshot ?? null;
+    if (psShot) {
+      const bytes = dataUrlToBytes(psShot);
+      if (bytes) {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 200, after: 200 },
+            children: [
+              new ImageRun({
+                type: "jpg",
+                data: bytes,
+                transformation: { width: 560, height: 380 },
+                altText: { title: "pagespeed", description: `PageSpeed ${label}`, name: "pagespeed" },
+              }),
+            ],
+          }),
+        );
+      }
+    } else if (data.screenshot) {
       const bytes = dataUrlToBytes(data.screenshot);
       if (bytes) {
         const isMobile = label === "Mobile";
@@ -408,8 +427,17 @@ Deno.serve(async (req) => {
 
     console.log("Diagnosticando", url);
     const [mobile, desktop] = await Promise.all([runPageSpeed(url, "mobile"), runPageSpeed(url, "desktop")]);
-    console.log("PageSpeed ok. Gerando IA…");
+    console.log("PageSpeed ok. Capturando screenshots do PageSpeed Insights…");
 
+    const [psMobileShot, psDesktopShot] = await Promise.all([
+      capturePageSpeedScreenshot(url, "mobile"),
+      capturePageSpeedScreenshot(url, "desktop"),
+    ]);
+    (mobile as any).pagespeedScreenshot = psMobileShot;
+    (desktop as any).pagespeedScreenshot = psDesktopShot;
+    console.log("Screenshots PageSpeed:", { mobile: !!psMobileShot, desktop: !!psDesktopShot });
+
+    console.log("Gerando IA…");
     const ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
     console.log("IA ok. Gerando docx…");
 
@@ -423,12 +451,14 @@ Deno.serve(async (req) => {
           scores: mobile.scores,
           metrics: mobile.metrics,
           screenshot: mobile.screenshot,
+          pagespeedScreenshot: psMobileShot,
           opportunities: mobile.opportunities ?? [],
         },
         desktop: {
           scores: desktop.scores,
           metrics: desktop.metrics,
           screenshot: desktop.screenshot,
+          pagespeedScreenshot: psDesktopShot,
           opportunities: desktop.opportunities ?? [],
         },
         screenshot: mobile.screenshot,
