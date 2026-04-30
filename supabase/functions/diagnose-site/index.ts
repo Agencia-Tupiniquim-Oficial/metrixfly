@@ -159,19 +159,24 @@ function buildPageSpeedSvg(
 </svg>`;
 }
 
-// Converte SVG para PNG via wsrv.nl (serviço público gratuito de renderização)
+// Converte SVG para PNG usando resvg-wasm (renderização local, sem limites de URL)
+let resvgInitialized = false;
+async function ensureResvg() {
+  if (resvgInitialized) return;
+  const mod: any = await import("https://esm.sh/@resvg/resvg-wasm@2.6.2");
+  const wasmRes = await fetch("https://esm.sh/@resvg/resvg-wasm@2.6.2/index_bg.wasm");
+  await mod.initWasm(await wasmRes.arrayBuffer());
+  (globalThis as any).__Resvg = mod.Resvg;
+  resvgInitialized = true;
+}
+
 async function svgToPng(svg: string): Promise<string | null> {
   try {
-    const svgB64 = bytesToBase64(new TextEncoder().encode(svg));
-    const dataUrl = `data:image/svg+xml;base64,${svgB64}`;
-    const res = await fetch(`https://wsrv.nl/?url=${encodeURIComponent(dataUrl)}&output=png&w=1200`);
-    if (!res.ok) {
-      console.warn("svgToPng falhou", res.status);
-      return null;
-    }
-    const buf = new Uint8Array(await res.arrayBuffer());
-    if (buf.length < 500) return null;
-    return `data:image/png;base64,${bytesToBase64(buf)}`;
+    await ensureResvg();
+    const Resvg = (globalThis as any).__Resvg;
+    const resvg = new Resvg(svg, { fitTo: { mode: "width", value: 1200 } });
+    const png = resvg.render().asPng();
+    return `data:image/png;base64,${bytesToBase64(png)}`;
   } catch (e) {
     console.warn("svgToPng erro", (e as Error).message);
     return null;
