@@ -521,11 +521,11 @@ Deno.serve(async (req) => {
 
     console.log("Diagnosticando", url);
     const [mobile, desktop] = await Promise.all([runPageSpeed(url, "mobile"), runPageSpeed(url, "desktop")]);
-    console.log("PageSpeed ok. Capturando screenshots do PageSpeed Insights…");
+    console.log("PageSpeed ok. Renderizando cards visuais…");
 
     const [psMobileShot, psDesktopShot] = await Promise.all([
-      capturePageSpeedScreenshot(url, "mobile"),
-      capturePageSpeedScreenshot(url, "desktop"),
+      buildPageSpeedCard(mobile.scores, mobile.screenshot, "mobile"),
+      buildPageSpeedCard(desktop.scores, desktop.screenshot, "desktop"),
     ]);
     (mobile as any).pagespeedScreenshot = psMobileShot;
     (desktop as any).pagespeedScreenshot = psDesktopShot;
