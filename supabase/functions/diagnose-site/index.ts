@@ -60,37 +60,131 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   };
 }
 
-// Captura screenshot da página do PageSpeed Insights (pagespeed.web.dev) via Microlink
-async function capturePageSpeedScreenshot(siteUrl: string, strategy: "mobile" | "desktop"): Promise<string | null> {
+// Cores estilo PageSpeed (faixas de score)
+function scoreColor(score: number): { ring: string; bg: string; text: string } {
+  if (score >= 90) return { ring: "#0CCE6B", bg: "#E6F4EA", text: "#0A7D43" };
+  if (score >= 50) return { ring: "#FFA400", bg: "#FFF3E0", text: "#B86E00" };
+  return { ring: "#FF4E42", bg: "#FCE8E6", text: "#C5221F" };
+}
+
+// Renderiza um SVG estilo PageSpeed com os 4 círculos + screenshot do site embutido
+function buildPageSpeedSvg(
+  scores: { performance: number; accessibility: number; bestPractices: number; seo: number },
+  screenshotDataUrl: string | null,
+  strategy: "mobile" | "desktop",
+): string {
+  const W = 1200;
+  const H = 720;
+  const items = [
+    { label: "Desempenho", value: scores.performance },
+    { label: "Acessibilidade", value: scores.accessibility },
+    { label: "Práticas recomendadas", value: scores.bestPractices },
+    { label: "SEO", value: scores.seo },
+  ];
+
+  const circleRow = items.map((it, i) => {
+    const c = scoreColor(it.value);
+    const cx = 180 + i * 230;
+    const cy = 110;
+    const r = 52;
+    const circumference = 2 * Math.PI * r;
+    const dash = (it.value / 100) * circumference;
+    return `
+      <g transform="translate(${cx}, ${cy})">
+        <circle r="${r}" fill="${c.bg}" />
+        <circle r="${r}" fill="none" stroke="${c.ring}" stroke-width="6"
+                stroke-dasharray="${dash} ${circumference}" stroke-linecap="round"
+                transform="rotate(-90)" />
+        <text text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif"
+              font-size="34" font-weight="600" fill="${c.text}">${it.value}</text>
+        <text y="${r + 30}" text-anchor="middle" font-family="Arial, sans-serif"
+              font-size="18" fill="#3C4043">${it.label}</text>
+      </g>`;
+  }).join("");
+
+  // Score principal grande (Desempenho) à esquerda
+  const main = scoreColor(scores.performance);
+  const mainCx = 240;
+  const mainCy = 430;
+  const mainR = 110;
+  const mainCirc = 2 * Math.PI * mainR;
+  const mainDash = (scores.performance / 100) * mainCirc;
+
+  const screenshotEmbed = screenshotDataUrl
+    ? `<image x="640" y="290" width="${strategy === "mobile" ? 200 : 480}" height="${strategy === "mobile" ? 360 : 290}"
+              href="${screenshotDataUrl}" preserveAspectRatio="xMidYMid meet" />`
+    : `<rect x="640" y="290" width="480" height="290" fill="#F1F3F4" stroke="#DADCE0" />`;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <rect width="${W}" height="${H}" fill="#FFFFFF" />
+  <rect x="20" y="20" width="${W - 40}" height="${H - 40}" fill="#FFFFFF" stroke="#DADCE0" rx="8" />
+
+  <!-- Tabs -->
+  <text x="${W / 2 - 60}" y="60" font-family="Arial, sans-serif" font-size="16"
+        fill="${strategy === "mobile" ? "#1A73E8" : "#5F6368"}" font-weight="${strategy === "mobile" ? "600" : "400"}">📱 Celular</text>
+  <text x="${W / 2 + 30}" y="60" font-family="Arial, sans-serif" font-size="16"
+        fill="${strategy === "desktop" ? "#1A73E8" : "#5F6368"}" font-weight="${strategy === "desktop" ? "600" : "400"}">🖥 Computador</text>
+  <line x1="40" y1="80" x2="${W - 40}" y2="80" stroke="#E8EAED" />
+
+  ${circleRow}
+
+  <line x1="40" y1="220" x2="${W - 40}" y2="220" stroke="#E8EAED" />
+
+  <!-- Score grande à esquerda -->
+  <g transform="translate(${mainCx}, ${mainCy})">
+    <circle r="${mainR}" fill="${main.bg}" />
+    <circle r="${mainR}" fill="none" stroke="${main.ring}" stroke-width="10"
+            stroke-dasharray="${mainDash} ${mainCirc}" stroke-linecap="round"
+            transform="rotate(-90)" />
+    <text text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif"
+          font-size="68" font-weight="600" fill="${main.text}">${scores.performance}</text>
+  </g>
+  <text x="${mainCx}" y="${mainCy + mainR + 40}" text-anchor="middle"
+        font-family="Arial, sans-serif" font-size="24" fill="#202124">Desempenho</text>
+
+  <!-- Screenshot do site -->
+  ${screenshotEmbed}
+
+  <!-- Legenda -->
+  <g transform="translate(120, 660)" font-family="Arial, sans-serif" font-size="13" fill="#5F6368">
+    <polygon points="0,0 10,0 5,-9" fill="#FF4E42" />
+    <text x="18" y="0">0–49</text>
+    <rect x="70" y="-9" width="10" height="9" fill="#FFA400" />
+    <text x="88" y="0">50–89</text>
+    <circle cx="150" cy="-4" r="5" fill="#0CCE6B" />
+    <text x="162" y="0">90–100</text>
+  </g>
+</svg>`;
+}
+
+// Converte SVG para PNG via wsrv.nl (serviço público gratuito de renderização)
+async function svgToPng(svg: string): Promise<string | null> {
   try {
-    const target = `https://pagespeed.web.dev/analysis?url=${encodeURIComponent(siteUrl)}&form_factor=${strategy}`;
-    const params = new URLSearchParams({
-      url: target,
-      screenshot: "true",
-      meta: "false",
-      embed: "screenshot.url",
-      "viewport.width": strategy === "mobile" ? "420" : "1280",
-      "viewport.height": strategy === "mobile" ? "900" : "900",
-      waitUntil: "networkidle0",
-      waitFor: "8000",
-      "screenshot.fullPage": "false",
-      "screenshot.type": "jpeg",
-    });
-    const res = await fetch(`https://api.microlink.io/?${params}`, {
-      redirect: "follow",
-      headers: { "User-Agent": "Mozilla/5.0 Diagnose-Bot" },
-    });
+    const svgB64 = bytesToBase64(new TextEncoder().encode(svg));
+    const dataUrl = `data:image/svg+xml;base64,${svgB64}`;
+    const res = await fetch(`https://wsrv.nl/?url=${encodeURIComponent(dataUrl)}&output=png&w=1200`);
     if (!res.ok) {
-      console.warn(`Microlink ${strategy} falhou: ${res.status}`);
+      console.warn("svgToPng falhou", res.status);
       return null;
     }
     const buf = new Uint8Array(await res.arrayBuffer());
-    if (buf.length < 1000) return null;
-    return `data:image/jpeg;base64,${bytesToBase64(buf)}`;
+    if (buf.length < 500) return null;
+    return `data:image/png;base64,${bytesToBase64(buf)}`;
   } catch (e) {
-    console.warn("capturePageSpeedScreenshot erro", (e as Error).message);
+    console.warn("svgToPng erro", (e as Error).message);
     return null;
   }
+}
+
+async function buildPageSpeedCard(
+  scores: { performance: number; accessibility: number; bestPractices: number; seo: number },
+  siteScreenshotDataUrl: string | null,
+  strategy: "mobile" | "desktop",
+): Promise<string | null> {
+  const svg = buildPageSpeedSvg(scores, siteScreenshotDataUrl, strategy);
+  return await svgToPng(svg);
 }
 
 async function aiAnalysis(url: string, mobile: any, desktop: any, screenshotDataUrl: string | null) {
