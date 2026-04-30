@@ -13,6 +13,7 @@ type SideData = {
   scores: { performance: number; accessibility: number; bestPractices: number; seo: number };
   metrics: { fcp: string; lcp: string; tbt: string; cls: string; si: string };
   screenshot?: string | null;
+  pagespeedScreenshot?: string | null;
   opportunities?: { title: string; displayValue?: string }[];
 };
 
@@ -235,13 +236,13 @@ export default function DocxPreview({
               {data.scores.accessibility}/100 em acessibilidade, {data.scores.bestPractices}/100 em práticas
               recomendadas e {data.scores.seo}/100 em SEO.
             </p>
-            {data.screenshot && (
+            {(data.pagespeedScreenshot || data.screenshot) && (
               <div className="flex justify-center my-4">
                 <img
-                  src={data.screenshot}
-                  alt={`Screenshot ${label}`}
-                  className="border border-neutral-200 rounded"
-                  style={{ maxHeight: label === "Mobile" ? 360 : 260 }}
+                  src={data.pagespeedScreenshot ?? data.screenshot ?? ""}
+                  alt={`PageSpeed ${label}`}
+                  className="border border-neutral-200 rounded max-w-full"
+                  style={{ maxHeight: data.pagespeedScreenshot ? 480 : (label === "Mobile" ? 360 : 260) }}
                 />
               </div>
             )}

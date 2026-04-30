@@ -14,6 +14,15 @@ const corsHeaders = {
 
 const PAGESPEED = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
 async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   const params = new URLSearchParams({ url, strategy });
   ["performance", "accessibility", "best-practices", "seo"].forEach((c) => params.append("category", c));
@@ -49,6 +58,39 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
     opportunities,
     finalUrl: lr.finalUrl,
   };
+}
+
+// Captura screenshot da página do PageSpeed Insights (pagespeed.web.dev) via Microlink
+async function capturePageSpeedScreenshot(siteUrl: string, strategy: "mobile" | "desktop"): Promise<string | null> {
+  try {
+    const target = `https://pagespeed.web.dev/analysis?url=${encodeURIComponent(siteUrl)}&form_factor=${strategy}`;
+    const params = new URLSearchParams({
+      url: target,
+      screenshot: "true",
+      meta: "false",
+      embed: "screenshot.url",
+      "viewport.width": strategy === "mobile" ? "420" : "1280",
+      "viewport.height": strategy === "mobile" ? "900" : "900",
+      waitUntil: "networkidle0",
+      waitFor: "8000",
+      "screenshot.fullPage": "false",
+      "screenshot.type": "jpeg",
+    });
+    const res = await fetch(`https://api.microlink.io/?${params}`, {
+      redirect: "follow",
+      headers: { "User-Agent": "Mozilla/5.0 Diagnose-Bot" },
+    });
+    if (!res.ok) {
+      console.warn(`Microlink ${strategy} falhou: ${res.status}`);
+      return null;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.length < 1000) return null;
+    return `data:image/jpeg;base64,${bytesToBase64(buf)}`;
+  } catch (e) {
+    console.warn("capturePageSpeedScreenshot erro", (e as Error).message);
+    return null;
+  }
 }
 
 async function aiAnalysis(url: string, mobile: any, desktop: any, screenshotDataUrl: string | null) {
@@ -143,14 +185,6 @@ function dataUrlToBytes(dataUrl: string): Uint8Array | null {
   try { return b64ToBytes(dataUrl.split(",")[1]); } catch { return null; }
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
-}
 
 // Cabeçalho com banner verde Tupiniquim (igual aos relatórios oficiais)
 function buildHeader() {
@@ -302,7 +336,26 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
       ),
     );
 
-    if (data.screenshot) {
+    const psShot = data.pagespeedScreenshot ?? null;
+    if (psShot) {
+      const bytes = dataUrlToBytes(psShot);
+      if (bytes) {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 200, after: 200 },
+            children: [
+              new ImageRun({
+                type: "jpg",
+                data: bytes,
+                transformation: { width: 560, height: 380 },
+                altText: { title: "pagespeed", description: `PageSpeed ${label}`, name: "pagespeed" },
+              }),
+            ],
+          }),
+        );
+      }
+    } else if (data.screenshot) {
       const bytes = dataUrlToBytes(data.screenshot);
       if (bytes) {
         const isMobile = label === "Mobile";
@@ -374,8 +427,17 @@ Deno.serve(async (req) => {
 
     console.log("Diagnosticando", url);
     const [mobile, desktop] = await Promise.all([runPageSpeed(url, "mobile"), runPageSpeed(url, "desktop")]);
-    console.log("PageSpeed ok. Gerando IA…");
+    console.log("PageSpeed ok. Capturando screenshots do PageSpeed Insights…");
 
+    const [psMobileShot, psDesktopShot] = await Promise.all([
+      capturePageSpeedScreenshot(url, "mobile"),
+      capturePageSpeedScreenshot(url, "desktop"),
+    ]);
+    (mobile as any).pagespeedScreenshot = psMobileShot;
+    (desktop as any).pagespeedScreenshot = psDesktopShot;
+    console.log("Screenshots PageSpeed:", { mobile: !!psMobileShot, desktop: !!psDesktopShot });
+
+    console.log("Gerando IA…");
     const ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
     console.log("IA ok. Gerando docx…");
 
@@ -389,12 +451,14 @@ Deno.serve(async (req) => {
           scores: mobile.scores,
           metrics: mobile.metrics,
           screenshot: mobile.screenshot,
+          pagespeedScreenshot: psMobileShot,
           opportunities: mobile.opportunities ?? [],
         },
         desktop: {
           scores: desktop.scores,
           metrics: desktop.metrics,
           screenshot: desktop.screenshot,
+          pagespeedScreenshot: psDesktopShot,
           opportunities: desktop.opportunities ?? [],
         },
         screenshot: mobile.screenshot,
