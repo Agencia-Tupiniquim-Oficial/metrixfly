@@ -51,6 +51,39 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   };
 }
 
+// Captura screenshot da página do PageSpeed Insights (pagespeed.web.dev) via Microlink
+async function capturePageSpeedScreenshot(siteUrl: string, strategy: "mobile" | "desktop"): Promise<string | null> {
+  try {
+    const target = `https://pagespeed.web.dev/analysis?url=${encodeURIComponent(siteUrl)}&form_factor=${strategy}`;
+    const params = new URLSearchParams({
+      url: target,
+      screenshot: "true",
+      meta: "false",
+      embed: "screenshot.url",
+      "viewport.width": strategy === "mobile" ? "420" : "1280",
+      "viewport.height": strategy === "mobile" ? "900" : "900",
+      waitUntil: "networkidle0",
+      waitFor: "8000",
+      "screenshot.fullPage": "false",
+      "screenshot.type": "jpeg",
+    });
+    const res = await fetch(`https://api.microlink.io/?${params}`, {
+      redirect: "follow",
+      headers: { "User-Agent": "Mozilla/5.0 Diagnose-Bot" },
+    });
+    if (!res.ok) {
+      console.warn(`Microlink ${strategy} falhou: ${res.status}`);
+      return null;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.length < 1000) return null;
+    return `data:image/jpeg;base64,${bytesToBase64(buf)}`;
+  } catch (e) {
+    console.warn("capturePageSpeedScreenshot erro", (e as Error).message);
+    return null;
+  }
+}
+
 async function aiAnalysis(url: string, mobile: any, desktop: any, screenshotDataUrl: string | null) {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
