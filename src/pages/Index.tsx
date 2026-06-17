@@ -86,8 +86,8 @@ const Index = () => {
     setResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("diagnose-site", { body: { url: normalized } });
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      if (error) throw error;
       setResult(data as Result);
       toast({ title: "Diagnóstico pronto!", description: "Seu relatório foi gerado com sucesso." });
     } catch (err: any) {

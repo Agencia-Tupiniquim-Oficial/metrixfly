@@ -29,7 +29,21 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   const apiKey = Deno.env.get("PAGESPEED_API_KEY");
   if (apiKey) params.append("key", apiKey);
   const res = await fetch(`${PAGESPEED}?${params}`);
-  if (!res.ok) throw new Error(`PageSpeed ${strategy} falhou: ${res.status}`);
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => null);
+    const googleMsg = errBody?.error?.message as string | undefined;
+    if (res.status === 429) {
+      throw new Error(
+        "Cota diária do PageSpeed Insights esgotada. Adicione a secret PAGESPEED_API_KEY no Supabase (Google Cloud → PageSpeed Insights API).",
+      );
+    }
+    if (res.status === 403) {
+      throw new Error(
+        googleMsg ?? "PageSpeed API recusou a requisição. Verifique se a API está ativada e se PAGESPEED_API_KEY é válida.",
+      );
+    }
+    throw new Error(googleMsg ?? `PageSpeed ${strategy} falhou: ${res.status}`);
+  }
   const data = await res.json();
   const lr = data.lighthouseResult;
   const cats = lr.categories;
