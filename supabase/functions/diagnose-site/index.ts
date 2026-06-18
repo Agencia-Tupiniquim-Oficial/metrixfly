@@ -550,9 +550,17 @@ Deno.serve(async (req) => {
     (desktop as any).pagespeedScreenshot = psDesktopShot;
     console.log("Screenshots PageSpeed:", { mobile: !!psMobileShot, desktop: !!psDesktopShot });
 
-    console.log("Gerando IA…");
-    const ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
-    console.log("IA ok. Gerando docx…");
+    console.log("Gerando IA… (se configurada)");
+    let ai;
+    const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (LOVABLE_KEY) {
+      ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
+      console.log("IA ok.");
+    } else {
+      console.warn("LOVABLE_API_KEY não configurada — pulando análise IA e usando fallback.");
+      ai = { improvements: [], uiux: null, extras: [] };
+    }
+    console.log("Gerando docx…");
 
     const docx = await buildDocx(url, mobile, desktop, ai);
     const docxB64 = bytesToBase64(docx);
