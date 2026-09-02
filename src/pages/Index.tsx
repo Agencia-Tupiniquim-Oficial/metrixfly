@@ -1,4 +1,5 @@
 import { useState, FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,27 @@ type Result = {
   extras?: { title: string; description: string }[];
   docx: string;
 };
+
+async function getDiagnosticErrorMessage(error: unknown): Promise<string> {
+  if (error instanceof Error && error.message && error.message !== "Edge Function returned a non-2xx status code") {
+    return error.message;
+  }
+
+  const context = error && typeof error === "object" && "context" in error
+    ? (error as { context?: unknown }).context
+    : undefined;
+
+  if (context instanceof Response) {
+    try {
+      const body = await context.clone().json() as { error?: string };
+      if (body.error) return body.error;
+    } catch {
+      // The response may not contain JSON; keep the generic function error below.
+    }
+  }
+
+  return error instanceof Error ? error.message : "Tente novamente";
+}
 
 const scoreClass = (n: number) =>
   n >= 90 ? "text-success border-success" : n >= 50 ? "text-warning border-warning" : "text-destructive border-destructive";
@@ -90,9 +112,13 @@ const Index = () => {
       if (error) throw error;
       setResult(data as Result);
       toast({ title: "Diagnóstico pronto!", description: "Seu relatório foi gerado com sucesso." });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast({ title: "Erro ao gerar diagnóstico", description: err.message ?? "Tente novamente", variant: "destructive" });
+      toast({
+        title: "Erro ao gerar diagnóstico",
+        description: await getDiagnosticErrorMessage(err),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -255,6 +281,15 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">{desc}</p>
               </Card>
             ))}
+            <Card className="p-5 bg-primary/5 border-primary/20 sm:col-span-3">
+              <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+                <div>
+                  <h4 className="font-semibold mb-1">Novo: Agent Crawl GEO/AEO</h4>
+                  <p className="text-sm text-muted-foreground">Analise visibilidade em IA, entidades, respostas, schema e concorrência.</p>
+                </div>
+                <Button asChild variant="outline"><Link to="/geo-aeo">Abrir dashboard <span className="ml-2">→</span></Link></Button>
+              </div>
+            </Card>
           </div>
         )}
       </div>
