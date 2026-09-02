@@ -31,6 +31,27 @@ type Result = {
   docx: string;
 };
 
+async function getDiagnosticErrorMessage(error: unknown): Promise<string> {
+  if (error instanceof Error && error.message && error.message !== "Edge Function returned a non-2xx status code") {
+    return error.message;
+  }
+
+  const context = error && typeof error === "object" && "context" in error
+    ? (error as { context?: unknown }).context
+    : undefined;
+
+  if (context instanceof Response) {
+    try {
+      const body = await context.clone().json() as { error?: string };
+      if (body.error) return body.error;
+    } catch {
+      // The response may not contain JSON; keep the generic function error below.
+    }
+  }
+
+  return error instanceof Error ? error.message : "Tente novamente";
+}
+
 const scoreClass = (n: number) =>
   n >= 90 ? "text-success border-success" : n >= 50 ? "text-warning border-warning" : "text-destructive border-destructive";
 
@@ -90,9 +111,13 @@ const Index = () => {
       if (error) throw error;
       setResult(data as Result);
       toast({ title: "Diagnóstico pronto!", description: "Seu relatório foi gerado com sucesso." });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast({ title: "Erro ao gerar diagnóstico", description: err.message ?? "Tente novamente", variant: "destructive" });
+      toast({
+        title: "Erro ao gerar diagnóstico",
+        description: await getDiagnosticErrorMessage(err),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
