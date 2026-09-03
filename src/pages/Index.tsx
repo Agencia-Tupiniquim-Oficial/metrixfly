@@ -15,7 +15,6 @@ import {
   Eye,
   Pencil,
 } from "lucide-react";
-import DiagnosticForm from "@/components/DiagnosticForm";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 
 type Scores = {
@@ -339,14 +338,41 @@ const Index = () => {
           </p>
         </header>
 
-        <DiagnosticForm
-          url={url}
-          setUrl={setUrl}
-          onSubmit={onSubmit}
-          loading={loading}
-          runGeoCrawl={runGeoCrawlAndOpen}
-          geoLoading={geoLoading}
-        />
+        <form onSubmit={onSubmit} className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-2 md:flex-row md:gap-4">
+            <Input
+              type="text"
+              placeholder="https://exemplo.com"
+              value={url}
+              onChange={setUrl}
+            />
+            <Button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {loading ? "Rodando..." : "Diagnóstico"}
+            </Button>
+          </div>
+          <Button
+            type="button"
+            onClick={runGeoCrawlAndOpen}
+            disabled={geoLoading}
+            className="flex items-center gap-2"
+          >
+            {geoLoading ? (
+              <Loader2 className="w-4 h-4" />
+            ) : (
+              <Globe className="w-4 h-4" />
+            )}
+            {geoLoading ? "Rodando..." : "Crawl GEO/AEO"}
+          </Button>
+        </form>
 
         {loading && (
           <p className="text-center text-sm text-muted-foreground mt-6 animate-pulse">
