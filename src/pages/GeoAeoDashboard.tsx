@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Bot, CheckCircle2, ChevronRight, CircleAlert, Download, FileSearch,
@@ -14,6 +15,7 @@ import {
 
 type Page = { url: string; title: string; score: number; issues: string[] };
 type Finding = { severity: "critical" | "warning" | "passed"; title: string; description: string; recommendation: string };
+type ResponseRecord = { id: string; platform: string; prompt: string; response: string; mentioned: boolean; citation: string; createdAt: string };
 type CrawlResult = {
   domain: string;
   crawledAt: string;
@@ -48,7 +50,28 @@ const GeoAeoDashboard = () => {
   const [prompt, setPrompt] = useState("");
   const [competitors, setCompetitors] = useState<string[]>([]);
   const [competitor, setCompetitor] = useState("");
+  const [responseRecords, setResponseRecords] = useState<ResponseRecord[]>([]);
+  const [responsePlatform, setResponsePlatform] = useState("ChatGPT");
+  const [responsePrompt, setResponsePrompt] = useState("");
+  const [responseText, setResponseText] = useState("");
+  const [responseCitation, setResponseCitation] = useState("");
+  const [responseMentioned, setResponseMentioned] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null)).catch(error => console.error("Unable to read auth session", error));
+  }, []);
+  useEffect(() => {
+    if (!result) return;
+    const saved = localStorage.getItem(`geo-aeo:${result.domain}:responses`);
+    if (saved) setResponseRecords(JSON.parse(saved) as ResponseRecord[]);
+  }, [result]);
+  useEffect(() => {
+    if (result) localStorage.setItem(`geo-aeo:${result.domain}:responses`, JSON.stringify(responseRecords));
+  }, [result, responseRecords]);
 
   const runCrawl = async (event: FormEvent) => {
     event.preventDefault();
@@ -60,7 +83,21 @@ const GeoAeoDashboard = () => {
       const { data, error } = await supabase.functions.invoke("geo-aeo-crawl", { body: { url: normalized } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setResult(data as CrawlResult);
+      const crawl = data as CrawlResult;
+      setResult(crawl);
+      if (userId) {
+        const { data: project, error: projectError } = await supabase.from("geo_projects").upsert(
+          { owner_id: userId, name: crawl.domain, domain: crawl.domain },
+          { onConflict: "owner_id,domain" },
+        ).select("id").single();
+        if (projectError) throw projectError;
+        setProjectId(project.id);
+        const { error: snapshotError } = await supabase.from("geo_crawl_snapshots").insert({
+          project_id: project.id, scores: crawl.scores, stats: crawl.stats,
+          technical_details: crawl.technicalDetails ?? {}, pages: crawl.pages, findings: crawl.findings,
+        });
+        if (snapshotError) throw snapshotError;
+      }
     } catch (error) {
       console.error(error);
       toast({ title: "Não foi possível rastrear o site", description: error instanceof Error ? error.message : "Verifique o domínio e tente novamente.", variant: "destructive" });
@@ -68,19 +105,63 @@ const GeoAeoDashboard = () => {
   };
 
   const overall = useMemo(() => result ? Math.round((result.scores.geo + result.scores.aeo + result.scores.technical + result.scores.authority) / 4) : 0, [result]);
-  const addPrompt = () => { const value = prompt.trim(); if (value && !prompts.includes(value)) setPrompts(current => [...current, value]); setPrompt(""); };
-  const addCompetitor = () => { const value = competitor.trim(); if (value && !competitors.includes(value)) setCompetitors(current => [...current, value]); setCompetitor(""); };
+  const addPrompt = async () => {
+    const value = prompt.trim();
+    if (!value || prompts.includes(value)) return;
+    setPrompts(current => [...current, value]); setPrompt("");
+    if (projectId) {
+      const { error } = await supabase.from("geo_prompts").insert({ project_id: projectId, prompt: value });
+      if (error) toast({ title: "Prompt não salvo", description: error.message, variant: "destructive" });
+    }
+  };
+  const addCompetitor = async () => {
+    const value = competitor.trim();
+    if (!value || competitors.includes(value)) return;
+    setCompetitors(current => [...current, value]); setCompetitor("");
+    if (projectId) {
+      const { error } = await supabase.from("geo_competitors").insert({ project_id: projectId, domain: value });
+      if (error) toast({ title: "Concorrente não salvo", description: error.message, variant: "destructive" });
+    }
+  };
   const exportReport = () => {
     if (!result) return;
     const rows = [["URL", "Título", "Score", "Alertas"], ...result.pages.map(page => [page.url, page.title, String(page.score), page.issues.join("; ")])];
     const blob = new Blob([rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n")], { type: "text/csv;charset=utf-8" });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${result.domain}-geo-aeo.csv`; link.click(); URL.revokeObjectURL(link.href);
   };
+  const addResponse = async () => {
+    if (!responsePrompt.trim() || !responseText.trim()) {
+      toast({ title: "Resposta incompleta", description: "Informe o prompt e cole a resposta do mecanismo.", variant: "destructive" });
+      return;
+    }
+    const record = {
+      id: crypto.randomUUID(), platform: responsePlatform, prompt: responsePrompt.trim(),
+      response: responseText.trim(), mentioned: responseMentioned, citation: responseCitation.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    setResponseRecords(current => [...current, record]);
+    if (projectId) {
+      const { error } = await supabase.from("geo_response_evidence").insert({
+        project_id: projectId, platform: record.platform, prompt: record.prompt,
+        response: record.response, mentioned: record.mentioned, citation_url: record.citation || null,
+      });
+      if (error) toast({ title: "Evidência não salva", description: error.message, variant: "destructive" });
+    }
+    setResponsePrompt(""); setResponseText(""); setResponseCitation(""); setResponseMentioned(false);
+  };
+  const visibility = responseRecords.length ? Math.round(responseRecords.filter(item => item.mentioned).length / responseRecords.length * 100) : null;
+  const citationRate = responseRecords.length ? Math.round(responseRecords.filter(item => item.citation).length / responseRecords.length * 100) : null;
+  const requestMagicLink = async () => {
+    if (!userEmail.trim()) return;
+    const { error } = await supabase.auth.signInWithOtp({ email: userEmail.trim(), options: { emailRedirectTo: window.location.href } });
+    if (error) toast({ title: "Não foi possível enviar o acesso", description: error.message, variant: "destructive" });
+    else toast({ title: "Link enviado", description: "Confira seu e-mail para ativar a persistência da agência." });
+  };
 
   return <main className="min-h-screen bg-slate-50">
     <header className="border-b bg-white">
       <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Diagnóstico técnico</Link>
+        <div className="flex items-center gap-4"><Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Diagnóstico técnico</Link><Link to="/geo-admin" className="text-sm text-primary hover:underline">Administração</Link></div>
         <div className="flex items-center gap-2 font-semibold"><Sparkles className="h-5 w-5 text-primary" /> Agent Crawl <span className="text-muted-foreground font-normal">GEO/AEO</span></div>
         <Badge variant="secondary">BETA</Badge>
       </div>
@@ -97,6 +178,7 @@ const GeoAeoDashboard = () => {
           <Button type="submit" size="lg" disabled={loading}>{loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Rastreando site...</> : <><Search className="mr-2 h-4 w-4" /> Executar Agent Crawl</>}</Button>
         </form>
       </Card>
+      {!userId && <Card className="mt-4 border-primary/20 bg-primary/5 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center"><div className="flex-1"><p className="font-medium">Salve os projetos da sua agência</p><p className="text-xs text-muted-foreground">Entre com seu e-mail para manter históricos, prompts e evidências isolados por usuário.</p></div><div className="flex gap-2"><Input type="email" value={userEmail} onChange={e => setUserEmail(e.target.value)} placeholder="seu@email.com" /><Button variant="outline" onClick={requestMagicLink}>Enviar acesso</Button></div></div></Card>}
       {loading && <p className="mt-4 text-center text-sm text-muted-foreground animate-pulse">Analisando páginas, entidades, dados estruturados, respostas e fontes...</p>}
       {!result && !loading && <div className="mt-10 grid gap-4 md:grid-cols-3">{[
         [Bot, "Visibility Score", "Mede presença e prontidão para mecanismos generativos."],
@@ -123,6 +205,7 @@ const GeoAeoDashboard = () => {
           <Card id="geo-3" className="p-6"><h3 className="flex items-center gap-2 font-semibold"><TrendingUp className="h-4 w-4 text-primary" /> Benchmark competitivo</h3><p className="mt-1 text-sm text-muted-foreground">Compare seu domínio com concorrentes nos mesmos prompts e descubra gaps de fontes e entidades.</p><div className="mt-4 flex gap-2"><Input value={competitor} onChange={e => setCompetitor(e.target.value)} onKeyDown={e => e.key === "Enter" && addCompetitor()} placeholder="concorrente.com.br" /><Button onClick={addCompetitor} size="icon"><Plus className="h-4 w-4" /></Button></div>{competitors.length ? <div className="mt-4 space-y-2">{competitors.map(item => <div key={item} className="flex justify-between rounded-md bg-muted/50 p-3 text-sm"><span>{item}</span><Badge variant="outline">Pronto para comparar</Badge></div>)}</div> : <p className="mt-4 text-xs text-muted-foreground">Adicione até 5 concorrentes para criar uma comparação orientada a evidências.</p>}</Card>
         </div>
         <Card id="geo-2" className="p-6"><h3 className="mb-4 flex items-center gap-2 font-semibold"><FileSearch className="h-4 w-4 text-primary" /> Checklist de crawl para agentes</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Object.entries({ "robots.txt": result.technicalDetails?.robots, "sitemap.xml": result.technicalDetails?.sitemap, "llms.txt (experimental)": result.technicalDetails?.llmsTxt, "Canonicals": result.technicalDetails?.canonicalPages === result.pages.length, "Alt text": !result.technicalDetails?.imagesWithoutAlt, "Noindex": !result.technicalDetails?.noindexPages, "JSON-LD": result.stats.schemaPages > 0, "FAQ/conteúdo resposta": result.stats.answerPages > 0 }).map(([label, passed]) => <div key={label} className="flex items-center gap-2 rounded-lg border p-3 text-sm">{passed ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <CircleAlert className="h-4 w-4 text-amber-500" />}<span>{label}</span></div>)}</div><p className="mt-4 text-xs text-muted-foreground">`llms.txt` é exibido como experimento informativo; não é tratado como fator comprovado de ranking.</p></Card>
+        <Card className="p-6"><div className="flex flex-col justify-between gap-2 sm:flex-row"><div><h3 className="flex items-center gap-2 font-semibold"><Bot className="h-4 w-4 text-primary" /> AI Response Lab</h3><p className="mt-1 text-sm text-muted-foreground">Cole respostas coletadas de forma autorizada para medir visibilidade e citações com evidência.</p></div><div className="flex gap-4 text-sm"><span>Visibility <b>{visibility == null ? "—" : `${visibility}%`}</b></span><span>Citation rate <b>{citationRate == null ? "—" : `${citationRate}%`}</b></span></div></div><div className="mt-5 grid gap-3 md:grid-cols-2"><Input value={responsePlatform} onChange={e => setResponsePlatform(e.target.value)} placeholder="Plataforma" /><Input value={responsePrompt} onChange={e => setResponsePrompt(e.target.value)} placeholder="Prompt executado" /><Textarea value={responseText} onChange={e => setResponseText(e.target.value)} placeholder="Cole a resposta completa do mecanismo..." className="min-h-24 md:col-span-2" /><Input value={responseCitation} onChange={e => setResponseCitation(e.target.value)} placeholder="URL citada (opcional)" /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={responseMentioned} onChange={e => setResponseMentioned(e.target.checked)} /> Minha marca foi mencionada</label></div><Button className="mt-4" onClick={addResponse}>Salvar evidência</Button>{responseRecords.length > 0 && <div className="mt-5 space-y-2">{responseRecords.slice(-5).reverse().map(record => <div key={record.id} className="rounded-lg border p-3 text-sm"><div className="flex justify-between"><b>{record.platform}</b><Badge variant={record.mentioned ? "default" : "secondary"}>{record.mentioned ? "Mencionada" : "Ausente"}</Badge></div><p className="mt-1 text-muted-foreground">{record.prompt}</p>{record.citation && <p className="mt-1 text-xs text-primary">Citação: {record.citation}</p>}</div>)}</div>}</Card>
         <Card className="border-primary/20 bg-primary/5 p-6"><h3 className="font-semibold">Próximos módulos</h3><p className="mt-1 text-sm text-muted-foreground">O crawl técnico já está ativo. Para medir citações reais em modelos, adicione chaves de API e prompts monitorados no próximo passo.</p></Card>
       </section>}
     </div>

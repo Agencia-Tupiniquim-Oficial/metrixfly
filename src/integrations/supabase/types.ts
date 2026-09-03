@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      geo_projects: {
+        Row: { id: string; owner_id: string; client_id: string | null; name: string; domain: string; country: string; language: string; created_at: string; updated_at: string }
+        Insert: { id?: string; owner_id: string; client_id?: string | null; name: string; domain: string; country?: string; language?: string; created_at?: string; updated_at?: string }
+        Update: Partial<{ id: string; owner_id: string; client_id: string | null; name: string; domain: string; country: string; language: string; created_at: string; updated_at: string }>
+        Relationships: []
+      }
+      geo_clients: {
+        Row: { id: string; agency_owner_id: string; name: string; contact_email: string; company_domain: string | null; created_at: string }
+        Insert: { id?: string; agency_owner_id: string; name: string; contact_email: string; company_domain?: string | null; created_at?: string }
+        Update: Partial<{ id: string; agency_owner_id: string; name: string; contact_email: string; company_domain: string | null; created_at: string }>
+        Relationships: []
+      }
+      geo_project_members: {
+        Row: { project_id: string; user_id: string; role: string; created_at: string }
+        Insert: { project_id: string; user_id: string; role?: string; created_at?: string }
+        Update: Partial<{ project_id: string; user_id: string; role: string; created_at: string }>
+        Relationships: []
+      }
+      geo_crawl_snapshots: {
+        Row: { id: string; project_id: string; scores: Json; stats: Json; technical_details: Json; pages: Json; findings: Json; created_at: string }
+        Insert: { id?: string; project_id: string; scores: Json; stats: Json; technical_details?: Json; pages?: Json; findings?: Json; created_at?: string }
+        Update: Partial<{ id: string; project_id: string; scores: Json; stats: Json; technical_details: Json; pages: Json; findings: Json; created_at: string }>
+        Relationships: []
+      }
+      geo_prompts: {
+        Row: { id: string; project_id: string; prompt: string; intent: string; funnel_stage: string; country: string; language: string; created_at: string }
+        Insert: { id?: string; project_id: string; prompt: string; intent?: string; funnel_stage?: string; country?: string; language?: string; created_at?: string }
+        Update: Partial<{ id: string; project_id: string; prompt: string; intent: string; funnel_stage: string; country: string; language: string; created_at: string }>
+        Relationships: []
+      }
+      geo_response_evidence: {
+        Row: { id: string; project_id: string; platform: string; prompt: string; response: string; mentioned: boolean; citation_url: string | null; created_at: string }
+        Insert: { id?: string; project_id: string; platform: string; prompt: string; response: string; mentioned?: boolean; citation_url?: string | null; created_at?: string }
+        Update: Partial<{ id: string; project_id: string; platform: string; prompt: string; response: string; mentioned: boolean; citation_url: string | null; created_at: string }>
+        Relationships: []
+      }
+      geo_competitors: {
+        Row: { id: string; project_id: string; domain: string; created_at: string }
+        Insert: { id?: string; project_id: string; domain: string; created_at?: string }
+        Update: Partial<{ id: string; project_id: string; domain: string; created_at: string }>
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
