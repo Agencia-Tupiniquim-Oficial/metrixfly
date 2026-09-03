@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -126,7 +126,10 @@ function Metric({
 }
 
 const GeoAeoDashboard = () => {
-  const [url, setUrl] = useState("");
+  const location = useLocation();
+  const initialUrl =
+    typeof location.state?.url === "string" ? location.state.url : "";
+  const [url, setUrl] = useState(initialUrl);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CrawlResult | null>(null);
   const [prompts, setPrompts] = useState<string[]>([]);
@@ -163,8 +166,8 @@ const GeoAeoDashboard = () => {
       );
   }, [result, responseRecords]);
 
-  const runCrawl = async (event: FormEvent) => {
-    event.preventDefault();
+  const runCrawl = async (event?: FormEvent) => {
+    event?.preventDefault();
     let normalized = url.trim();
     if (!/^https?:\/\//i.test(normalized)) normalized = `https://${normalized}`;
     try {
@@ -223,6 +226,12 @@ const GeoAeoDashboard = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (initialUrl && !result && !loading) {
+      void runCrawl();
+    }
+  }, [initialUrl]);
 
   const runCrawlAndReport = async (event?: FormEvent) => {
     if (event) event.preventDefault();
