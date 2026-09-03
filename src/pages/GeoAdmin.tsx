@@ -7,9 +7,7 @@ export default function GeoAdmin() {
         <CardHeader>
           <CardTitle>Geo Admin</CardTitle>
         </CardHeader>
-        <CardContent>
-          Administração de configurações geográficas.
-        </CardContent>
+        <CardContent>Administração de configurações geográficas.</CardContent>
       </Card>
     </main>
   );
