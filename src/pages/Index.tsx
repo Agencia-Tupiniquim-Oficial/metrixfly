@@ -30,6 +30,7 @@ type Result = {
   uiux?: { overview?: string; diagnosis?: string[]; recommendations?: string[] } | null;
   extras?: { title: string; description: string }[];
   docx: string;
+  geo?: any;
 };
 
 async function getDiagnosticErrorMessage(error: unknown): Promise<string> {
@@ -97,6 +98,7 @@ const Index = () => {
   const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
+  const [geoLoading, setGeoLoading] = useState(false);
   const { toast } = useToast();
 
   const onSubmit = async (e: FormEvent) => {
