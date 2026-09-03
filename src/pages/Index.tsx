@@ -16,6 +16,7 @@ import {
   Pencil,
 } from "lucide-react";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
+import DiagnosticForm from "@/components/DiagnosticForm";
 
 type Scores = {
   performance: number;
@@ -145,14 +146,14 @@ function ScoresGrid({
 const Index = () => {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
-  const [geoLoading, setGeoLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const onSubmit = async (e: FormEvent) => {
+  const runDiagnostic = async (e: FormEvent) => {
     e.preventDefault();
     let normalized = url.trim();
     if (!/^https?:\/\//i.test(normalized)) normalized = "https://" + normalized;
@@ -269,44 +270,19 @@ const Index = () => {
     }
   };
 
-  const runGeoCrawlAndOpen = async (event: FormEvent) => {
+  const runGeoCrawl = async (event: FormEvent) => {
     event.preventDefault();
-    let normalized = url.trim();
-    if (!/^https?:\/\//i.test(normalized)) normalized = `https://${normalized}`;
 
-    try {
-      new URL(normalized);
-    } catch {
-      toast({
-        title: "URL inválida",
-        description: "Informe um domínio válido.",
-        variant: "destructive",
-      });
-      return;
-    }
+    const normalized = url.trim().startsWith("http")
+      ? url.trim()
+      : `https://${url.trim()}`;
+
+    if (!url.trim()) return;
 
     setGeoLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("geo-aeo-crawl", {
-        body: { url: normalized },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      openGeoDashboard(data);
-      toast({
-        title: "Geo/AEO pronto",
-        description: "Abrindo dashboard GEO/AEO.",
-      });
-    } catch (err: any) {
-      console.error(err);
-      toast({
-        title: "Erro no Agent Crawl",
-        description: err?.message ?? String(err),
-        variant: "destructive",
-      });
+      navigate("/geo-aeo", { state: { url: normalized } });
     } finally {
       setGeoLoading(false);
     }
@@ -338,41 +314,14 @@ const Index = () => {
           </p>
         </header>
 
-        <form onSubmit={onSubmit} className="flex flex-col md:flex-row gap-4">
-          <div className="flex flex-col gap-2 md:flex-row md:gap-4">
-            <Input
-              type="text"
-              placeholder="https://exemplo.com"
-              value={url}
-              onChange={setUrl}
-            />
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              {loading ? "Rodando..." : "Diagnóstico"}
-            </Button>
-          </div>
-          <Button
-            type="button"
-            onClick={runGeoCrawlAndOpen}
-            disabled={geoLoading}
-            className="flex items-center gap-2"
-          >
-            {geoLoading ? (
-              <Loader2 className="w-4 h-4" />
-            ) : (
-              <Globe className="w-4 h-4" />
-            )}
-            {geoLoading ? "Rodando..." : "Crawl GEO/AEO"}
-          </Button>
-        </form>
+        <DiagnosticForm
+          url={url}
+          setUrl={setUrl}
+          onSubmit={runDiagnostic}
+          loading={loading}
+          runGeoCrawl={runGeoCrawl}
+          geoLoading={geoLoading}
+        />
 
         {loading && (
           <p className="text-center text-sm text-muted-foreground mt-6 animate-pulse">
