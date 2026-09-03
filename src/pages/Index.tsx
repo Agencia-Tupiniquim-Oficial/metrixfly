@@ -252,43 +252,6 @@ const Index = () => {
 
             <DiagnosticPreview url={url.startsWith("http") ? url : "https://" + url} result={result} previewMode={previewMode} setPreviewMode={setPreviewMode} updateImprovement={updateImprovement} updateUiuxOverview={updateUiuxOverview} downloadDocx={downloadDocx} />
 
-            {geoReport && (
-              <Card className="p-6 bg-card border-border mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Relatório GEO/AEO — {geoReport.domain}</h3>
-                    <div className="text-sm text-muted-foreground">{new Date(geoReport.crawledAt).toLocaleString()}</div>
-                  </div>
-                  <div className="text-sm">
-                    GEO: <strong className="mr-2">{geoReport.scores?.geo ?? "-"}</strong>
-                    AEO: <strong>{geoReport.scores?.aeo ?? "-"}</strong>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-3">
-                  {geoReport.pages?.slice(0,3).map((p: any) => (
-                    <div key={p.url} className="rounded-md border p-3 bg-muted/50">
-                      <div className="text-sm font-semibold truncate">{p.title || p.url}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{p.url}</div>
-                      <div className="mt-2 text-xs">Score: <strong className={p.score >= 80 ? 'text-emerald-600' : p.score >=50 ? 'text-amber-600' : 'text-red-600'}>{p.score}</strong></div>
-                      {p.issues?.length ? <div className="mt-2 text-xs text-amber-600">{p.issues.slice(0,2).join('; ')}</div> : null}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6">
-                  <h4 className="font-semibold">Principais achados</h4>
-                  <div className="mt-2 space-y-3">
-                    {geoReport.findings?.slice(0,5).map((f: any, i: number) => (
-                      <div key={i} className="border-b pb-2">
-                        <div className="font-medium">{f.title}</div>
-                        <div className="text-sm text-muted-foreground">{f.description}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            )}
           </section>
         )}
 
