@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Gauge, Sparkles, FileText, Globe, Eye, Pencil } from "lucide-react";
-import DocxPreview from "@/components/DocxPreview";
+import DiagnosticForm from "@/components/DiagnosticForm";
+import DiagnosticPreview from "@/components/DiagnosticPreview";
 
 type Scores = { performance: number; accessibility: number; bestPractices: number; seo: number };
 type Metrics = { fcp: string; lcp: string; tbt: string; cls: string; si: string };
@@ -189,24 +190,7 @@ const Index = () => {
           </p>
         </header>
 
-        <Card className="p-2 bg-card border-border" style={{ boxShadow: "var(--shadow-card)" }}>
-          <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-2">
-            <div className="flex items-center flex-1 px-3 gap-2">
-              <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
-              <Input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="exemplo.com.br"
-                className="border-0 bg-transparent focus-visible:ring-0 text-base"
-                disabled={loading}
-                required
-              />
-            </div>
-            <Button type="submit" size="lg" disabled={loading} variant="hero" className="font-semibold">
-              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analisando…</> : <><Gauge className="w-4 h-4 mr-2" /> Diagnosticar</>}
-            </Button>
-          </form>
-        </Card>
+            <DiagnosticForm url={url} setUrl={setUrl} onSubmit={onSubmit} loading={loading} runGeoCrawl={runGeoCrawl} geoLoading={geoLoading} />
 
         {loading && (
           <p className="text-center text-sm text-muted-foreground mt-6 animate-pulse">
@@ -228,45 +212,7 @@ const Index = () => {
               </Card>
             )}
 
-            <Card className="p-6 bg-card border-border">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-1 text-foreground flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-primary" /> Preview do relatório (.docx)
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Visualize o padrão Tupiniquim e ajuste textos antes de baixar.
-                  </p>
-                </div>
-                <div className="inline-flex rounded-md border border-border bg-secondary p-1">
-                  <Button type="button" size="sm" variant={previewMode === "view" ? "default" : "ghost"} onClick={() => setPreviewMode("view")}>
-                    <Eye className="w-4 h-4" /> Visualizar
-                  </Button>
-                  <Button type="button" size="sm" variant={previewMode === "edit" ? "default" : "ghost"} onClick={() => setPreviewMode("edit")}>
-                    <Pencil className="w-4 h-4" /> Editar
-                  </Button>
-                </div>
-              </div>
-              <div className="bg-muted/40 -mx-6 -mb-6 px-4 py-8 rounded-b-lg overflow-x-auto">
-                <DocxPreview
-                  url={url.startsWith("http") ? url : "https://" + url}
-                  mobile={result.summary.mobile}
-                  desktop={result.summary.desktop}
-                  improvements={result.improvements}
-                  uiux={result.uiux}
-                  extras={result.extras}
-                  editable={previewMode === "edit"}
-                  onImprovementChange={updateImprovement}
-                  onUiuxOverviewChange={updateUiuxOverview}
-                />
-              </div>
-            </Card>
-
-            <div className="sticky bottom-4">
-              <Button onClick={downloadDocx} size="lg" variant="hero" className="w-full font-semibold" disabled={downloading} style={{ boxShadow: "var(--shadow-glow)" }}>
-                {downloading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Download className="w-5 h-5 mr-2" />} Baixar relatório .docx completo
-              </Button>
-            </div>
+            <DiagnosticPreview url={url.startsWith("http") ? url : "https://" + url} result={result} previewMode={previewMode} setPreviewMode={setPreviewMode} updateImprovement={updateImprovement} updateUiuxOverview={updateUiuxOverview} downloadDocx={downloadDocx} />
           </section>
         )}
 
