@@ -172,6 +172,27 @@ const Index = () => {
     setDownloading(false);
   };
 
+  const runGeoCrawl = async (event: FormEvent) => {
+    event.preventDefault();
+    let normalized = url.trim();
+    if (!/^https?:\/\//i.test(normalized)) normalized = `https://${normalized}`;
+    try { new URL(normalized); } catch { toast({ title: "URL inválida", description: "Informe um domínio válido.", variant: "destructive" }); return; }
+    setGeoLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("geo-aeo-crawl", { body: { url: normalized } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      // Attach geo result to the existing diagnostic result if present
+      setResult((current) => current ? { ...current, geo: data } : (null as any));
+      toast({ title: "Geo/AEO pronto", description: "Relatório GEO/AEO gerado." });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Erro no Agent Crawl", description: err?.message ?? String(err), variant: "destructive" });
+    } finally {
+      setGeoLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen" style={{ background: "var(--gradient-hero)" }}>
       <div className="container max-w-5xl py-12 md:py-20">
