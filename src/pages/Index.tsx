@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +101,7 @@ const Index = () => {
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   const [geoLoading, setGeoLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -172,7 +173,21 @@ const Index = () => {
     setDownloading(false);
   };
 
-  const runGeoCrawl = async (event: FormEvent) => {
+      setGeoLoading(false);
+    }
+  };
+
+  // Navigate to unified /geo-aeo dashboard instead of rendering inline
+  const openGeoDashboard = (crawlResult?: any) => {
+    if (crawlResult) {
+      navigate('/geo-aeo', { state: { fromDiagnosis: true, crawl: crawlResult } });
+    } else {
+      navigate('/geo-aeo');
+    }
+  };
+
+  // replace inline runGeoCrawl behavior to navigate to /geo-aeo
+  const runGeoCrawlAndOpen = async (event: FormEvent) => {
     event.preventDefault();
     let normalized = url.trim();
     if (!/^https?:\/\//i.test(normalized)) normalized = `https://${normalized}`;
@@ -182,9 +197,9 @@ const Index = () => {
       const { data, error } = await supabase.functions.invoke("geo-aeo-crawl", { body: { url: normalized } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      // Attach geo result to the existing diagnostic result if present
-      setResult((current) => current ? { ...current, geo: data } : (null as any));
-      toast({ title: "Geo/AEO pronto", description: "Relatório GEO/AEO gerado." });
+      // Persist and open dashboard with result
+      openGeoDashboard(data);
+      toast({ title: "Geo/AEO pronto", description: "Abrindo dashboard GEO/AEO." });
     } catch (err: any) {
       console.error(err);
       toast({ title: "Erro no Agent Crawl", description: err?.message ?? String(err), variant: "destructive" });
@@ -193,7 +208,9 @@ const Index = () => {
     }
   };
 
-  return (
+  // expose the new handler to DiagnosticForm by replacing prop name
+
+  // rest of file continues
     <main className="min-h-screen" style={{ background: "var(--gradient-hero)" }}>
       <div className="container max-w-5xl py-12 md:py-20">
         <header className="text-center mb-10">
@@ -211,7 +228,7 @@ const Index = () => {
           </p>
         </header>
 
-            <DiagnosticForm url={url} setUrl={setUrl} onSubmit={onSubmit} loading={loading} runGeoCrawl={runGeoCrawl} geoLoading={geoLoading} />
+            <DiagnosticForm url={url} setUrl={setUrl} onSubmit={onSubmit} loading={loading} runGeoCrawl={runGeoCrawlAndOpen} geoLoading={geoLoading} />
 
         {loading && (
           <p className="text-center text-sm text-muted-foreground mt-6 animate-pulse">
@@ -234,6 +251,44 @@ const Index = () => {
             )}
 
             <DiagnosticPreview url={url.startsWith("http") ? url : "https://" + url} result={result} previewMode={previewMode} setPreviewMode={setPreviewMode} updateImprovement={updateImprovement} updateUiuxOverview={updateUiuxOverview} downloadDocx={downloadDocx} />
+
+            {geoReport && (
+              <Card className="p-6 bg-card border-border mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">Relatório GEO/AEO — {geoReport.domain}</h3>
+                    <div className="text-sm text-muted-foreground">{new Date(geoReport.crawledAt).toLocaleString()}</div>
+                  </div>
+                  <div className="text-sm">
+                    GEO: <strong className="mr-2">{geoReport.scores?.geo ?? "-"}</strong>
+                    AEO: <strong>{geoReport.scores?.aeo ?? "-"}</strong>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  {geoReport.pages?.slice(0,3).map((p: any) => (
+                    <div key={p.url} className="rounded-md border p-3 bg-muted/50">
+                      <div className="text-sm font-semibold truncate">{p.title || p.url}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{p.url}</div>
+                      <div className="mt-2 text-xs">Score: <strong className={p.score >= 80 ? 'text-emerald-600' : p.score >=50 ? 'text-amber-600' : 'text-red-600'}>{p.score}</strong></div>
+                      {p.issues?.length ? <div className="mt-2 text-xs text-amber-600">{p.issues.slice(0,2).join('; ')}</div> : null}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6">
+                  <h4 className="font-semibold">Principais achados</h4>
+                  <div className="mt-2 space-y-3">
+                    {geoReport.findings?.slice(0,5).map((f: any, i: number) => (
+                      <div key={i} className="border-b pb-2">
+                        <div className="font-medium">{f.title}</div>
+                        <div className="text-sm text-muted-foreground">{f.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )}
           </section>
         )}
 
