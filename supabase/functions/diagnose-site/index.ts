@@ -52,7 +52,13 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
     .filter((a: any) => a.details?.type === "opportunity" && (a.score ?? 1) < 0.9)
     .sort((a: any, b: any) => (a.score ?? 1) - (b.score ?? 1))
     .slice(0, 8)
-    .map((a: any) => ({ id: a.id, title: a.title, description: a.description, displayValue: a.displayValue, score: a.score }));
+    .map((a: any) => ({
+      id: a.id,
+      title: PAGE_SPEED_LABELS[a.id]?.title ?? a.title,
+      description: PAGE_SPEED_LABELS[a.id]?.recommendation ?? a.description,
+      displayValue: a.displayValue,
+      score: a.score,
+    }));
   return {
     strategy,
     scores: {
@@ -72,6 +78,89 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
     opportunities,
     finalUrl: lr.finalUrl,
   };
+}
+
+const PAGE_SPEED_LABELS: Record<string, { title: string; recommendation: string }> = {
+  "render-blocking-resources": {
+    title: "Eliminar recursos que bloqueiam a renderização",
+    recommendation: "Inserir o CSS essencial diretamente na página e adiar o carregamento de CSS não crítico. Aplicar defer ou async aos scripts que não são necessários para a primeira renderização.",
+  },
+  "unused-javascript": {
+    title: "Reduzir JavaScript não utilizado",
+    recommendation: "Remover dependências e códigos que não são usados nesta página e carregar scripts apenas quando o recurso correspondente for utilizado.",
+  },
+  "unused-css-rules": {
+    title: "Reduzir CSS não utilizado",
+    recommendation: "Remover regras de estilo não utilizadas e dividir o CSS por página ou componente para entregar somente o necessário ao visitante.",
+  },
+  "uses-long-cache-ttl": {
+    title: "Usar políticas de cache eficientes",
+    recommendation: "Configurar cache longo para arquivos estáticos próprios, como CSS, JavaScript, fontes e imagens, usando versionamento quando houver alterações.",
+  },
+  "uses-optimized-images": {
+    title: "Otimizar imagens",
+    recommendation: "Converter imagens para WebP ou AVIF, reduzir suas dimensões e aplicar compressão adequada sem comprometer a qualidade visual.",
+  },
+  "offscreen-images": {
+    title: "Adiar o carregamento de imagens fora da tela",
+    recommendation: "Ativar lazy loading para imagens que aparecem abaixo da primeira dobra e manter o carregamento prioritário apenas para o conteúdo inicial.",
+  },
+  "uses-responsive-images": {
+    title: "Entregar imagens responsivas",
+    recommendation: "Disponibilizar versões adequadas para cada tamanho de tela usando srcset e sizes, evitando baixar arquivos maiores do que o necessário.",
+  },
+  "largest-contentful-paint-element": {
+    title: "Melhorar o Largest Contentful Paint (LCP)",
+    recommendation: "Identificar o maior elemento visível, priorizar seu carregamento e reduzir o tempo de resposta do servidor, o peso da imagem ou do conteúdo que o compõe.",
+  },
+  "server-response-time": {
+    title: "Reduzir o tempo de resposta do servidor",
+    recommendation: "Avaliar hospedagem, cache de página, consultas e scripts do servidor para diminuir o tempo até o primeiro byte.",
+  },
+  "font-display": {
+    title: "Configurar a exibição das fontes",
+    recommendation: "Usar font-display: swap ou opcional e pré-carregar somente as fontes realmente necessárias para evitar texto invisível durante o carregamento.",
+  },
+};
+
+function localizedPageSpeedOpportunity(opportunity: any) {
+  const localized = PAGE_SPEED_LABELS[opportunity.id];
+  const title = localized?.title ?? opportunity.title
+    .replace(/^Properly size images$/i, "Dimensionar as imagens corretamente")
+    .replace(/^Efficiently encode images$/i, "Codificar as imagens com eficiência")
+    .replace(/^Minify JavaScript$/i, "Minificar JavaScript")
+    .replace(/^Minify CSS$/i, "Minificar CSS");
+
+  return {
+    title,
+    description: `O PageSpeed identificou este ponto como uma oportunidade de melhoria no carregamento da página${opportunity.displayValue ? ` (${opportunity.displayValue})` : ""}.`,
+    impact: ["Pode atrasar a exibição do conteúdo principal.", "Pode aumentar o tempo de carregamento no primeiro acesso."],
+    recommendations: [localized?.recommendation ?? "Revisar este recurso no relatório detalhado do PageSpeed e aplicar a correção indicada para reduzir o impacto no carregamento."],
+  };
+}
+
+function buildPageSpeedImprovements(mobile: any, desktop: any) {
+  const opportunities = [...(mobile.opportunities ?? []), ...(desktop.opportunities ?? [])];
+  const unique = opportunities.filter((opportunity, index, list) =>
+    list.findIndex((item) => item.id === opportunity.id) === index,
+  );
+  const improvements = unique.slice(0, 8).map(localizedPageSpeedOpportunity);
+  if (improvements.length > 0) return improvements;
+
+  return [
+    {
+      title: "Melhorar o carregamento do conteúdo principal",
+      description: `O PageSpeed registrou LCP de ${mobile.metrics?.lcp ?? "—"} no mobile e ${desktop.metrics?.lcp ?? "—"} no desktop.`,
+      impact: ["O conteúdo principal pode demorar para aparecer no primeiro acesso.", "A percepção de velocidade pode ser prejudicada em redes móveis."],
+      recommendations: ["Otimizar o elemento identificado como maior conteúdo, priorizar seus recursos e revisar o tempo de resposta do servidor."],
+    },
+    {
+      title: "Reduzir o trabalho do navegador",
+      description: `O tempo de bloqueio total registrado foi de ${mobile.metrics?.tbt ?? "—"} no mobile e ${desktop.metrics?.tbt ?? "—"} no desktop.`,
+      impact: ["Interações podem ficar indisponíveis enquanto a página é processada.", "Dispositivos móveis podem sentir mais lentidão."],
+      recommendations: ["Reduzir JavaScript não utilizado, adiar scripts não críticos e dividir tarefas longas em partes menores."],
+    },
+  ];
 }
 
 // Cores estilo PageSpeed (faixas de score)
@@ -219,7 +308,7 @@ async function aiAnalysis(url: string, mobile: any, desktop: any, screenshotData
   const userContent: any[] = [
     {
       type: "text",
-      text: `Analise este site (${url}) e gere um diagnóstico em PORTUGUÊS BRASILEIRO no estilo dos relatórios da agência Tupiniquim.
+      text: `Analise este site (${url}) e gere um diagnóstico exclusivamente em PORTUGUÊS BRASILEIRO no estilo dos relatórios da agência Tupiniquim. Não use inglês, mesmo em títulos técnicos; quando necessário, mantenha apenas a sigla original entre parênteses.
 Dados do PageSpeed:
 ${JSON.stringify(summary, null, 2)}
 
@@ -246,7 +335,7 @@ Retorne JSON com EXATAMENTE este formato:
   ]
 }
 
-Gere de 4 a 6 improvements baseados nas oportunidades reais do PageSpeed. Use linguagem técnica mas clara. Cada improvement deve ter Descrição, Impacto, Causas comuns e Recomendações — exatamente como nos relatórios da Tupiniquim.`,
+Gere de 4 a 6 improvements baseados nas oportunidades reais do PageSpeed. Use linguagem técnica mas clara e preencha todos os campos de cada item. Cada improvement deve ter Descrição, Impacto, Causas comuns e Recomendações — exatamente como nos relatórios da Tupiniquim. Não deixe arrays vazios e não invente problemas que não estejam relacionados aos dados fornecidos.`,
     },
   ];
 
@@ -363,6 +452,9 @@ function bullet(text: string) {
 function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uint8Array> {
   const hostname = new URL(url).hostname.replace("www.", "").toUpperCase();
   const children: any[] = [];
+  const improvements = Array.isArray(ai?.improvements) && ai.improvements.length > 0
+    ? ai.improvements
+    : buildPageSpeedImprovements(mobile, desktop);
 
   // ===== PRIMEIRA PÁGINA =====
   children.push(
@@ -387,7 +479,7 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
   // ===== SUGESTÕES DE MELHORIA =====
   children.push(sectionTitle("Sugestões de melhoria"));
 
-  (ai.improvements || []).forEach((imp: any, i: number) => {
+  improvements.forEach((imp: any, i: number) => {
     children.push(itemTitle(`${i + 1}. ${imp.title}`));
 
     if (imp.description) {
@@ -498,9 +590,10 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
 
     if (data.opportunities?.length) {
       children.push(subTitle("Diagnóstico do PageSpeed"));
-      data.opportunities.forEach((o: any) =>
-        children.push(bullet(`${o.title}${o.displayValue ? ` — ${o.displayValue}` : ""}`)),
-      );
+      data.opportunities.forEach((o: any) => {
+        const localized = localizedPageSpeedOpportunity(o);
+        children.push(bullet(`${localized.title}${o.displayValue ? ` — ${o.displayValue}` : ""}`));
+      });
     }
   }
 
@@ -559,6 +652,11 @@ Deno.serve(async (req) => {
     } else {
       console.warn("LOVABLE_API_KEY não configurada — pulando análise IA e usando fallback.");
       ai = { improvements: [], uiux: null, extras: [] };
+    }
+    // As oportunidades reais do PageSpeed garantem conteúdo mesmo quando a IA não está disponível.
+    const pageSpeedImprovements = buildPageSpeedImprovements(mobile, desktop);
+    if (!Array.isArray(ai?.improvements) || ai.improvements.length === 0) {
+      ai = { ...ai, improvements: pageSpeedImprovements };
     }
     console.log("Gerando docx…");
 
