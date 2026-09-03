@@ -104,6 +104,75 @@ const GeoAeoDashboard = () => {
     } finally { setLoading(false); }
   };
 
+  const runCrawlAndReport = async (event?: FormEvent) => {
+    if (event) event.preventDefault();
+    let normalized = url.trim();
+    if (!/^https?:\/\//i.test(normalized)) normalized = `https://${normalized}`;
+    try { new URL(normalized); } catch { toast({ title: "URL inválida", description: "Informe um domínio válido.", variant: "destructive" }); return; }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("geo-aeo-crawl", { body: { url: normalized } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const crawl = data as CrawlResult;
+      setResult(crawl);
+
+      // persist snapshot if logged
+      if (userId) {
+        try {
+          const { data: project, error: projectError } = await supabase.from("geo_projects").upsert(
+            { owner_id: userId, name: crawl.domain, domain: crawl.domain },
+            { onConflict: "owner_id,domain" },
+          ).select("id").single();
+          if (!projectError && project?.id) {
+            setProjectId(project.id);
+            await supabase.from("geo_crawl_snapshots").insert({
+              project_id: project.id, scores: crawl.scores, stats: crawl.stats,
+              technical_details: crawl.technicalDetails ?? {}, pages: crawl.pages, findings: crawl.findings,
+            });
+          }
+        } catch (e) { console.error("persist snapshot failed", e); }
+      }
+
+      // Try to generate combined .docx by invoking diagnose-site with geo payload
+      try {
+        const { data: docData, error: docErr } = await supabase.functions.invoke("diagnose-site", {
+          body: {
+            docxOnly: true,
+            url: normalized,
+            // no pagespeed data available here; include geo result so backend can merge
+            mobile: { scores: { performance: 0, accessibility: 0, bestPractices: 0, seo: 0 }, metrics: { fcp: "-", lcp: "-", tbt: "-", cls: "-", si: "-" }, screenshot: null },
+            desktop: { scores: { performance: 0, accessibility: 0, bestPractices: 0, seo: 0 }, metrics: { fcp: "-", lcp: "-", tbt: "-", cls: "-", si: "-" }, screenshot: null },
+            ai: { improvements: [], uiux: null, extras: [], geo: crawl },
+          }
+        });
+        if (docErr) throw docErr;
+        if (docData?.docx) {
+          const docx = docData.docx;
+          const bin = atob(docx);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `${crawl.domain}_relatorio_completo.docx`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          toast({ title: "Relatório completo pronto", description: "Download iniciado." });
+        } else {
+          toast({ title: "Relatório gerado", description: "A função não retornou um arquivo .docx." });
+        }
+      } catch (e: any) {
+        console.error(e);
+        toast({ title: "Erro ao gerar .docx", description: e?.message ?? String(e), variant: "destructive" });
+      }
+
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Não foi possível rastrear o site", description: error instanceof Error ? error.message : "Verifique o domínio e tente novamente.", variant: "destructive" });
+    } finally { setLoading(false); }
+  };
+
   const overall = useMemo(() => result ? Math.round((result.scores.geo + result.scores.aeo + result.scores.technical + result.scores.authority) / 4) : 0, [result]);
   const addPrompt = async () => {
     const value = prompt.trim();
@@ -201,7 +270,19 @@ const GeoAeoDashboard = () => {
         </div>
         <Card className="p-6"><h3 className="mb-4 font-semibold">Score por página</h3><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-muted-foreground"><th className="pb-3">Página</th><th className="pb-3">Título</th><th className="pb-3">Score</th><th className="pb-3">Alertas</th></tr></thead><tbody>{result.pages.map(page => <tr key={page.url} className="border-b last:border-0"><td className="max-w-[280px] truncate py-3 text-primary">{page.url}</td><td className="py-3">{page.title || "Sem título"}</td><td className={`py-3 font-semibold ${scoreColor(page.score)}`}>{page.score}</td><td className="py-3 text-muted-foreground">{page.issues.length || "Nenhuma"}</td></tr>)}</tbody></table></div></Card>
         <div id="geo-1" className="grid gap-6 lg:grid-cols-2">
-          <Card className="p-6"><h3 className="flex items-center gap-2 font-semibold"><Bot className="h-4 w-4 text-primary" /> Prompt Intelligence</h3><p className="mt-1 text-sm text-muted-foreground">Cadastre perguntas reais para acompanhar visibilidade, menções, posição e citações. A execução automática exige uma integração autorizada com cada mecanismo.</p><div className="mt-4 flex gap-2"><Input value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={e => e.key === "Enter" && addPrompt()} placeholder="ex.: melhor agência de SEO para e-commerce" /><Button onClick={addPrompt} size="icon"><Plus className="h-4 w-4" /></Button></div>{prompts.length ? <div className="mt-4 space-y-2">{prompts.map(item => <div key={item} className="rounded-md bg-muted/50 p-3 text-sm">{item}<Badge className="ml-2" variant="secondary">Aguardando coleta</Badge></div>)}</div> : <p className="mt-4 text-xs text-muted-foreground">Sugestão: misture prompts de descoberta, comparação, preço, problemas e marca.</p>}</Card>
+          <Card className="p-6"><h3 className="flex items-center gap-2 font-semibold"><Bot className="h-4 w-4 text-primary" /> Prompt Intelligence</h3><p className="mt-1 text-sm text-muted-foreground">Cadastre perguntas reais para acompanhar visibilidade, menções, posição e citações. A execução automática exige uma integração autorizada com cada mecanismo.</p><div className="mt-4 flex gap-2"><Input value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={e => e.key === "Enter" && addPrompt()} placeholder="ex.: melhor agência de SEO para e-commerce" /><Button onClick={addPrompt} size="icon"><Plus className="h-4 w-4" /></Button></div>{prompts.length ? <div className="mt-4 space-y-2">          {prompts.map(item => <div key={item} className="rounded-md bg-muted/50 p-3 text-sm">{item}<Badge className="ml-2" variant="outline" /></div>)}</div> : null}
+      </Card>
+      <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <Button onClick={runCrawl} variant="outline">Executar Agent Crawl</Button>
+        <Button onClick={runCrawlAndReport} className="bg-emerald-600 text-white">Gerar relatório completo</Button>
+        <Button onClick={exportReport} variant="ghost">Exportar CSV</Button>
+      </div>
+    </div>
+  </main>;
+};
+
+export default GeoAeoDashboard;
+"secondary">Aguardando coleta</Badge></div>)}</div> : <p className="mt-4 text-xs text-muted-foreground">Sugestão: misture prompts de descoberta, comparação, preço, problemas e marca.</p>}</Card>
           <Card id="geo-3" className="p-6"><h3 className="flex items-center gap-2 font-semibold"><TrendingUp className="h-4 w-4 text-primary" /> Benchmark competitivo</h3><p className="mt-1 text-sm text-muted-foreground">Compare seu domínio com concorrentes nos mesmos prompts e descubra gaps de fontes e entidades.</p><div className="mt-4 flex gap-2"><Input value={competitor} onChange={e => setCompetitor(e.target.value)} onKeyDown={e => e.key === "Enter" && addCompetitor()} placeholder="concorrente.com.br" /><Button onClick={addCompetitor} size="icon"><Plus className="h-4 w-4" /></Button></div>{competitors.length ? <div className="mt-4 space-y-2">{competitors.map(item => <div key={item} className="flex justify-between rounded-md bg-muted/50 p-3 text-sm"><span>{item}</span><Badge variant="outline">Pronto para comparar</Badge></div>)}</div> : <p className="mt-4 text-xs text-muted-foreground">Adicione até 5 concorrentes para criar uma comparação orientada a evidências.</p>}</Card>
         </div>
         <Card id="geo-2" className="p-6"><h3 className="mb-4 flex items-center gap-2 font-semibold"><FileSearch className="h-4 w-4 text-primary" /> Checklist de crawl para agentes</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Object.entries({ "robots.txt": result.technicalDetails?.robots, "sitemap.xml": result.technicalDetails?.sitemap, "llms.txt (experimental)": result.technicalDetails?.llmsTxt, "Canonicals": result.technicalDetails?.canonicalPages === result.pages.length, "Alt text": !result.technicalDetails?.imagesWithoutAlt, "Noindex": !result.technicalDetails?.noindexPages, "JSON-LD": result.stats.schemaPages > 0, "FAQ/conteúdo resposta": result.stats.answerPages > 0 }).map(([label, passed]) => <div key={label} className="flex items-center gap-2 rounded-lg border p-3 text-sm">{passed ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <CircleAlert className="h-4 w-4 text-amber-500" />}<span>{label}</span></div>)}</div><p className="mt-4 text-xs text-muted-foreground">`llms.txt` é exibido como experimento informativo; não é tratado como fator comprovado de ranking.</p></Card>
