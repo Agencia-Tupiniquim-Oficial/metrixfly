@@ -64,12 +64,25 @@ Deno.serve(async req => {
     }
     if (!pages.length) return response({ error: "Não foi possível acessar nenhuma página do domínio." }, 502);
     let robots = ""; let sitemap = ""; let llms = "";
-    try { robots = (await fetchText(new URL("/robots.txt", base).href)).text; sitemap = (await fetchText(new URL("/sitemap.xml", base).href)).text; } catch { /* optional files */ }
+    try { robots = (await fetchText(new URL("/robots.txt", base).href)).text; } catch { /* optional file */ }
+    try { sitemap = (await fetchText(new URL("/sitemap.xml", base).href)).text; } catch { /* optional file */ }
     try { llms = (await fetchText(new URL("/llms.txt", base).href)).text; } catch { /* optional experimental file */ }
     const avg = (key: "score" | "schema" | "faqs") => Math.round(pages.reduce((sum, page) => sum + (key === "score" ? page.score : page[key] ? 100 : 0), 0) / pages.length);
     const words = pages.reduce((sum, page) => sum + page.text.split(/\s+/).length, 0);
     const schemaPages = pages.filter(p => p.schema).length;
     const answerPages = pages.filter(p => p.faqs || p.text.length > 1200).length;
+    const entityCounts = new Map<string, number>();
+    for (const page of pages) {
+      const headings = [...page.text.matchAll(/(?:^|\.)\s*([A-ZÁÀÃÉÊÍÓÔÕÚÇ][^.!?]{2,60})/g)].slice(0, 8);
+      for (const match of headings) {
+        const entity = match[1].trim().replace(/\s+/g, " ");
+        if (entity.length > 3) entityCounts.set(entity, (entityCounts.get(entity) || 0) + 1);
+      }
+    }
+    const entities = [...entityCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, pages: count, coverage: Math.round((count / pages.length) * 100) }));
     const technical = Math.min(100, Math.round(avg("score") * .65 + (robots ? 15 : 0) + (sitemap ? 20 : 0)));
     const aeo = Math.min(100, Math.round(avg("score") * .5 + (avg("faqs") * .25) + (answerPages / pages.length) * 25));
     const geo = Math.min(100, Math.round(aeo * .55 + (schemaPages / pages.length) * 25 + (robots ? 10 : 0) + (sitemap ? 10 : 0)));
@@ -96,7 +109,7 @@ Deno.serve(async req => {
         ...(pages.some(p => p.imagesWithoutAlt) ? [{ severity: "warning", title: "Imagens sem texto alternativo", description: `${pages.reduce((sum, p) => sum + p.imagesWithoutAlt, 0)} imagem(ns) não têm alt.`, recommendation: "Descreva imagens importantes com alt útil e contextual." }] : []),
         ...(pages.some(p => p.noindex) ? [{ severity: "critical", title: "Páginas marcadas como noindex", description: `${pages.filter(p => p.noindex).length} página(s) estão impedidas de entrar no índice.`, recommendation: "Confirme se o noindex é intencional em páginas estratégicas." }] : []),
       ],
-      entities: [],
+      entities,
       citations: [],
     });
   } catch (error) { console.error("geo-aeo-crawl error", error); return response({ error: error instanceof Error ? error.message : "Erro ao rastrear domínio." }, 500); }
