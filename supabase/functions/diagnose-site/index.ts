@@ -48,15 +48,52 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   const lr = data.lighthouseResult;
   const cats = lr.categories;
   const audits = lr.audits;
+  const excludedAuditIds = new Set([
+    "first-contentful-paint",
+    "largest-contentful-paint",
+    "speed-index",
+    "interactive",
+    "total-blocking-time",
+    "cumulative-layout-shift",
+    "server-response-time",
+  ]);
   const opportunities = Object.values(audits)
-    .filter((a: any) => a.details?.type === "opportunity" && (a.score ?? 1) < 0.9)
-    .sort((a: any, b: any) => (a.score ?? 1) - (b.score ?? 1))
+    .filter((a: any) => {
+      const t = a.details?.type;
+      const scoreMode = a.scoreDisplayMode;
+      const actionableScore = typeof a.score === "number"
+        && a.score < 0.9
+        && scoreMode !== "notApplicable"
+        && scoreMode !== "manual";
+      const hasSavings = (a.details?.overallSavingsMs ?? 0) > 0
+        || (a.details?.overallSavingsBytes ?? 0) > 0;
+      const hasDiagnosticDetails = t === "diagnostic"
+        && (a.details?.items?.length || a.displayValue);
+
+      return !excludedAuditIds.has(a.id)
+        && !/(screenshot|thumbnail|trace|filmstrip)/i.test(a.id)
+        && (
+          t === "opportunity"
+          || actionableScore
+          || hasSavings
+          || hasDiagnosticDetails
+        );
+    })
+    .sort((a: any, b: any) => {
+      const aImpact = (a.details?.overallSavingsBytes ?? 0) / 1000
+        + (a.details?.overallSavingsMs ?? 0)
+        + (1 - (a.score ?? 1)) * 100;
+      const bImpact = (b.details?.overallSavingsBytes ?? 0) / 1000
+        + (b.details?.overallSavingsMs ?? 0)
+        + (1 - (b.score ?? 1)) * 100;
+      return bImpact - aImpact;
+    })
     .slice(0, 8)
     .map((a: any) => ({
       id: a.id,
-      title: PAGE_SPEED_LABELS[a.id]?.title ?? a.title,
-      description: PAGE_SPEED_LABELS[a.id]?.recommendation ?? a.description,
-      displayValue: a.displayValue,
+      title: translatePageSpeedTitle(PAGE_SPEED_LABELS[a.id]?.title ?? a.title),
+      rawDescription: a.description,
+      displayValue: translatePageSpeedDisplayValue(a.displayValue),
       score: a.score,
     }));
   return {
@@ -145,20 +182,176 @@ const PAGE_SPEED_LABELS: Record<string, { title: string; recommendation: string 
     title: "Usar formatos de vídeo para conteúdo animado",
     recommendation: "Substituir GIFs grandes por vídeos MP4/WebM ou animações CSS/Lottie para reduzir drasticamente o peso dos elementos em movimento.",
   },
+  "network-dependency-tree": {
+    title: "Reduzir a cadeia de solicitações críticas",
+    recommendation: "Reduzir dependências em sequência, eliminar recursos desnecessários e priorizar apenas os arquivos necessários para o conteúdo inicial.",
+  },
+  "legacy-javascript": {
+    title: "Reduzir JavaScript legado",
+    recommendation: "Entregar JavaScript moderno para navegadores atuais e evitar polyfills e transformações que não são necessários para o público-alvo.",
+  },
+  "long-tasks": {
+    title: "Evitar tarefas longas na linha de execução principal",
+    recommendation: "Dividir tarefas JavaScript longas, adiar scripts não essenciais e reduzir o trabalho executado durante o carregamento inicial.",
+  },
+  "third-parties": {
+    title: "Reduzir o impacto de scripts de terceiros",
+    recommendation: "Adiar analytics, anúncios, chats e pixels até que sejam necessários ou após a interação do usuário, preservando o carregamento do conteúdo principal.",
+  },
+  "unsized-images": {
+    title: "Definir dimensões das imagens",
+    recommendation: "Informar width e height ou aspect-ratio para todas as imagens, reservando espaço antes do download e evitando mudanças de layout.",
+  },
+  "uses-text-compression": {
+    title: "Ativar compressão dos recursos",
+    recommendation: "Configurar Brotli ou GZIP para HTML, CSS e JavaScript e verificar se a compressão está ativa no servidor e no CDN.",
+  },
+  "total-byte-weight": {
+    title: "Reduzir o tamanho total dos recursos",
+    recommendation: "Remover recursos desnecessários, comprimir imagens e adiar scripts e estilos que não participam da renderização inicial.",
+  },
+};
+
+const PAGE_SPEED_TITLE_TRANSLATIONS: Record<string, string> = {
+  "render-blocking resources": "Recursos que bloqueiam a renderização",
+  "render-blocking resources (render-blocking resources)": "Recursos que bloqueiam a renderização",
+  "legacy javascript": "JavaScript legado",
+  "unused javascript": "JavaScript não utilizado",
+  "unused css": "CSS não utilizado",
+  "reduce javascript execution time": "Reduzir o tempo de execução de JavaScript",
+  "main-thread work": "Minimizar o trabalho da linha de execução principal",
+  "efficient cache lifetimes": "Usar ciclos de vida eficientes de cache",
+  "properly size images": "Dimensionar as imagens corretamente",
+  "modern image formats": "Usar formatos modernos de imagem",
+  "image elements do not have explicit width and height": "Definir dimensões explícitas para as imagens",
+  "largest contentful paint": "Detalhamento do maior elemento de conteúdo (LCP)",
+  "network dependency tree": "Reduzir a cadeia de solicitações críticas",
+  "long tasks": "Evitar tarefas longas na linha de execução principal",
+  "third parties": "Reduzir o impacto de scripts de terceiros",
+  "total byte weight": "Reduzir o peso total da página",
+  "uses text compression": "Ativar a compressão de recursos",
+  "unused css rules": "Reduzir CSS não utilizado",
+  "server response time": "Reduzir o tempo de resposta do servidor",
+  "missing source maps for large first-party javascript": "Adicionar mapas de origem ao JavaScript próprio",
+  "links do not have a discernible name": "Nomear os links de forma compreensível",
+  "links do not have discernible names": "Nomear os links de forma compreensível",
+  "improve image delivery": "Melhorar a entrega de imagens",
+  "document does not have a main landmark": "Definir uma região principal no documento",
+  "render-blocking requests": "Eliminar solicitações que bloqueiam a renderização",
+  "critical request chains": "Reduzir as cadeias de solicitações críticas",
+  "use efficient cache lifetimes": "Usar ciclos de vida eficientes de cache",
+};
+
+function translatePageSpeedTitle(title: string): string {
+  const normalized = String(title ?? "").trim().toLowerCase();
+  return PAGE_SPEED_TITLE_TRANSLATIONS[normalized] ?? title
+    .replace(/\bRender-blocking resources\b/gi, "Recursos que bloqueiam a renderização")
+    .replace(/\bLegacy JavaScript\b/gi, "JavaScript legado")
+    .replace(/\bUnused JavaScript\b/gi, "JavaScript não utilizado")
+    .replace(/\bUnused CSS\b/gi, "CSS não utilizado")
+    .replace(/\bMain-thread work\b/gi, "Trabalho da linha de execução principal")
+    .replace(/\bLargest Contentful Paint\b/gi, "Maior elemento de conteúdo")
+    .replace(/\bFirst Contentful Paint\b/gi, "Primeira renderização de conteúdo")
+    .replace(/\bTotal Blocking Time\b/gi, "Tempo total de bloqueio")
+    .replace(/\bCumulative Layout Shift\b/gi, "Mudança cumulativa de layout")
+    .replace(/\bSpeed Index\b/gi, "Índice de velocidade")
+    .replace(/\bMissing source maps for large first-party JavaScript\b/gi, "Adicionar mapas de origem ao JavaScript próprio")
+    .replace(/\bLinks do not have a discernible name\b/gi, "Nomear os links de forma compreensível")
+    .replace(/\bImprove image delivery\b/gi, "Melhorar a entrega de imagens")
+    .replace(/\bNetwork dependency tree\b/gi, "Reduzir a árvore de dependências de rede")
+    .replace(/\bDocument does not have a main landmark\b/gi, "Definir uma região principal no documento")
+    .replace(/\bRender-blocking requests\b/gi, "Eliminar solicitações que bloqueiam a renderização")
+    .replace(/\bEst savings of\b/gi, "Economia estimada de");
+}
+
+function translatePageSpeedDisplayValue(displayValue: string | undefined): string | undefined {
+  return displayValue?.replace(/\bEst savings of\b/gi, "Economia estimada de");
+}
+
+function translateReportText(value: unknown): string {
+  return String(value ?? "")
+    .replace(/\bRender-blocking resources\b/gi, "recursos que bloqueiam a renderização")
+    .replace(/\bRender-blocking requests\b/gi, "solicitações que bloqueiam a renderização")
+    .replace(/\bUnused JavaScript\b/gi, "JavaScript não utilizado")
+    .replace(/\bUnused CSS\b/gi, "CSS não utilizado")
+    .replace(/\bLegacy JavaScript\b/gi, "JavaScript legado")
+    .replace(/\bMain-thread work\b/gi, "trabalho da linha de execução principal")
+    .replace(/\bLargest Contentful Paint\b/gi, "maior elemento de conteúdo")
+    .replace(/\bFirst Contentful Paint\b/gi, "primeira renderização de conteúdo")
+    .replace(/\bTotal Blocking Time\b/gi, "tempo total de bloqueio")
+    .replace(/\bCumulative Layout Shift\b/gi, "mudança cumulativa de layout")
+    .replace(/\bSpeed Index\b/gi, "índice de velocidade")
+    .replace(/\bNetwork dependency tree\b/gi, "árvore de dependências de rede")
+    .replace(/\bMissing source maps\b/gi, "mapas de origem ausentes")
+    .replace(/\bsource maps\b/gi, "mapas de origem")
+    .replace(/\bfirst-party\b/gi, "próprio")
+    .replace(/\bImprove image delivery\b/gi, "melhorar a entrega de imagens")
+    .replace(/\bDocument does not have a main landmark\b/gi, "o documento não possui uma região principal")
+    .replace(/\bLinks do not have a discernible name\b/gi, "há links sem nome compreensível")
+    .replace(/\bEfficient cache lifetimes\b/gi, "ciclos de vida eficientes de cache")
+    .replace(/\bThird-party code\b/gi, "código de terceiros")
+    .replace(/\bthird-party\b/gi, "de terceiros")
+    .replace(/\bJavaScript execution time\b/gi, "tempo de execução do JavaScript")
+    .replace(/\bEst savings of\b/gi, "economia estimada de")
+    .replace(/\bImprove\b/gi, "melhorar")
+    .replace(/\bReduce\b/gi, "reduzir")
+    .replace(/\bAvoid\b/gi, "evitar")
+    .replace(/\bUse\b/gi, "usar");
+}
+
+function translatePageSpeedDescription(description: string | undefined): string {
+  if (!description) return "O relatório identificou este ponto como uma melhoria específica para a página analisada.";
+  return description
+    .replace(/^Eliminate render-blocking resources by inlining critical resources and deferring non-critical resources\./i, "Recursos de CSS e JavaScript estão bloqueando a renderização inicial. O conteúdo crítico deve ser carregado primeiro e os recursos não essenciais devem ser adiados.")
+    .replace(/^Reduce unused JavaScript and defer loading scripts until they are needed to reduce bytes consumed by network activity\./i, "Há JavaScript carregado que não é utilizado durante o carregamento inicial. Esses scripts devem ser adiados até que sejam necessários.")
+    .replace(/^Reduce unused rules from stylesheets and defer CSS not used for above-the-fold content to reduce unnecessary bytes consumed by network activity\./i, "As folhas de estilo contêm regras que não são utilizadas no conteúdo inicial. O CSS não crítico deve ser removido, dividido ou adiado.")
+    .replace(/^Serve images that are appropriately-sized to save cellular data and improve load time\./i, "Há imagens maiores do que as dimensões em que são exibidas. Entregar arquivos dimensionados corretamente reduz o download e melhora o carregamento.")
+    .replace(/^Serve images in next-gen formats to reduce the download size of images and improve page load time\./i, "As imagens podem ser entregues em formatos modernos, como WebP ou AVIF, para reduzir o tamanho do download.")
+    .replace(/^Avoid serving legacy JavaScript to modern browsers\./i, "Parte do JavaScript atende navegadores antigos e pode ser substituída por código moderno para reduzir o processamento.")
+    .replace(/^Reduce the impact of third-party code\./i, "Scripts de terceiros estão consumindo rede e processamento durante o carregamento. Eles devem ser reduzidos ou adiados.")
+    .replace(/^Serve static assets with an efficient cache policy\./i, "Os recursos estáticos não estão utilizando uma política de cache suficientemente eficiente para visitas recorrentes.")
+    .replace(/^Avoid chaining critical requests\./i, "A página depende de várias solicitações críticas em sequência, aumentando o tempo até que os recursos principais sejam carregados.")
+    .replace(/^Reduce JavaScript execution time\./i, "O navegador está gastando tempo elevado para interpretar, compilar e executar JavaScript.")
+    .replace(/^Minimize main-thread work\./i, "A linha de execução principal está sobrecarregada com tarefas de JavaScript, estilo, layout e renderização.")
+    .replace(/^Image elements do not have explicit width and height\./i, "Há imagens sem dimensões explícitas, o que pode fazer o layout mudar durante o carregamento.")
+    .replace(/^Document does not have a main landmark\./i, "O documento não define uma região principal, dificultando a navegação por tecnologias assistivas.")
+    .replace(/^Links do not have discernible names\./i, "Há links sem um nome compreensível para leitores de tela e outros recursos de tecnologia assistiva.")
+    .replace(/^Missing source maps for large first-party JavaScript\./i, "Os arquivos JavaScript próprios de maior tamanho não possuem mapas de origem para facilitar a investigação e manutenção.")
+    .replace(/^Render-blocking requests\./i, "Há solicitações de rede bloqueando a renderização inicial e atrasando a exibição do conteúdo visível.");
+}
+
+const PAGE_SPEED_SHORT_DESCRIPTIONS: Record<string, string> = {
+  "render-blocking-resources": "CSS e JavaScript estão bloqueando a renderização inicial.",
+  "unused-javascript": "Há JavaScript carregado que não é utilizado no carregamento inicial.",
+  "unused-css-rules": "Há regras CSS carregadas que não são utilizadas no conteúdo inicial.",
+  "uses-long-cache-ttl": "Os recursos estáticos não possuem uma política de cache adequada.",
+  "uses-optimized-images": "Há imagens que podem ser comprimidas para reduzir o tempo de carregamento.",
+  "offscreen-images": "Imagens fora da área visível estão sendo carregadas antes do necessário.",
+  "uses-responsive-images": "As imagens não estão sendo entregues no tamanho ideal para cada tela.",
+  "network-dependency-tree": "A página possui uma cadeia extensa de solicitações críticas.",
+  "legacy-javascript": "Há JavaScript legado sendo enviado para navegadores modernos.",
+  "long-tasks": "Há tarefas longas bloqueando a linha de execução principal.",
+  "third-parties": "Scripts de terceiros estão consumindo rede e processamento.",
+  "unsized-images": "Há imagens sem dimensões explícitas, causando risco de mudança no layout.",
+  "total-byte-weight": "O peso total dos recursos da página está elevado.",
 };
 
 function localizedPageSpeedOpportunity(opportunity: any) {
   const localized = PAGE_SPEED_LABELS[opportunity.id];
-  const title = localized?.title ?? opportunity.title
+  const title = translatePageSpeedTitle(localized?.title ?? opportunity.title
     .replace(/^Properly size images$/i, "Dimensionar as imagens corretamente")
     .replace(/^Efficiently encode images$/i, "Codificar as imagens com eficiência")
     .replace(/^Minify JavaScript$/i, "Minificar JavaScript")
-    .replace(/^Minify CSS$/i, "Minificar CSS");
+    .replace(/^Minify CSS$/i, "Minificar CSS"));
 
   return {
     title,
-    description: `O PageSpeed identificou este ponto como uma oportunidade de melhoria no carregamento da página${opportunity.displayValue ? ` (${opportunity.displayValue})` : ""}.`,
+    description: `${PAGE_SPEED_SHORT_DESCRIPTIONS[opportunity.id] ?? translatePageSpeedDescription(opportunity.rawDescription).split(/[.!?](?:\s|$)/)[0] + "."}${opportunity.displayValue ? ` (${translatePageSpeedDisplayValue(opportunity.displayValue)})` : ""}`,
     impact: ["Pode atrasar a exibição do conteúdo principal.", "Pode aumentar o tempo de carregamento no primeiro acesso."],
+    causes: [
+      "Carregamento de recursos ou funcionalidades não utilizados na página.",
+      "Configurações padrão do CMS, do tema ou de plugins de terceiros.",
+    ],
     recommendations: [localized?.recommendation ?? "Revisar este recurso no relatório detalhado do PageSpeed e aplicar a correção indicada para reduzir o impacto no carregamento."],
   };
 }
@@ -169,22 +362,72 @@ function buildPageSpeedImprovements(mobile: any, desktop: any) {
     list.findIndex((item) => item.id === opportunity.id) === index,
   );
   const improvements = unique.slice(0, 8).map(localizedPageSpeedOpportunity);
-  if (improvements.length > 0) return improvements;
-
-  return [
+  const metricFallbacks = [
     {
+      id: "lcp-metric",
+      value: mobile.metrics?.lcp,
       title: "Melhorar o carregamento do conteúdo principal",
       description: `O PageSpeed registrou LCP de ${mobile.metrics?.lcp ?? "—"} no mobile e ${desktop.metrics?.lcp ?? "—"} no desktop.`,
       impact: ["O conteúdo principal pode demorar para aparecer no primeiro acesso.", "A percepção de velocidade pode ser prejudicada em redes móveis."],
+      causes: ["Imagem, banner ou bloco principal pesado.", "CSS, fontes ou scripts bloqueando a renderização inicial."],
       recommendations: ["Otimizar o elemento identificado como maior conteúdo, priorizar seus recursos e revisar o tempo de resposta do servidor."],
     },
     {
+      id: "tbt-metric",
+      value: mobile.metrics?.tbt,
       title: "Reduzir o trabalho do navegador",
       description: `O tempo de bloqueio total registrado foi de ${mobile.metrics?.tbt ?? "—"} no mobile e ${desktop.metrics?.tbt ?? "—"} no desktop.`,
       impact: ["Interações podem ficar indisponíveis enquanto a página é processada.", "Dispositivos móveis podem sentir mais lentidão."],
+      causes: ["Scripts grandes ou executados durante o carregamento inicial.", "Plugins, rastreadores e widgets de terceiros."],
       recommendations: ["Reduzir JavaScript não utilizado, adiar scripts não críticos e dividir tarefas longas em partes menores."],
     },
+    {
+      id: "cls-metric",
+      value: mobile.metrics?.cls,
+      title: "Evitar mudanças inesperadas no layout",
+      description: `O PageSpeed registrou CLS de ${mobile.metrics?.cls ?? "—"} no mobile e ${desktop.metrics?.cls ?? "—"} no desktop.`,
+      impact: ["Elementos podem mudar de posição durante o carregamento.", "A navegação pode causar cliques ou interações acidentais."],
+      causes: ["Imagens ou elementos sem dimensões definidas.", "Fontes e conteúdos dinâmicos alterando o layout após a renderização."],
+      recommendations: ["Definir dimensões para imagens e anúncios, reservar espaço para conteúdo dinâmico e evitar inserir elementos acima do conteúdo já renderizado."],
+    },
+    {
+      id: "fcp-metric",
+      value: mobile.metrics?.fcp,
+      title: "Acelerar a primeira renderização",
+      description: `O PageSpeed registrou FCP de ${mobile.metrics?.fcp ?? "—"} no mobile e ${desktop.metrics?.fcp ?? "—"} no desktop.`,
+      impact: ["O visitante pode visualizar uma tela vazia por mais tempo.", "A percepção inicial de velocidade pode ser prejudicada."],
+      causes: ["Recursos CSS e JavaScript bloqueando a renderização.", "Servidor, fontes ou recursos críticos com alta latência."],
+      recommendations: ["Reduzir recursos bloqueantes, otimizar o caminho crítico de renderização e priorizar o conteúdo visível."],
+    },
+    {
+      id: "ttfb-metric",
+      value: mobile.metrics?.ttfb,
+      title: "Reduzir o tempo de resposta do servidor",
+      description: `O PageSpeed registrou TTFB de ${mobile.metrics?.ttfb ?? "—"} no mobile e ${desktop.metrics?.ttfb ?? "—"} no desktop.`,
+      impact: ["Todos os recursos da página começam a carregar mais tarde.", "O atraso é mais perceptível em redes móveis."],
+      causes: ["Falta de cache de página ou consultas lentas no servidor.", "Hospedagem ou processamento de plugins consumindo muitos recursos."],
+      recommendations: ["Usar cache de página, revisar consultas e processamento no servidor e avaliar a infraestrutura de hospedagem."],
+    },
+    {
+      id: "page-weight-metric",
+      value: mobile.metrics?.pageSize,
+      title: "Reduzir o peso total da página",
+      description: `O PageSpeed mediu ${mobile.metrics?.pageSize ?? "—"} no mobile e ${desktop.metrics?.pageSize ?? "—"} no desktop para o peso total da página.`,
+      impact: ["O download consome mais tempo e dados.", "Usuários em redes lentas podem abandonar a página antes do carregamento."],
+      causes: ["Imagens, folhas de estilo e scripts maiores do que o necessário.", "Recursos de plugins e integrações carregados globalmente."],
+      recommendations: ["Comprimir imagens, remover recursos desnecessários e ativar compressão e cache para arquivos estáticos."],
+    },
   ];
+  const existingTitles = new Set(improvements.map((improvement: any) => improvement.title.toLowerCase()));
+  for (const fallback of metricFallbacks) {
+    if (improvements.length >= 8) break;
+    if (fallback.value && !existingTitles.has(fallback.title.toLowerCase())) {
+      const { id: _id, value: _value, ...improvement } = fallback;
+      improvements.push(improvement);
+      existingTitles.add(fallback.title.toLowerCase());
+    }
+  }
+  return improvements;
 }
 
 // Cores estilo PageSpeed (faixas de score)
@@ -325,8 +568,26 @@ async function aiAnalysis(url: string, mobile: any, desktop: any, screenshotData
 
   const summary = {
     url,
-    mobile: { scores: mobile.scores, metrics: mobile.metrics, top_opportunities: mobile.opportunities.map((o: any) => o.title) },
-    desktop: { scores: desktop.scores, metrics: desktop.metrics },
+    mobile: {
+      scores: mobile.scores,
+      metrics: mobile.metrics,
+      top_opportunities: mobile.opportunities.map((o: any) => ({
+        id: o.id,
+        title: o.title,
+        description: translatePageSpeedDescription(o.rawDescription),
+        displayValue: o.displayValue,
+      })),
+    },
+    desktop: {
+      scores: desktop.scores,
+      metrics: desktop.metrics,
+      top_opportunities: desktop.opportunities.map((o: any) => ({
+        id: o.id,
+        title: o.title,
+        description: translatePageSpeedDescription(o.rawDescription),
+        displayValue: o.displayValue,
+      })),
+    },
   };
 
   const userContent: any[] = [
@@ -359,7 +620,16 @@ Retorne JSON com EXATAMENTE este formato:
   ]
 }
 
-Gere de 4 a 6 improvements baseados nas oportunidades reais do PageSpeed. Use linguagem técnica mas clara e preencha todos os campos de cada item. Cada improvement deve ter Descrição, Impacto, Causas comuns e Recomendações — exatamente como nos relatórios da Tupiniquim. Não deixe arrays vazios e não invente problemas que não estejam relacionados aos dados fornecidos.`,
+Gere exatamente 8 improvements baseados nas oportunidades reais do PageSpeed, priorizando os itens com maior economia estimada ou impacto. Use linguagem técnica, clara e exclusivamente em português brasileiro. Não use palavras ou títulos em inglês, nem mesmo entre parênteses; traduza todos os termos técnicos.
+
+Cada improvement deve preencher obrigatoriamente todos estes campos:
+- title: título numerável e objetivo do problema.
+- description: uma única frase curta, técnica e específica sobre o problema identificado. Nunca use frases genéricas como "O PageSpeed identificou este ponto como uma oportunidade de melhoria".
+- impact: 2 ou 3 impactos objetivos.
+- causes: de 2 a 4 causas comuns, preferencialmente relacionadas ao WordPress, Elementor, tema ou plugins quando os dados indicarem esse contexto.
+- recommendations: de 2 a 4 ações práticas e específicas.
+
+Não deixe arrays vazios, não repita o mesmo problema e não invente problemas que não estejam relacionados aos dados fornecidos. A resposta deve permitir montar um relatório com as seções: Descrição, Impacto, Causas comuns e Recomendações.`,
     },
   ];
 
@@ -606,11 +876,11 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
     }
 
     children.push(subTitle("Métricas principais"));
-    children.push(bullet(`First Contentful Paint: ${data.metrics.fcp}`));
-    children.push(bullet(`Largest Contentful Paint: ${data.metrics.lcp}`));
-    children.push(bullet(`Total Blocking Time: ${data.metrics.tbt}`));
-    children.push(bullet(`Cumulative Layout Shift: ${data.metrics.cls}`));
-    children.push(bullet(`Speed Index: ${data.metrics.si}`));
+    children.push(bullet(`Primeira renderização de conteúdo: ${data.metrics.fcp}`));
+    children.push(bullet(`Maior elemento de conteúdo: ${data.metrics.lcp}`));
+    children.push(bullet(`Tempo total de bloqueio: ${data.metrics.tbt}`));
+    children.push(bullet(`Mudança cumulativa de layout: ${data.metrics.cls}`));
+    children.push(bullet(`Índice de velocidade: ${data.metrics.si}`));
     children.push(bullet(`Tempo para Interatividade (TTI): ${data.metrics.tti}`));
     children.push(bullet(`Tempo de Resposta do Servidor (TTFB): ${data.metrics.ttfb}`));
     children.push(bullet(`Peso Total da Página: ${data.metrics.pageSize}`));
@@ -685,6 +955,44 @@ Deno.serve(async (req) => {
     const pageSpeedImprovements = buildPageSpeedImprovements(mobile, desktop);
     if (!Array.isArray(ai?.improvements) || ai.improvements.length === 0) {
       ai = { ...ai, improvements: pageSpeedImprovements };
+    } else if (ai.improvements.length < 8) {
+      const existingTitles = new Set(
+        ai.improvements
+          .map((improvement: any) => String(improvement.title ?? "").trim().toLowerCase())
+          .filter(Boolean),
+      );
+      const mergedImprovements = [...ai.improvements];
+      for (const improvement of pageSpeedImprovements) {
+        const title = String(improvement.title ?? "").trim().toLowerCase();
+        if (title && !existingTitles.has(title)) {
+          mergedImprovements.push(improvement);
+          existingTitles.add(title);
+        }
+        if (mergedImprovements.length >= 8) break;
+      }
+      ai = { ...ai, improvements: mergedImprovements };
+    }
+    if (Array.isArray(ai?.improvements)) {
+      ai = {
+        ...ai,
+        improvements: ai.improvements.slice(0, 8).map((improvement: any) => ({
+          ...improvement,
+          title: translateReportText(translatePageSpeedTitle(improvement.title ?? "Sugestão de melhoria")),
+          description: translateReportText(improvement.description ?? "Problema identificado no carregamento da página."),
+          impact: Array.isArray(improvement.impact)
+            ? improvement.impact.map(translateReportText)
+            : ["Pode atrasar o carregamento e a interação com a página."],
+          causes: Array.isArray(improvement.causes) && improvement.causes.length > 0
+            ? improvement.causes.map(translateReportText)
+            : [
+              "Recursos ou funcionalidades carregados sem necessidade no primeiro acesso.",
+              "Configurações padrão do CMS, do tema ou de plugins de terceiros.",
+            ],
+          recommendations: Array.isArray(improvement.recommendations)
+            ? improvement.recommendations.map(translateReportText)
+            : ["Revisar e otimizar o recurso indicado no diagnóstico."],
+        })),
+      };
     }
     console.log("Gerando docx…");
 

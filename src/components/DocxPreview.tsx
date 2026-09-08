@@ -149,21 +149,24 @@ export default function DocxPreview({
 
       {/* Conteúdo */}
       <Page>
-        <h3 className="text-[22px] font-bold mb-2 text-report-green" style={{ fontFamily: "'Bree Serif', Georgia, serif" }}>
-          {hostname} - DIAGNÓSTICO DE SITE
-        </h3>
-
         <SectionTitle>Sugestões de melhoria</SectionTitle>
         {improvements.slice(2).map((imp, i) => (
           <div key={i} className="mb-6">
             <h3 className="text-base font-bold text-report-heading mt-4 mb-2">
-              {i + 3}. {imp.title}
+              {i + 3}.{" "}
+              <EditableText
+                value={imp.title}
+                onChange={editable ? (value) => onImprovementChange?.(i + 2, "title", value) : undefined}
+              />
             </h3>
             {(imp.description || imp.problem) && (
               <>
                 <SubTitle>Descrição</SubTitle>
                 <p className="text-[15px] text-report-text leading-relaxed">
-                  {imp.description ?? imp.problem}
+                  <EditableText
+                    value={imp.description ?? imp.problem ?? ""}
+                    onChange={editable ? (value) => onImprovementChange?.(i + 2, "description", value) : undefined}
+                  />
                 </p>
               </>
             )}
@@ -249,11 +252,11 @@ export default function DocxPreview({
             <SubTitle>Métricas principais</SubTitle>
             <Bullets
               items={[
-                `First Contentful Paint: ${data.metrics.fcp}`,
-                `Largest Contentful Paint: ${data.metrics.lcp}`,
-                `Total Blocking Time: ${data.metrics.tbt}`,
-                `Cumulative Layout Shift: ${data.metrics.cls}`,
-                `Speed Index: ${data.metrics.si}`,
+                `Primeira renderização de conteúdo: ${data.metrics.fcp}`,
+                `Maior elemento de conteúdo: ${data.metrics.lcp}`,
+                `Tempo total de bloqueio: ${data.metrics.tbt}`,
+                `Mudança cumulativa de layout: ${data.metrics.cls}`,
+                `Índice de velocidade: ${data.metrics.si}`,
               ]}
             />
             {data.opportunities && data.opportunities.length > 0 && (
