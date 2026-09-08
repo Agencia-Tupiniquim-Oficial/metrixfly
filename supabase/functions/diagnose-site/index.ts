@@ -73,6 +73,10 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
       tbt: audits["total-blocking-time"]?.displayValue ?? "—",
       cls: audits["cumulative-layout-shift"]?.displayValue ?? "—",
       si: audits["speed-index"]?.displayValue ?? "—",
+      tti: audits["interactive"]?.displayValue ?? "—",
+      ttfb: audits["server-response-time"]?.displayValue ?? "—",
+      pageSize: audits["total-byte-weight"]?.displayValue ?? "—",
+      requests: audits["network-requests"]?.displayValue ?? "—",
     },
     screenshot: audits["final-screenshot"]?.details?.data ?? null,
     opportunities,
@@ -114,12 +118,32 @@ const PAGE_SPEED_LABELS: Record<string, { title: string; recommendation: string 
     recommendation: "Identificar o maior elemento visível, priorizar seu carregamento e reduzir o tempo de resposta do servidor, o peso da imagem ou do conteúdo que o compõe.",
   },
   "server-response-time": {
-    title: "Reduzir o tempo de resposta do servidor",
+    title: "Reduzir o tempo de resposta do servidor (TTFB)",
     recommendation: "Avaliar hospedagem, cache de página, consultas e scripts do servidor para diminuir o tempo até o primeiro byte.",
   },
   "font-display": {
     title: "Configurar a exibição das fontes",
     recommendation: "Usar font-display: swap ou opcional e pré-carregar somente as fontes realmente necessárias para evitar texto invisível durante o carregamento.",
+  },
+  "modern-image-formats": {
+    title: "Usar formatos de imagem de última geração",
+    recommendation: "Formatos como WebP e AVIF geralmente oferecem melhor compressão do que PNG ou JPEG, o que resulta em downloads mais rápidos e menor consumo de dados.",
+  },
+  "dom-size": {
+    title: "Evitar um tamanho excessivo do DOM",
+    recommendation: "Reduzir a complexidade da página simplificando a estrutura HTML e removendo elementos desnecessários, o que melhora o tempo de processamento do navegador.",
+  },
+  "unminified-javascript": {
+    title: "Minificar JavaScript",
+    recommendation: "Remover espaços em branco, comentários e outros caracteres irrelevantes dos arquivos de script para reduzir seu tamanho total.",
+  },
+  "unminified-css": {
+    title: "Minificar CSS",
+    recommendation: "Compactar os arquivos de estilo para reduzir o peso da página e acelerar o download dos recursos visuais.",
+  },
+  "efficient-animated-content": {
+    title: "Usar formatos de vídeo para conteúdo animado",
+    recommendation: "Substituir GIFs grandes por vídeos MP4/WebM ou animações CSS/Lottie para reduzir drasticamente o peso dos elementos em movimento.",
   },
 };
 
@@ -587,6 +611,10 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
     children.push(bullet(`Total Blocking Time: ${data.metrics.tbt}`));
     children.push(bullet(`Cumulative Layout Shift: ${data.metrics.cls}`));
     children.push(bullet(`Speed Index: ${data.metrics.si}`));
+    children.push(bullet(`Tempo para Interatividade (TTI): ${data.metrics.tti}`));
+    children.push(bullet(`Tempo de Resposta do Servidor (TTFB): ${data.metrics.ttfb}`));
+    children.push(bullet(`Peso Total da Página: ${data.metrics.pageSize}`));
+    children.push(bullet(`Total de Requisições: ${data.metrics.requests}`));
 
     if (data.opportunities?.length) {
       children.push(subTitle("Diagnóstico do PageSpeed"));
