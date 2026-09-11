@@ -21,7 +21,7 @@ export default function LighthouseCard({ title = "Device", scores, metrics, clas
 
       <CardContent>
         {/* top row of circles */}
-        <div className="flex gap-6 items-center mb-4">
+        <div className="flex gap-6 items-start mb-4">
           <ScoreCircle value={scores.performance} label="Desempenho" />
           <ScoreCircle value={scores.accessibility} label="Acessibilidade" />
           <ScoreCircle value={scores.bestPractices} label="Práticas" />

@@ -236,24 +236,25 @@ export default function DocxPreview({
             <h3 className="text-base font-bold text-report-heading mb-2">{label}:</h3>
             {/* Substituído: renderização textual + Bullets -> LighthouseCard */}
 
-            <LighthouseCard
-              title={label}
-              scores={{
-                performance: data.scores.performance,
-                accessibility: data.scores.accessibility,
-                bestPractices: data.scores.bestPractices,
-                seo: data.scores.seo,
-                navigation: undefined,
-              }}
-              metrics={{
-                fcp: data.metrics.fcp,
-                lcp: data.metrics.lcp,
-                tbt: data.metrics.tbt,
-                cls: data.metrics.cls,
-                si: data.metrics.si,
-              }}
-            />
-
+            <div className="bg-white rounded-lg shadow-sm border border-slate-100 p-4">
+              <LighthouseCard
+                title={label}
+                scores={{
+                  performance: data.scores.performance,
+                  accessibility: data.scores.accessibility,
+                  bestPractices: data.scores.bestPractices,
+                  seo: data.scores.seo,
+                  navigation: undefined,
+                }}
+                metrics={{
+                  fcp: data.metrics.fcp,
+                  lcp: data.metrics.lcp,
+                  tbt: data.metrics.tbt,
+                  cls: data.metrics.cls,
+                  si: data.metrics.si,
+                }}
+              />
+            </div>
             {data.opportunities && data.opportunities.length > 0 && (
               <>
                 <SubTitle>Diagnóstico do PageSpeed</SubTitle>
