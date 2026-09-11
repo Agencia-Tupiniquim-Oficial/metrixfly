@@ -3,9 +3,10 @@ import type { DiagnoseResult } from "@/types/diagnose";
 
 export type DiagnosisContextType = {
   diagnostic: DiagnoseResult | null;
-  setDiagnostic: (r: DiagnoseResult | null) => void;
+  // accept both value or updater function like React.setState
+  setDiagnostic: React.Dispatch<React.SetStateAction<DiagnoseResult | null>>;
   geo: any | null;
-  setGeo: (g: any | null) => void;
+  setGeo: React.Dispatch<React.SetStateAction<any | null>>;
 };
 
 const DiagnosisContext = createContext<DiagnosisContextType | undefined>(undefined);
@@ -50,8 +51,8 @@ export const DiagnosisProvider = ({ children }: { children: React.ReactNode }) =
     }
   }, [geo]);
 
-  const setDiagnostic = (r: DiagnoseResult | null) => setDiagnosticState(r);
-  const setGeo = (g: any | null) => setGeoState(g);
+  const setDiagnostic = setDiagnosticState;
+  const setGeo = setGeoState;
 
   return (
     <DiagnosisContext.Provider value={{ diagnostic, setDiagnostic, geo, setGeo }}>
