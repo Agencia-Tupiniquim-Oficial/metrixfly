@@ -8,26 +8,29 @@ import NotFound from "./pages/NotFound.tsx";
 import GeoAeoDashboard from "./pages/GeoAeoDashboard.tsx";
 import GeoAdmin from "./pages/GeoAdmin.tsx";
 import Reports from "./pages/Reports.tsx";
+import { DiagnosisProvider } from "@/context/DiagnosisContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/diagnostico" element={<Index />} />
-          <Route path="/geo-aeo" element={<GeoAeoDashboard />} />
-          <Route path="/geo-admin" element={<GeoAdmin />} />
-          <Route path="/reports" element={<Reports />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <DiagnosisProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/diagnostico" element={<Index />} />
+            <Route path="/geo-aeo" element={<GeoAeoDashboard />} />
+            <Route path="/geo-admin" element={<GeoAdmin />} />
+            <Route path="/reports" element={<Reports />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </DiagnosisProvider>
   </QueryClientProvider>
 );
 

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 import DiagnosticForm from "@/components/DiagnosticForm";
+import { useDiagnosis } from "@/context/DiagnosisContext";
 
 type Scores = {
   performance: number;
@@ -144,10 +145,12 @@ function ScoresGrid({
 }
 
 const Index = () => {
-  const [url, setUrl] = useState("");
+  const { diagnostic, setDiagnostic } = useDiagnosis();
+
+  const [url, setUrl] = useState(diagnostic?.geo?.domain ?? "");
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
-  const [result, setResult] = useState<Result | null>(null);
+  const [result, setResult] = useState<Result | null>(diagnostic ?? null);
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   const [downloading, setDownloading] = useState(false);
   const { toast } = useToast();
@@ -167,6 +170,7 @@ const Index = () => {
       if (data?.error) throw new Error(data.error);
       if (error) throw error;
       setResult(data as Result);
+      setDiagnostic(data as any);
       toast({
         title: "Diagnóstico pronto!",
         description: "Seu relatório foi gerado com sucesso.",
@@ -197,6 +201,17 @@ const Index = () => {
           ),
         },
     );
+
+    // persist to context so it survives navigation
+    setDiagnostic((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        improvements: prev.improvements.map((item, i) =>
+          i === index ? { ...item, [field]: value } : item,
+        ),
+      } as any;
+    });
   };
 
   const updateUiuxOverview = (value: string) => {
@@ -207,6 +222,11 @@ const Index = () => {
           uiux: { ...(current.uiux ?? {}), overview: value },
         },
     );
+
+    setDiagnostic((prev) => {
+      if (!prev) return prev;
+      return { ...prev, uiux: { ...(prev.uiux ?? {}), overview: value } } as any;
+    });
   };
 
   const downloadDocx = async () => {
@@ -357,13 +377,17 @@ const Index = () => {
                 <h3 className="text-lg font-semibold mb-4 text-foreground">
                   Screenshot mobile
                 </h3>
-                <img
-                  src={result.summary.screenshot}
-                  alt="Screenshot do site"
-                  className="max-h-96 mx-auto rounded-lg border border-border"
-                />
+                <a href={result.summary.screenshot} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={result.summary.screenshot}
+                    alt="Screenshot do site"
+                    className="max-h-96 mx-auto rounded-lg border border-border"
+                    style={{ cursor: "zoom-in" }}
+                  />
+                </a>
               </Card>
             )}
+
 
             <DiagnosticPreview
               url={url.startsWith("http") ? url : "https://" + url}
