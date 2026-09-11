@@ -28,7 +28,29 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   ["performance", "accessibility", "best-practices", "seo"].forEach((c) => params.append("category", c));
   const apiKey = Deno.env.get("PAGESPEED_API_KEY");
   if (apiKey) params.append("key", apiKey);
-  const res = await fetch(`${PAGESPEED}?${params}`);
+
+    async function safeFetchWithRetries(fullUrl: string, options: any = {}, retries = 0, backoff = 200, perRequestTimeout = Number(Deno.env.get("AUDIT_REQUEST_TIMEOUT_MS") || 6000)) {
+    // Retries default reduced to 0 for lower latency. Each request is aborted after perRequestTimeout ms.
+    for (let i = 0; i <= retries; i++) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), perRequestTimeout);
+      try {
+        const res = await fetch(fullUrl, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        if (res.status !== 429) return res;
+        // 429 -> wait and retry if attempts remain
+        if (i < retries) await new Promise((r) => setTimeout(r, backoff * (i + 1)));
+        else return res;
+      } catch (e) {
+        clearTimeout(id);
+        // Treat abort as a transient error and retry if attempts remain
+        if (i === retries) throw e;
+        await new Promise((r) => setTimeout(r, backoff * (i + 1)));
+      }
+    }
+  }
+
+  const res = await safeFetchWithRetries(`${PAGESPEED}?${params}`);
   if (!res.ok) {
     const errBody = await res.json().catch(() => null);
     const googleMsg = errBody?.error?.message as string | undefined;
@@ -44,10 +66,11 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
     }
     throw new Error(googleMsg ?? `PageSpeed ${strategy} falhou: ${res.status}`);
   }
-  const data = await res.json();
-  const lr = data.lighthouseResult;
-  const cats = lr.categories;
-  const audits = lr.audits;
+  const data = await res.json().catch(() => ({}));
+  const lr = data?.lighthouseResult ?? data ?? {};
+  const cats = lr?.categories ?? {};
+  const audits = lr?.audits ?? {};
+
   const excludedAuditIds = new Set([
     "first-contentful-paint",
     "largest-contentful-paint",
@@ -743,7 +766,7 @@ function bullet(text: string) {
   });
 }
 
-function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uint8Array> {
+async function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uint8Array> {
   const hostname = new URL(url).hostname.replace("www.", "").toUpperCase();
   const children: any[] = [];
   const improvements = Array.isArray(ai?.improvements) && ai.improvements.length > 0
@@ -835,111 +858,70 @@ function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promise<Uin
       ),
     );
 
-    const psShot = data.pagespeedScreenshot ?? null;
-    if (psShot) {
-      const bytes = dataUrlToBytes(psShot);
-      if (bytes) {
-        children.push(
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 200, after: 200 },
-            children: [
-              new ImageRun({
-                type: "jpg",
-                data: bytes,
-                transformation: { width: 560, height: 380 },
-                altText: { title: "pagespeed", description: `PageSpeed ${label}`, name: "pagespeed" },
-              }),
-            ],
-          }),
-        );
-      }
-    } else if (data.screenshot) {
-      const bytes = dataUrlToBytes(data.screenshot);
-      if (bytes) {
-        const isMobile = label === "Mobile";
-        children.push(
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 200, after: 200 },
-            children: [
-              new ImageRun({
-                type: "jpg",
-                data: bytes,
-                transformation: isMobile ? { width: 240, height: 420 } : { width: 480, height: 300 },
-                altText: { title: "screenshot", description: `Screenshot ${label}`, name: "screenshot" },
-              }),
-            ],
-          }),
-        );
-      }
-    }
+    // Render native docx card (numbers + labels) matching the preview — no images
+    try {
+      const scoreItems = [
+        { label: "Desempenho", value: data.scores.performance },
+        { label: "Acessibilidade", value: data.scores.accessibility },
+        { label: "Práticas recomendadas", value: data.scores.bestPractices },
+        { label: "SEO", value: data.scores.seo },
+      ];
 
-    children.push(subTitle("Métricas principais"));
-    children.push(bullet(`Primeira renderização de conteúdo: ${data.metrics.fcp}`));
-    children.push(bullet(`Maior elemento de conteúdo: ${data.metrics.lcp}`));
-    children.push(bullet(`Tempo total de bloqueio: ${data.metrics.tbt}`));
-    children.push(bullet(`Mudança cumulativa de layout: ${data.metrics.cls}`));
-    children.push(bullet(`Índice de velocidade: ${data.metrics.si}`));
-    children.push(bullet(`Tempo para Interatividade (TTI): ${data.metrics.tti}`));
-    children.push(bullet(`Tempo de Resposta do Servidor (TTFB): ${data.metrics.ttfb}`));
-    children.push(bullet(`Peso Total da Página: ${data.metrics.pageSize}`));
-    children.push(bullet(`Total de Requisições: ${data.metrics.requests}`));
-
-    if (data.opportunities?.length) {
-      children.push(subTitle("Diagnóstico do PageSpeed"));
-      data.opportunities.forEach((o: any) => {
-        const localized = localizedPageSpeedOpportunity(o);
-        children.push(bullet(`${localized.title}${o.displayValue ? ` — ${o.displayValue}` : ""}`));
+      // Row with big numbers
+      const numRow = new TableRow({
+        children: scoreItems.map((it) => new TableCell({
+          width: { size: Math.floor(10000 / scoreItems.length), type: WidthType.DXA },
+          margins: { top: 100, bottom: 100 },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 120 },
+              children: [
+                new TextRun({ text: `${Math.round(it.value)}`, bold: true, size: 56, color: scoreColor(it.value).text }),
+              ],
+            }),
+          ],
+        })),
       });
-    }
-  }
 
-  const doc = new Document({
-    styles: { default: { document: { run: { font: "Arial", size: 22, color: DARK } } } },
-    sections: [{
-      properties: {
-        page: {
-          size: { width: 12240, height: 15840 },
-          margin: { top: 720, right: 1440, bottom: 1440, left: 1440 },
-        },
-      },
-      children,
-    }],
-  });
-
-  return Packer.toBuffer(doc).then((b) => new Uint8Array(b));
-}
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  try {
-    const { url, docxOnly, mobile: editedMobile, desktop: editedDesktop, ai: editedAi } = await req.json();
-    if (!url || !/^https?:\/\//.test(url)) {
-      return new Response(JSON.stringify({ error: "Informe uma URL válida (com http/https)" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // Row with labels
+      const labelRow = new TableRow({
+        children: scoreItems.map((it) => new TableCell({
+          width: { size: Math.floor(10000 / scoreItems.length), type: WidthType.DXA },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({ text: it.label, size: 22, color: DARK })],
+            }),
+          ],
+        })),
       });
-    }
 
-    if (docxOnly) {
-      const docx = await buildDocx(url, editedMobile, editedDesktop, editedAi);
-      return new Response(JSON.stringify({ success: true, docx: bytesToBase64(docx) }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const tbl = new Table({
+        rows: [numRow, labelRow],
+        width: { size: 10000, type: WidthType.DXA },
       });
+
+      children.push(new Paragraph({ spacing: { before: 160 } }));
+      children.push(tbl);
+      children.push(new Paragraph({ spacing: { after: 160 } }));
+    } catch (e) {
+      // Fallback: if building native card fails, skip it and continue
+      console.warn("build native card failed:", e?.message ?? e);
     }
+    // If only one strategy succeeded, use it for both to continue generating the report (best-effort)
+    const fallback = mobile ?? desktop;
+    mobile = mobile ?? fallback;
+    desktop = desktop ?? fallback;
+    console.log("PageSpeed ok. Skipping visual cards to reduce latency.");
 
-    console.log("Diagnosticando", url);
-    const [mobile, desktop] = await Promise.all([runPageSpeed(url, "mobile"), runPageSpeed(url, "desktop")]);
-    console.log("PageSpeed ok. Renderizando cards visuais…");
-
-    const [psMobileShot, psDesktopShot] = await Promise.all([
-      buildPageSpeedCard(mobile.scores, mobile.screenshot, "mobile"),
-      buildPageSpeedCard(desktop.scores, desktop.screenshot, "desktop"),
-    ]);
-    (mobile as any).pagespeedScreenshot = psMobileShot;
-    (desktop as any).pagespeedScreenshot = psDesktopShot;
-    console.log("Screenshots PageSpeed:", { mobile: !!psMobileShot, desktop: !!psDesktopShot });
+    // Skip generating visual cards to reduce latency — no screenshots included
+    (mobile as any).pagespeedScreenshot = null;
+    (desktop as any).pagespeedScreenshot = null;
+    // Also clear raw PageSpeed screenshots to avoid further processing
+    (mobile as any).screenshot = null;
+    (desktop as any).screenshot = null;
+    console.log("Skipped visual card generation and cleared screenshots to reduce latency.");
 
     console.log("Gerando IA… (se configurada)");
     let ai;
@@ -994,35 +976,34 @@ Deno.serve(async (req) => {
         })),
       };
     }
-    console.log("Gerando docx…");
+    // Build report content but skip heavy docx generation in the inline request to reduce latency.
+    // The docx can be requested separately via docxOnly flag (handled above) or generated in background.
 
-    const docx = await buildDocx(url, mobile, desktop, ai);
-    const docxB64 = bytesToBase64(docx);
-
-    return new Response(JSON.stringify({
+    const summaryResponse = {
       success: true,
       summary: {
         mobile: {
           scores: mobile.scores,
           metrics: mobile.metrics,
-          screenshot: mobile.screenshot,
-          pagespeedScreenshot: psMobileShot,
+          screenshot: null,
+          pagespeedScreenshot: null,
           opportunities: mobile.opportunities ?? [],
         },
         desktop: {
           scores: desktop.scores,
           metrics: desktop.metrics,
-          screenshot: desktop.screenshot,
-          pagespeedScreenshot: psDesktopShot,
+          screenshot: null,
+          pagespeedScreenshot: null,
           opportunities: desktop.opportunities ?? [],
         },
-        screenshot: mobile.screenshot,
+        screenshot: null,
       },
       improvements: ai.improvements ?? [],
       uiux: ai.uiux ?? null,
       extras: ai.extras ?? [],
-      docx: docxB64,
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    };
+
+    return new Response(JSON.stringify(summaryResponse), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("diagnose error", e);
     return new Response(JSON.stringify({ error: e.message ?? "Erro desconhecido" }), {

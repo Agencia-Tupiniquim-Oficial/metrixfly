@@ -1,4 +1,5 @@
 import coverHeader from "@/assets/tupiniquim-report-cover.png";
+import LighthouseCard from "@/components/LighthouseCard";
 
 type Improvement = {
   title: string;
@@ -233,32 +234,26 @@ export default function DocxPreview({
         {([["Desktop", desktop], ["Mobile", mobile]] as const).map(([label, data]) => (
           <div key={label} className="mb-8">
             <h3 className="text-base font-bold text-report-heading mb-2">{label}:</h3>
-            <p className="text-[15px] text-report-text leading-relaxed mb-3">
-              De acordo com a ferramenta PageSpeed Insights, a performance da página em dispositivos{" "}
-              {label.toLowerCase()} está com a pontuação de {data.scores.performance}/100 em desempenho,{" "}
-              {data.scores.accessibility}/100 em acessibilidade, {data.scores.bestPractices}/100 em práticas
-              recomendadas e {data.scores.seo}/100 em SEO.
-            </p>
-            {(data.pagespeedScreenshot || data.screenshot) && (
-              <div className="flex justify-center my-4">
-                <img
-                  src={data.pagespeedScreenshot ?? data.screenshot ?? ""}
-                  alt={`PageSpeed ${label}`}
-                  className="border border-neutral-200 rounded max-w-full"
-                  style={{ maxHeight: data.pagespeedScreenshot ? 480 : (label === "Mobile" ? 360 : 260) }}
-                />
-              </div>
-            )}
-            <SubTitle>Métricas principais</SubTitle>
-            <Bullets
-              items={[
-                `Primeira renderização de conteúdo: ${data.metrics.fcp}`,
-                `Maior elemento de conteúdo: ${data.metrics.lcp}`,
-                `Tempo total de bloqueio: ${data.metrics.tbt}`,
-                `Mudança cumulativa de layout: ${data.metrics.cls}`,
-                `Índice de velocidade: ${data.metrics.si}`,
-              ]}
+            {/* Substituído: renderização textual + Bullets -> LighthouseCard */}
+
+            <LighthouseCard
+              title={label}
+              scores={{
+                performance: data.scores.performance,
+                accessibility: data.scores.accessibility,
+                bestPractices: data.scores.bestPractices,
+                seo: data.scores.seo,
+                navigation: undefined,
+              }}
+              metrics={{
+                fcp: data.metrics.fcp,
+                lcp: data.metrics.lcp,
+                tbt: data.metrics.tbt,
+                cls: data.metrics.cls,
+                si: data.metrics.si,
+              }}
             />
+
             {data.opportunities && data.opportunities.length > 0 && (
               <>
                 <SubTitle>Diagnóstico do PageSpeed</SubTitle>
