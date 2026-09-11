@@ -616,7 +616,7 @@ const GeoAeoDashboard = () => {
           </form>
         </Card>
         {!userId && (
-          <Card className="mt-4 border-primary/20 bg-primary/5 p-4">
+          <Card className="mt-4 border-primary/20 bg-primary/5 p-4 hidden">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="flex-1">
                 <p className="font-medium">Salve os projetos da sua agência</p>

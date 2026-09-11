@@ -277,7 +277,14 @@ const Index = () => {
       ? url.trim()
       : `https://${url.trim()}`;
 
-    if (!url.trim()) return;
+    if (!url.trim()) {
+      toast({
+        title: "Preencha a URL",
+        description: "Informe a URL que deseja analisar antes de abrir Geo/AEO.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setGeoLoading(true);
 
@@ -395,24 +402,6 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">{desc}</p>
               </Card>
             ))}
-            <Card className="p-5 bg-primary/5 border-primary/20 sm:col-span-3">
-              <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-                <div>
-                  <h4 className="font-semibold mb-1">
-                    Novo: Agent Crawl GEO/AEO
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Analise visibilidade em IA, entidades, respostas, schema e
-                    concorrência.
-                  </p>
-                </div>
-                <Button asChild variant="outline">
-                  <Link to="/geo-aeo">
-                    Abrir dashboard <span className="ml-2">→</span>
-                  </Link>
-                </Button>
-              </div>
-            </Card>
           </div>
         )}
       </div>
