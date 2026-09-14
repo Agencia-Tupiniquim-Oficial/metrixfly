@@ -28,7 +28,7 @@ type Props = {
   uiux?: { overview?: string; diagnosis?: string[]; recommendations?: string[] } | null;
   extras?: { title: string; description: string }[];
   editable?: boolean;
-  onImprovementChange?: (index: number, field: keyof Improvement, value: string) => void;
+  onImprovementChange?: (index: number, field: keyof Improvement, value: string | string[]) => void;
   onUiuxOverviewChange?: (value: string) => void;
   onHeaderChange?: (url: string) => void;
   onOpportunitiesChange?: (device: "desktop" | "mobile", items: string[]) => void;
