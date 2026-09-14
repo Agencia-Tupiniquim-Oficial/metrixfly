@@ -8,7 +8,7 @@ type Props = {
   result: any;
   previewMode: "view" | "edit";
   setPreviewMode: (mode: "view" | "edit") => void;
-  updateImprovement: (index: number, field: string, value: string) => void;
+  updateImprovement: (index: number, field: string, value: string | string[]) => void;
   updateUiuxOverview: (value: string) => void;
   downloadDocx: () => void;
 };

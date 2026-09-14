@@ -190,7 +190,7 @@ const Index = () => {
   const updateImprovement = (
     index: number,
     field: keyof Improvement,
-    value: string,
+    value: string | string[],
   ) => {
     setResult(
       (current) =>
@@ -226,6 +226,45 @@ const Index = () => {
     setDiagnostic((prev) => {
       if (!prev) return prev;
       return { ...prev, uiux: { ...(prev.uiux ?? {}), overview: value } } as any;
+    });
+  };
+
+  const updateUiuxField = (field: "diagnosis" | "recommendations", items: string[]) => {
+    setResult((current) =>
+      current && {
+        ...current,
+        uiux: { ...(current.uiux ?? {}), [field]: items },
+      },
+    );
+
+    setDiagnostic((prev) => {
+      if (!prev) return prev;
+      return { ...prev, uiux: { ...(prev.uiux ?? {}), [field]: items } } as any;
+    });
+  };
+
+  const updateOpportunities = (device: "desktop" | "mobile", items: string[]) => {
+    setResult((current) =>
+      current && {
+        ...current,
+        summary: {
+          ...current.summary,
+          ...(device === "desktop" ? { desktop: { ...(current.summary.desktop ?? {}), opportunities: items.map((t) => ({ title: t })) } } : {}),
+          ...(device === "mobile" ? { mobile: { ...(current.summary.mobile ?? {}), opportunities: items.map((t) => ({ title: t })) } } : {}),
+        },
+      },
+    );
+
+    setDiagnostic((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        summary: {
+          ...prev.summary,
+          ...(device === "desktop" ? { desktop: { ...(prev.summary.desktop ?? {}), opportunities: items.map((t) => ({ title: t })) } } : {}),
+          ...(device === "mobile" ? { mobile: { ...(prev.summary.mobile ?? {}), opportunities: items.map((t) => ({ title: t })) } } : {}),
+        },
+      } as any;
     });
   };
 

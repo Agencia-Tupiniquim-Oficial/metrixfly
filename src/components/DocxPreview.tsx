@@ -1,5 +1,7 @@
 import coverHeader from "@/assets/tupiniquim-report-cover.png";
 import LighthouseCard from "@/components/LighthouseCard";
+import React, { useState, useEffect, useRef } from "react";
+
 
 type Improvement = {
   title: string;
@@ -28,6 +30,8 @@ type Props = {
   editable?: boolean;
   onImprovementChange?: (index: number, field: keyof Improvement, value: string) => void;
   onUiuxOverviewChange?: (value: string) => void;
+  onHeaderChange?: (url: string) => void;
+  onOpportunitiesChange?: (device: "desktop" | "mobile", items: string[]) => void;
 };
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -45,13 +49,79 @@ function SubTitle({ children }: { children: React.ReactNode }) {
   return <h4 className="text-base font-bold text-report-heading mt-4 mb-1.5">{children}</h4>;
 }
 
-function Bullets({ items }: { items: string[] }) {
+function Bullets({
+  items,
+  editable = false,
+  onChange,
+}: {
+  items: string[];
+  editable?: boolean;
+  onChange?: (items: string[]) => void;
+}) {
+  const [local, setLocal] = useState<string[]>(items ?? []);
+  useEffect(() => setLocal(items ?? []), [items]);
+
+  if (!editable) {
+    return (
+      <ul className="list-disc pl-10 space-y-0.5 text-[15px] text-report-text leading-relaxed">
+        {items.map((it, i) => (
+          <li key={i}>{it}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  const handleBlur = () => {
+    const cleaned = local.map((l) => l.trim()).filter(Boolean);
+    onChange?.(cleaned);
+  };
+
+  const updateAt = (index: number, value: string) => {
+    setLocal((cur) => {
+      const copy = [...cur];
+      copy[index] = value;
+      return copy;
+    });
+  };
+
+  const addItem = () => setLocal((cur) => [...cur, ""]);
+  const removeAt = (index: number) => setLocal((cur) => cur.filter((_, i) => i !== index));
+
   return (
-    <ul className="list-disc pl-10 space-y-0.5 text-[15px] text-report-text leading-relaxed">
-      {items.map((it, i) => (
-        <li key={i}>{it}</li>
-      ))}
-    </ul>
+    <div>
+      <ul className="list-disc pl-10 space-y-0.5 text-[15px] text-report-text leading-relaxed">
+        {local.map((it, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <span
+              contentEditable
+              suppressContentEditableWarning
+              className="outline-none flex-1 whitespace-pre-wrap"
+              onInput={(e) => updateAt(i, (e.currentTarget.textContent ?? "").replace(/\u00A0/g, " "))}
+              onBlur={handleBlur}
+              dangerouslySetInnerHTML={{ __html: it }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                removeAt(i);
+                // call onChange after removal
+                setTimeout(() => onChange?.(local.filter((_, idx) => idx !== i).map((l) => l.trim()).filter(Boolean)), 0);
+              }}
+              className="text-xs text-muted-foreground"
+              aria-label="Remover item"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2">
+        <button type="button" onClick={addItem} className="text-sm text-primary underline">
+          Adicionar item
+        </button>
+        <p className="text-xs text-muted-foreground mt-1">Pressione fora do campo para salvar.</p>
+      </div>
+    </div>
   );
 }
 
@@ -128,19 +198,19 @@ export default function DocxPreview({
               {imp.impact?.length ? (
                 <>
                   <SubTitle>Impacto</SubTitle>
-                  <Bullets items={imp.impact} />
+                  <Bullets items={imp.impact} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i, "impact", items) : undefined} />
                 </>
               ) : null}
               {imp.causes?.length ? (
                 <>
                   <SubTitle>Causas comuns</SubTitle>
-                  <Bullets items={imp.causes} />
+                  <Bullets items={imp.causes} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i, "causes", items) : undefined} />
                 </>
               ) : null}
               {imp.recommendations?.length ? (
                 <>
                   <SubTitle>Recomendações</SubTitle>
-                  <Bullets items={imp.recommendations} />
+                  <Bullets items={imp.recommendations} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i, "recommendations", items) : undefined} />
                 </>
               ) : null}
             </div>
@@ -174,19 +244,19 @@ export default function DocxPreview({
             {imp.impact?.length ? (
               <>
                 <SubTitle>Impacto</SubTitle>
-                <Bullets items={imp.impact} />
+                <Bullets items={imp.impact} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i + 2, "impact", items) : undefined} />
               </>
             ) : null}
             {imp.causes?.length ? (
               <>
                 <SubTitle>Causas comuns</SubTitle>
-                <Bullets items={imp.causes} />
+                <Bullets items={imp.causes} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i + 2, "causes", items) : undefined} />
               </>
             ) : null}
             {imp.recommendations?.length ? (
               <>
                 <SubTitle>Recomendações</SubTitle>
-                <Bullets items={imp.recommendations} />
+                <Bullets items={imp.recommendations} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i + 2, "recommendations", items) : undefined} />
               </>
             ) : null}
           </div>
@@ -262,6 +332,8 @@ export default function DocxPreview({
                   items={data.opportunities.map((o) =>
                     o.displayValue ? `${o.title} — ${o.displayValue}` : o.title,
                   )}
+                  editable={editable}
+                  onChange={editable ? (items) => onOpportunitiesChange?.(label === "Desktop" ? "desktop" : "mobile", items) : undefined}
                 />
               </>
             )}
