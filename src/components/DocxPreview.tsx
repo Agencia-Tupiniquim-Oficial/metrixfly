@@ -314,7 +314,7 @@ export default function DocxPreview({
                   accessibility: data.scores.accessibility,
                   bestPractices: data.scores.bestPractices,
                   seo: data.scores.seo,
-                  navigation: undefined,
+                  navigation: data.scores.navigation,
                 }}
                 metrics={{
                   fcp: data.metrics.fcp,

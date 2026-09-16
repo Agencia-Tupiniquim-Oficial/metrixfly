@@ -376,7 +376,7 @@ const Index = () => {
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Performance (PageSpeed), análise visual da home e sugestões
-            priorizadas — exportadas em .docx no padrão da agência.
+            priorizadas — exportadas em .docx.
           </p>
         </header>
 

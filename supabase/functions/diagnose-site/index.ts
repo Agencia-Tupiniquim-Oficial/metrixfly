@@ -6,6 +6,16 @@ import {
 } from "https://esm.sh/docx@8.5.0";
 import { HEADER_PNG_B64 } from "./header-asset.ts";
 
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_KEY = Deno.env.get("SUPABASE_KEY") ?? "";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// OpenRouter defaults
+const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+const OPENROUTER_API_BASE = Deno.env.get("OPENROUTER_API_BASE") ?? "https://api.openrouter.ai";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -343,21 +353,117 @@ function translatePageSpeedDescription(description: string | undefined): string 
     .replace(/^Render-blocking requests\./i, "Há solicitações de rede bloqueando a renderização inicial e atrasando a exibição do conteúdo visível.");
 }
 
-const PAGE_SPEED_SHORT_DESCRIPTIONS: Record<string, string> = {
-  "render-blocking-resources": "CSS e JavaScript estão bloqueando a renderização inicial.",
-  "unused-javascript": "Há JavaScript carregado que não é utilizado no carregamento inicial.",
-  "unused-css-rules": "Há regras CSS carregadas que não são utilizadas no conteúdo inicial.",
-  "uses-long-cache-ttl": "Os recursos estáticos não possuem uma política de cache adequada.",
-  "uses-optimized-images": "Há imagens que podem ser comprimidas para reduzir o tempo de carregamento.",
-  "offscreen-images": "Imagens fora da área visível estão sendo carregadas antes do necessário.",
-  "uses-responsive-images": "As imagens não estão sendo entregues no tamanho ideal para cada tela.",
-  "network-dependency-tree": "A página possui uma cadeia extensa de solicitações críticas.",
-  "legacy-javascript": "Há JavaScript legado sendo enviado para navegadores modernos.",
-  "long-tasks": "Há tarefas longas bloqueando a linha de execução principal.",
-  "third-parties": "Scripts de terceiros estão consumindo rede e processamento.",
-  "unsized-images": "Há imagens sem dimensões explícitas, causando risco de mudança no layout.",
-  "total-byte-weight": "O peso total dos recursos da página está elevado.",
-};
+
+// Supabase helpers (pagespeed_translations table)
+async function getPagespeedTranslation(audit_id: string): Promise<string | null> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  try {
+    const { data, error } = await supabase
+      .from("pagespeed_translations")
+      .select("translated_description")
+      .eq("audit_id", audit_id)
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.warn("supabase getPagespeedTranslation error", error.message ?? error);
+      return null;
+    }
+    return data?.translated_description ?? null;
+  } catch (e) {
+    console.warn("getPagespeedTranslation failed", e?.message ?? e);
+    return null;
+  }
+}
+
+async function upsertPagespeedTranslation(audit_id: string, translated: string) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  try {
+    await supabase.from("pagespeed_translations").upsert({
+      audit_id,
+      translated_description: translated,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: ["audit_id"] });
+  } catch (e) {
+    console.warn("upsertPagespeedTranslation failed", e?.message ?? e);
+  }
+}
+
+// Batch-translate summary items using OpenRouter (single call)
+async function translateSummaryFields(items: Array<{ audit_id: string; text: string }>) {
+  if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY não configurada");
+
+  // Build the prompt instructing the model to return strict JSON
+  const system = "Você é um tradutor técnico para pt-BR. Preserve siglas (LCP, CLS, TBT, FCP, TTFB) e termos técnicos. Retorne apenas JSON válido. Não adicione prefixos como 'PT-BR:' ou similares — 'translated_text' deve conter apenas o texto em português brasileiro.";
+  const userPrompt = `Receba um array JSON com objetos { "audit_id", "text" } e retorne um array JSON com objetos { "audit_id", "translated_text" } onde translated_text é a tradução/adaptação técnica em português brasileiro. Não misture inglês e português na mesma frase. Preserve siglas técnicas entre parênteses apenas se necessário.
+
+Entrada:
+${JSON.stringify(items, null, 2)}
+
+Resposta: retorne somente JSON, exemplo:
+[
+  { "audit_id": "unused-javascript", "translated_text": "Texto em português..." },
+  ...
+]`;
+
+  const res = await fetch(`${OPENROUTER_API_BASE}/v1/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-5-mini",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.0,
+      max_tokens: 2000,
+    }),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`OpenRouter translation request falhou: ${res.status} ${txt}`);
+  }
+
+  const json = await res.json();
+  const content = json.choices?.[0]?.message?.content ?? "";
+
+  // Tentar parsear JSON da resposta (tentar extrair substring JSON se necessário)
+  let parsed;
+  try {
+    parsed = JSON.parse(content);
+  } catch (e) {
+    // tentar extrair a primeira substring JSON (curto fallback)
+    const match = content.match(/\[.*\]/s);
+    if (match) {
+      try {
+        parsed = JSON.parse(match[0]);
+      } catch (e2) {
+        throw new Error("Falha ao parsear JSON de tradução em lote");
+      }
+    } else {
+      throw new Error("Resposta da OpenRouter não continha JSON esperado");
+    }
+  }
+
+  // parsed deve ser um array de {audit_id, translated_text}
+  if (!Array.isArray(parsed)) throw new Error("Formato inesperado da tradução (esperado array)");
+
+  // Upsert no supabase e retornar mapa
+  const map: Record<string, string> = {};
+  for (const it of parsed) {
+    if (it?.audit_id && it?.translated_text) {
+      map[it.audit_id] = it.translated_text;
+      // salva no cache (não bloquear a resposta)
+      upsertPagespeedTranslation(it.audit_id, it.translated_text).catch((e) =>
+        console.warn("upsertPagespeedTranslation error", e?.message ?? e),
+      );
+    }
+  }
+  return map;
+}
 
 function localizedPageSpeedOpportunity(opportunity: any) {
   const localized = PAGE_SPEED_LABELS[opportunity.id];
@@ -452,6 +558,137 @@ function buildPageSpeedImprovements(mobile: any, desktop: any) {
   }
   return improvements;
 }
+
+
+function looksLikeEnglish(s: string | undefined): boolean {
+  if (!s) return false;
+  const str = String(s);
+  // Simple heuristic: presence of common English stopwords without Portuguese indicators
+  const eng = /\b(the|and|to|for|use|using|with|in|on|of|is|are|you|your|this|that|will|can|should)\b/i;
+  const por = /\b(para|com|e|de|o|a|dos|das|no|na|por|pelo|pela|uma|um|não|não|se|que)\b/i;
+  const hasEng = eng.test(str);
+  const hasPor = por.test(str);
+  return hasEng && !hasPor;
+}
+
+function sanitizeAiImprovement(improvement: any, pageSpeedImprovements: any[], idx: number) {
+  const pageImp = pageSpeedImprovements?.[idx] ?? null;
+
+  const sanitizeField = (field: any, fallback: any) => {
+    if (typeof field === 'string') {
+      if (looksLikeEnglish(field)) {
+        return fallback ?? null;
+      }
+      return field;
+    }
+    return field;
+  };
+
+  const sanitizeArray = (arr: any, fallbackArr: any[]) => {
+    if (Array.isArray(arr) && arr.length > 0) {
+      // If any element looks like English, prefer fallback
+      const anyEnglish = arr.some((v: any) => looksLikeEnglish(String(v)));
+      if (anyEnglish) return fallbackArr ?? arr;
+      return arr;
+    }
+    return fallbackArr ?? arr;
+  };
+
+  return {
+    title: sanitizeField(improvement?.title, pageImp?.title ?? (pageImp ? translatePageSpeedTitle(pageImp.id ?? '') : null)),
+    description: sanitizeField(improvement?.description, pageImp?.description ?? pageImp?.rawDescription ?? null),
+    impact: sanitizeArray(improvement?.impact, pageImp?.impact ?? null),
+    causes: sanitizeArray(improvement?.causes, pageImp?.causes ?? null),
+    recommendations: sanitizeArray(improvement?.recommendations, pageImp?.recommendations ?? null),
+  };
+}
+
+// buildSummaryResponse: monta o JSON que antes era retornado inline.
+  const pageSpeedImprovements = buildPageSpeedImprovements(mobile, desktop);
+
+  let finalAi = ai ?? { improvements: [], uiux: null, extras: [] };
+
+  if (!Array.isArray(finalAi?.improvements) || finalAi.improvements.length === 0) {
+    finalAi = { ...finalAi, improvements: pageSpeedImprovements };
+  } else if (finalAi.improvements.length < 8) {
+    const existingTitles = new Set(
+      finalAi.improvements
+        .map((improvement: any) => String(improvement.title ?? "").trim().toLowerCase())
+        .filter(Boolean),
+    );
+    const mergedImprovements = [...finalAi.improvements];
+    for (const improvement of pageSpeedImprovements) {
+      const title = String(improvement.title ?? "").trim().toLowerCase();
+      if (title && !existingTitles.has(title)) {
+        mergedImprovements.push(improvement);
+        existingTitles.add(title);
+      }
+      if (mergedImprovements.length >= 8) break;
+    }
+    finalAi = { ...finalAi, improvements: mergedImprovements };
+  }
+
+  // Aplicar sanitização dos textos gerados pela IA: evitar aplicar translateReportText que mistura inglês/português.
+  if (Array.isArray(finalAi?.improvements)) {
+    const psImps = pageSpeedImprovements;
+    finalAi = {
+      ...finalAi,
+      improvements: finalAi.improvements.slice(0, 8).map((improvement: any, idx: number) => {
+        const sanitized = sanitizeAiImprovement(improvement, psImps, idx);
+        const fallback = psImps[idx] ?? null;
+        return {
+          title:
+            sanitized.title ??
+            (improvement?.title ? translatePageSpeedTitle(improvement.title) : (fallback?.title ?? translatePageSpeedTitle(fallback?.id ?? ""))),
+          description:
+            sanitized.description ??
+            improvement?.description ??
+            fallback?.description ??
+            (fallback?.rawDescription ? translatePageSpeedDescription(fallback.rawDescription) : "Problema identificado no carregamento da página."),
+          impact: Array.isArray(sanitized.impact) && sanitized.impact.length > 0
+            ? sanitized.impact
+            : (fallback?.impact ?? ["Pode atrasar o carregamento e a interação com a página."]),
+          causes: Array.isArray(sanitized.causes) && sanitized.causes.length > 0
+            ? sanitized.causes
+            : (fallback?.causes ?? [
+                "Recursos ou funcionalidades carregados sem necessidade no primeiro acesso.",
+                "Configurações padrão do CMS, do tema ou de plugins de terceiros.",
+              ]),
+          recommendations: Array.isArray(sanitized.recommendations) && sanitized.recommendations.length > 0
+            ? sanitized.recommendations
+            : (fallback?.recommendations ?? ["Revisar e otimizar o recurso indicado no diagnóstico."]),
+        };
+      }),
+    };
+  }
+
+  const summaryResponse = {
+    success: true,
+    summary: {
+      mobile: {
+        scores: mobile.scores,
+        metrics: mobile.metrics,
+        screenshot: null,
+        pagespeedScreenshot: null,
+        opportunities: mobile.opportunities ?? [],
+      },
+      desktop: {
+        scores: desktop.scores,
+        metrics: desktop.metrics,
+        screenshot: null,
+        pagespeedScreenshot: null,
+        opportunities: desktop.opportunities ?? [],
+      },
+      screenshot: null,
+    },
+    improvements: finalAi.improvements ?? [],
+    uiux: finalAi.uiux ?? null,
+    extras: finalAi.extras ?? [],
+  };
+
+  return summaryResponse;
+}
+
 
 // Cores estilo PageSpeed (faixas de score)
 function scoreColor(score: number): { ring: string; bg: string; text: string } {
@@ -586,39 +823,102 @@ async function buildPageSpeedCard(
 }
 
 async function aiAnalysis(url: string, mobile: any, desktop: any, screenshotDataUrl: string | null) {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+  if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY não configurada");
+
+  // constrói summary básico, priorizando textos estáticos do dicionário
+  const buildOpportunitiesWithPrecedence = (opps: any[]) =>
+    opps.map((o: any) => ({
+      id: o.id,
+      title: PAGE_SPEED_LABELS[o.id]?.title ?? translatePageSpeedTitle(o.title),
+      rawDescription: o.rawDescription,
+      // se houver descrição curta estática, use-a direto (NUNCA passar por translateReportText)
+      descriptionStatic: PAGE_SPEED_SHORT_DESCRIPTIONS[o.id] ?? null,
+      displayValue: o.displayValue,
+    }));
 
   const summary = {
     url,
     mobile: {
       scores: mobile.scores,
       metrics: mobile.metrics,
-      top_opportunities: mobile.opportunities.map((o: any) => ({
-        id: o.id,
-        title: o.title,
-        description: translatePageSpeedDescription(o.rawDescription),
-        displayValue: o.displayValue,
-      })),
+      top_opportunities: buildOpportunitiesWithPrecedence(mobile.opportunities ?? []),
     },
     desktop: {
       scores: desktop.scores,
       metrics: desktop.metrics,
-      top_opportunities: desktop.opportunities.map((o: any) => ({
-        id: o.id,
-        title: o.title,
-        description: translatePageSpeedDescription(o.rawDescription),
-        displayValue: o.displayValue,
-      })),
+      top_opportunities: buildOpportunitiesWithPrecedence(desktop.opportunities ?? []),
     },
   };
 
+  // Reunir todos audit_ids que precisam de tradução (aqueles que não têm `descriptionStatic`)
+  const collectMissing = (list: any[]) => list
+    .filter((it) => !it.descriptionStatic)
+    .map((it) => ({ audit_id: it.id, text: it.rawDescription ?? "" }));
+
+  const missing = [
+    ...collectMissing(summary.mobile.top_opportunities),
+    ...collectMissing(summary.desktop.top_opportunities),
+  ];
+
+  // Consultar cache Supabase por audit_id
+  const missingById: Record<string, string> = {};
+  const toTranslate: Array<{ audit_id: string; text: string }> = [];
+
+  for (const it of missing) {
+    const cached = await getPagespeedTranslation(it.audit_id);
+    if (cached) {
+      missingById[it.audit_id] = cached;
+    } else {
+      toTranslate.push(it);
+    }
+  }
+
+  // Se houver items para traduzir, chamar LLM em lote
+  if (toTranslate.length > 0) {
+    try {
+      const translatedMap = await translateSummaryFields(toTranslate);
+      Object.assign(missingById, translatedMap);
+    } catch (e) {
+      console.warn("Batch translation failed:", e?.message ?? e);
+      // Em caso de falha, como fallback leve, tenta-se usar translatePageSpeedDescription local para não quebrar
+      for (const it of toTranslate) {
+        missingById[it.audit_id] = translatePageSpeedDescription(it.text);
+      }
+    }
+  }
+
+  // Montar os textos finais no summary (com prioridade: static dict -> cache/translated -> fallback local)
+  const finalize = (opps: any[]) => opps.map((o) => {
+    const desc = o.descriptionStatic ?? missingById[o.id] ?? translatePageSpeedDescription(o.rawDescription);
+    return {
+      id: o.id,
+      title: o.title,
+      description: desc,
+      displayValue: o.displayValue,
+    };
+  });
+
+  const finalSummary = {
+    url,
+    mobile: {
+      scores: summary.mobile.scores,
+      metrics: summary.mobile.metrics,
+      top_opportunities: finalize(summary.mobile.top_opportunities),
+    },
+    desktop: {
+      scores: summary.desktop.scores,
+      metrics: summary.desktop.metrics,
+      top_opportunities: finalize(summary.desktop.top_opportunities),
+    },
+  };
+
+  // Prepara prompt único para a análise (mesma estrutura que antes, mas usando OpenRouter)
   const userContent: any[] = [
     {
       type: "text",
       text: `Analise este site (${url}) e gere um diagnóstico exclusivamente em PORTUGUÊS BRASILEIRO no estilo dos relatórios da agência Tupiniquim. Não use inglês, mesmo em títulos técnicos; quando necessário, mantenha apenas a sigla original entre parênteses.
 Dados do PageSpeed:
-${JSON.stringify(summary, null, 2)}
+${JSON.stringify(finalSummary, null, 2)}
 
 ${screenshotDataUrl ? "Você também recebeu um screenshot da home mobile do site para análise visual." : ""}
 
@@ -656,33 +956,41 @@ Não deixe arrays vazios, não repita o mesmo problema e não invente problemas 
     },
   ];
 
-  if (screenshotDataUrl) {
-    userContent.push({ type: "image_url", image_url: { url: screenshotDataUrl } });
-  }
+  if (screenshotDataUrl) userContent.push({ type: "image_url", image_url: { url: screenshotDataUrl } });
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await fetch(`${OPENROUTER_API_BASE}/v1/chat/completions`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "openai/gpt-5-mini",
       messages: [
         { role: "system", content: "Você é consultor sênior de performance web e UX. Responda SEMPRE com JSON válido, sem markdown." },
         { role: "user", content: userContent },
       ],
-      response_format: { type: "json_object" },
+      temperature: 0.0,
+      max_tokens: 3000,
     }),
   });
 
   if (!res.ok) {
     const t = await res.text();
-    console.error("AI gateway", res.status, t);
-    if (res.status === 429) throw new Error("Limite de uso da IA atingido. Tente novamente em alguns minutos.");
-    if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos em Settings → Workspace → Usage.");
-    throw new Error("Falha ao gerar análise com IA");
+    console.error("OpenRouter AI", res.status, t);
+    if (res.status === 429) throw new Error("Limite de uso da IA atingido. Tente novamente mais tarde.");
+    // Em erro, fallback: montar melhorias a partir do PageSpeed para não quebrar fluxo
+    return { improvements: buildPageSpeedImprovements(mobile, desktop), uiux: null, extras: [] };
   }
+
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content ?? "{}";
-  return JSON.parse(content);
+  // parse e retornar
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    // tentar extrair JSON substring
+    const m = String(content).match(/\{[\s\S]*\}$/);
+    if (m) return JSON.parse(m[0]);
+    throw new Error("Resposta da IA não continha JSON válido");
+  }
 }
 
 // Paleta Tupiniquim (extraída dos relatórios oficiais)
@@ -923,14 +1231,20 @@ async function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promi
     (desktop as any).screenshot = null;
     console.log("Skipped visual card generation and cleared screenshots to reduce latency.");
 
+    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+
     console.log("Gerando IA… (se configurada)");
     let ai;
-    const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (LOVABLE_KEY) {
-      ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
-      console.log("IA ok.");
+    if (openRouterApiKey) {
+      try {
+        ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
+        console.log("IA ok via OpenRouter.");
+      } catch (e) {
+        console.warn("aiAnalysis (OpenRouter) falhou:", e?.message ?? e);
+        ai = { improvements: [], uiux: null, extras: [] };
+      }
     } else {
-      console.warn("LOVABLE_API_KEY não configurada — pulando análise IA e usando fallback.");
+      console.warn("Nenhuma chave de IA configurada (OPENROUTER_API_KEY) — pulando análise IA e usando fallback.");
       ai = { improvements: [], uiux: null, extras: [] };
     }
     // As oportunidades reais do PageSpeed garantem conteúdo mesmo quando a IA não está disponível.
@@ -1004,6 +1318,7 @@ async function buildDocx(url: string, mobile: any, desktop: any, ai: any): Promi
     };
 
     return new Response(JSON.stringify(summaryResponse), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   } catch (e: any) {
     console.error("diagnose error", e);
     return new Response(JSON.stringify({ error: e.message ?? "Erro desconhecido" }), {
