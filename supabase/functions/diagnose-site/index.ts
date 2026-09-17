@@ -62,14 +62,16 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   async function safeFetchWithRetries(
     fullUrl: string,
     options: any = {},
-    retries = 0,
-    backoff = 200,
+    retries = 2,
+    backoff = 800,
     perRequestTimeout = Number(
       Deno.env.get("AUDIT_REQUEST_TIMEOUT_MS") || 55000,
     ),
   ) {
     // O PageSpeed Insights costuma levar 15-45s por estratégia (mobile/desktop) ao pedir as 4 categorias.
     // Timeout padrão de 55s dá margem suficiente sem estourar o AbortController à toa.
+    // Erros 429 (rate limit) e 5xx (ex.: "Lighthouse returned error: Something went wrong",
+    // que costuma ser transitório) são re-tentados antes de desistir.
     for (let i = 0; i <= retries; i++) {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), perRequestTimeout);
@@ -79,15 +81,23 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
           signal: controller.signal,
         });
         clearTimeout(id);
-        if (res.status !== 429) return res;
-        // 429 -> wait and retry if attempts remain
-        if (i < retries)
+        const isRetryable = res.status === 429 || res.status >= 500;
+        if (!isRetryable) return res;
+        if (i < retries) {
+          console.warn(
+            `PageSpeed respondeu ${res.status}, tentando de novo (${i + 1}/${retries})...`,
+          );
           await new Promise((r) => setTimeout(r, backoff * (i + 1)));
-        else return res;
+        } else {
+          return res;
+        }
       } catch (e) {
         clearTimeout(id);
-        // Treat abort as a transient error and retry if attempts remain
+        // Trata abort/timeout como erro transitório e re-tenta se ainda houver tentativas
         if (i === retries) throw e;
+        console.warn(
+          `PageSpeed falhou (${e?.message ?? e}), tentando de novo (${i + 1}/${retries})...`,
+        );
         await new Promise((r) => setTimeout(r, backoff * (i + 1)));
       }
     }
