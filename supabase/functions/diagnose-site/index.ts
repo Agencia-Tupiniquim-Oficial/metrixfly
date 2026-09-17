@@ -579,6 +579,38 @@ async function getPagespeedTranslation(
   }
 }
 
+// Busca em lote: uma única query pra todos os audit_ids, em vez de N chamadas sequenciais.
+async function getPagespeedTranslationsBatch(
+  auditIds: string[],
+): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+  if (!SUPABASE_URL || !SUPABASE_KEY || auditIds.length === 0) return result;
+  try {
+    const { data, error } = await supabase
+      .from("pagespeed_translations")
+      .select("audit_id, translated_description")
+      .in("audit_id", [...new Set(auditIds)]);
+    if (error) {
+      console.warn(
+        "supabase getPagespeedTranslationsBatch error",
+        error.message ?? error,
+      );
+      return result;
+    }
+    for (const row of data ?? []) {
+      if (row?.audit_id && row?.translated_description)
+        result[row.audit_id] = row.translated_description;
+    }
+    console.log(
+      `Cache pagespeed_translations: ${Object.keys(result).length}/${auditIds.length} audit_ids encontrados no cache.`,
+    );
+    return result;
+  } catch (e) {
+    console.warn("getPagespeedTranslationsBatch failed", e?.message ?? e);
+    return result;
+  }
+}
+
 async function upsertPagespeedTranslation(
   audit_id: string,
   translated: string,
@@ -1203,18 +1235,18 @@ async function aiAnalysis(
     ...collectMissing(summary.desktop.top_opportunities),
   ];
 
-  // Consultar cache Supabase por audit_id
-  const missingById: Record<string, string> = {};
-  const toTranslate: Array<{ audit_id: string; text: string }> = [];
+  // Consultar cache Supabase (uma única query em lote)
+  const cachedMap = await getPagespeedTranslationsBatch(
+    missing.map((it) => it.audit_id),
+  );
+  const missingById: Record<string, string> = { ...cachedMap };
+  const toTranslate: Array<{ audit_id: string; text: string }> = missing.filter(
+    (it) => !cachedMap[it.audit_id],
+  );
 
-  for (const it of missing) {
-    const cached = await getPagespeedTranslation(it.audit_id);
-    if (cached) {
-      missingById[it.audit_id] = cached;
-    } else {
-      toTranslate.push(it);
-    }
-  }
+  console.log(
+    `Tradução: ${Object.keys(cachedMap).length} do cache, ${toTranslate.length} vão pro OpenRouter.`,
+  );
 
   // Se houver items para traduzir, chamar LLM em lote
   if (toTranslate.length > 0) {
