@@ -11,6 +11,7 @@ type Props = {
   updateImprovement: (index: number, field: string, value: string | string[]) => void;
   updateUiuxOverview: (value: string) => void;
   downloadDocx: () => void;
+  downloading: boolean;
 };
 
 export default function DiagnosticPreview({
@@ -21,6 +22,7 @@ export default function DiagnosticPreview({
   updateImprovement,
   updateUiuxOverview,
   downloadDocx,
+  downloading,
 }: Props) {
   if (!result) return null;
 
@@ -78,6 +80,7 @@ export default function DiagnosticPreview({
       <div className="sticky bottom-4 mt-4">
         <Button
           onClick={downloadDocx}
+          disabled={downloading}
           size="lg"
           variant="hero"
           className="w-full font-semibold"

@@ -1697,7 +1697,8 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { url, docxOnly } = await req.json();
+    const { url, docxOnly, mobile: requestedMobile, desktop: requestedDesktop, ai: requestedAi } =
+      await req.json();
 
     if (!url) {
       return new Response(
@@ -1709,10 +1710,26 @@ serve(async (req: Request) => {
       );
     }
 
-    let [mobile, desktop] = await Promise.all([
-      runPageSpeed(url, "mobile"),
-      runPageSpeed(url, "desktop"),
-    ]);
+    // The report preview already contains the PageSpeed and AI data. Reusing it
+    // avoids a second, slow external diagnosis when exporting the document.
+    let mobile = docxOnly ? requestedMobile : undefined;
+    let desktop = docxOnly ? requestedDesktop : undefined;
+    let ai = docxOnly ? requestedAi : undefined;
+
+    if (!docxOnly) {
+      [mobile, desktop] = await Promise.all([
+        runPageSpeed(url, "mobile"),
+        runPageSpeed(url, "desktop"),
+      ]);
+    } else if (!mobile || !desktop || !ai) {
+      return new Response(
+        JSON.stringify({ error: "Dados do relatório incompletos para exportação." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     // If only one strategy succeeded, use it for both to continue generating the report (best-effort)
     const fallback = mobile ?? desktop;
@@ -1730,23 +1747,24 @@ serve(async (req: Request) => {
       "Skipped visual card generation and cleared screenshots to reduce latency.",
     );
 
-    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+    if (!docxOnly) {
+      const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
-    console.log("Gerando IA… (se configurada)");
-    let ai;
-    if (openRouterApiKey) {
-      try {
-        ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
-        console.log("IA ok via OpenRouter.");
-      } catch (e) {
-        console.warn("aiAnalysis (OpenRouter) falhou:", e?.message ?? e);
+      console.log("Gerando IA… (se configurada)");
+      if (openRouterApiKey) {
+        try {
+          ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
+          console.log("IA ok via OpenRouter.");
+        } catch (e) {
+          console.warn("aiAnalysis (OpenRouter) falhou:", e?.message ?? e);
+          ai = { improvements: [], uiux: null, extras: [] };
+        }
+      } else {
+        console.warn(
+          "Nenhuma chave de IA configurada (OPENROUTER_API_KEY) — pulando análise IA e usando fallback.",
+        );
         ai = { improvements: [], uiux: null, extras: [] };
       }
-    } else {
-      console.warn(
-        "Nenhuma chave de IA configurada (OPENROUTER_API_KEY) — pulando análise IA e usando fallback.",
-      );
-      ai = { improvements: [], uiux: null, extras: [] };
     }
     // As oportunidades reais do PageSpeed garantem conteúdo mesmo quando a IA não está disponível.
     const pageSpeedImprovements = buildPageSpeedImprovements(mobile, desktop);
@@ -1811,8 +1829,9 @@ serve(async (req: Request) => {
       return new Response(docxBytes, {
         headers: {
           ...corsHeaders,
-          "Content-Type":
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          // Supabase Functions Client recognizes this as a binary response and
+          // returns a Blob instead of attempting to parse the document as text.
+          "Content-Type": "application/octet-stream",
           "Content-Disposition": `attachment; filename="diagnostico.docx"`,
         },
       });

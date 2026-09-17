@@ -18,6 +18,7 @@ import {
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 import DiagnosticForm from "@/components/DiagnosticForm";
 import { useDiagnosis } from "@/context/DiagnosisContext";
+import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
 
 type Scores = {
   performance: number;
@@ -271,7 +272,6 @@ const Index = () => {
   const downloadDocx = async () => {
     if (!result) return;
     setDownloading(true);
-    let docx = result.docx;
     try {
       const normalized = url.startsWith("http") ? url : "https://" + url;
       const { data, error } = await supabase.functions.invoke("diagnose-site", {
@@ -288,35 +288,31 @@ const Index = () => {
         },
       });
       if (error) throw error;
-      if (data?.docx) docx = data.docx;
+      const blob = docxResponseToBlob(data);
+      const host = (() => {
+        try {
+          return new URL(
+            url.startsWith("http") ? url : "https://" + url,
+          ).hostname.replace("www.", "");
+        } catch {
+          return "site";
+        }
+      })();
+      downloadBlob(blob, `${host}_diagnostico.docx`);
+      toast({
+        title: "Relatório pronto",
+        description: "Download iniciado.",
+      });
     } catch (err) {
       console.error(err);
       toast({
-        title: "Baixando versão original",
-        description: "Não consegui aplicar as edições no arquivo agora.",
+        title: "Erro ao baixar relatório",
+        description: err instanceof Error ? err.message : "Não foi possível gerar o arquivo .docx.",
+        variant: "destructive",
       });
+    } finally {
+      setDownloading(false);
     }
-    const bin = atob(docx);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const blob = new Blob([bytes], {
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    const host = (() => {
-      try {
-        return new URL(
-          url.startsWith("http") ? url : "https://" + url,
-        ).hostname.replace("www.", "");
-      } catch {
-        return "site";
-      }
-    })();
-    a.download = `${host}_diagnostico.docx`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    setDownloading(false);
   };
 
   const openGeoDashboard = (crawlResult?: any) => {
@@ -436,6 +432,7 @@ const Index = () => {
               updateImprovement={updateImprovement}
               updateUiuxOverview={updateUiuxOverview}
               downloadDocx={downloadDocx}
+              downloading={downloading}
             />
           </section>
         )}

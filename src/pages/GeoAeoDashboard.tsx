@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -346,29 +347,12 @@ const GeoAeoDashboard = () => {
             },
           });
         if (docErr) throw docErr;
-        if (docData?.docx) {
-          const docx = docData.docx;
-          const bin = atob(docx);
-          const bytes = new Uint8Array(bin.length);
-          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-          const blob = new Blob([bytes], {
-            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          });
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(blob);
-          a.download = `${crawl.domain}_relatorio_completo.docx`;
-          a.click();
-          URL.revokeObjectURL(a.href);
-          toast({
-            title: "Relatório completo pronto",
-            description: "Download iniciado.",
-          });
-        } else {
-          toast({
-            title: "Relatório gerado",
-            description: "A função não retornou um arquivo .docx.",
-          });
-        }
+        const blob = docxResponseToBlob(docData);
+        downloadBlob(blob, `${crawl.domain}_relatorio_completo.docx`);
+        toast({
+          title: "Relatório completo pronto",
+          description: "Download iniciado.",
+        });
       } catch (e: any) {
         console.error(e);
         toast({
