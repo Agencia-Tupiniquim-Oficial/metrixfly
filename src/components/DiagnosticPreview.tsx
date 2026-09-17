@@ -1,7 +1,7 @@
 import DocxPreview from "@/components/DocxPreview";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Eye, Pencil } from "lucide-react";
+import { Download, Eye, Pencil, UserRound } from "lucide-react";
 
 type Props = {
   url: string;
@@ -12,6 +12,8 @@ type Props = {
   updateUiuxOverview: (value: string) => void;
   downloadDocx: () => void;
   downloading: boolean;
+  downloadBusinessReport: () => void;
+  businessDownloading: boolean;
 };
 
 export default function DiagnosticPreview({
@@ -23,6 +25,8 @@ export default function DiagnosticPreview({
   updateUiuxOverview,
   downloadDocx,
   downloading,
+  downloadBusinessReport,
+  businessDownloading,
 }: Props) {
   if (!result) return null;
 
@@ -77,7 +81,7 @@ export default function DiagnosticPreview({
         </div>
       </Card>
 
-      <div className="sticky bottom-4 mt-4">
+      <div className="sticky bottom-4 mt-4 grid gap-3 sm:grid-cols-2">
         <Button
           onClick={downloadDocx}
           disabled={downloading}
@@ -88,6 +92,16 @@ export default function DiagnosticPreview({
         >
           <Download className="mr-2 h-5 w-5" />
           Baixar relatório .docx completo
+        </Button>
+        <Button
+          onClick={downloadBusinessReport}
+          disabled={businessDownloading}
+          size="lg"
+          variant="outline"
+          className="w-full font-semibold"
+        >
+          <UserRound className="mr-2 h-5 w-5" />
+          {businessDownloading ? "Preparando relatório..." : "Baixar relatório para cliente"}
         </Button>
       </div>
     </div>

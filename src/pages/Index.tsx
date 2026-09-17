@@ -19,6 +19,7 @@ import DiagnosticPreview from "@/components/DiagnosticPreview";
 import DiagnosticForm from "@/components/DiagnosticForm";
 import { useDiagnosis } from "@/context/DiagnosisContext";
 import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
+import { downloadBusinessReport } from "@/lib/business-report";
 
 type Scores = {
   performance: number;
@@ -154,6 +155,7 @@ const Index = () => {
   const [result, setResult] = useState<Result | null>(diagnostic ?? null);
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   const [downloading, setDownloading] = useState(false);
+  const [businessDownloading, setBusinessDownloading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -315,6 +317,55 @@ const Index = () => {
     }
   };
 
+  const downloadClientReport = async () => {
+    if (!result) return;
+    setBusinessDownloading(true);
+    try {
+      const normalized = url.startsWith("http") ? url : `https://${url}`;
+      const { data, error } = await supabase.functions.invoke("business-summary", {
+        body: {
+          url: normalized,
+          scores: {
+            mobile: result.summary.mobile.scores,
+            desktop: result.summary.desktop.scores,
+          },
+          metrics: {
+            mobile: result.summary.mobile.metrics,
+            desktop: result.summary.desktop.metrics,
+          },
+          improvements: result.improvements,
+        },
+      });
+      if (error) throw error;
+      if (
+        !data?.resumo ||
+        !data.contexto ||
+        !Array.isArray(data.impactoNegocio) ||
+        !Array.isArray(data.prioridades) ||
+        !data.proximoPasso
+      ) {
+        throw new Error("A função não retornou um resumo válido.");
+      }
+      await downloadBusinessReport(normalized, data);
+      toast({
+        title: "Relatório para cliente pronto",
+        description: "Download iniciado.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro ao gerar relatório para cliente",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível gerar o relatório simplificado.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusinessDownloading(false);
+    }
+  };
+
   const openGeoDashboard = (crawlResult?: any) => {
     if (crawlResult) {
       navigate("/geo-aeo", {
@@ -433,6 +484,8 @@ const Index = () => {
               updateUiuxOverview={updateUiuxOverview}
               downloadDocx={downloadDocx}
               downloading={downloading}
+              downloadBusinessReport={downloadClientReport}
+              businessDownloading={businessDownloading}
             />
           </section>
         )}
