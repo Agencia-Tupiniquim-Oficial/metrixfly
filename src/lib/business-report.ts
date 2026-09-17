@@ -78,7 +78,8 @@ export async function downloadBusinessReport(
         new ImageRun({
           type: "png",
           data: header,
-          transformation: { width: 600, height: 96 },
+          // Keep the original wide banner proportion used on the technical report.
+          transformation: { width: 600, height: 131 },
           altText: {
             title: "Cabeçalho Tupiniquim",
             description: "Cabeçalho do relatório",
@@ -177,7 +178,21 @@ export async function downloadBusinessReport(
         },
       },
     },
-    sections: [{ children }],
+    sections: [
+      {
+        children,
+        properties: {
+          page: {
+            margin: {
+              top: 0,
+              right: 720,
+              bottom: 720,
+              left: 720,
+            },
+          },
+        },
+      },
+    ],
   });
 
   const blob = await Packer.toBlob(doc);
