@@ -62,14 +62,14 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   async function safeFetchWithRetries(
     fullUrl: string,
     options: any = {},
-    retries = 2,
+    retries = 1,
     backoff = 800,
     perRequestTimeout = Number(
-      Deno.env.get("AUDIT_REQUEST_TIMEOUT_MS") || 55000,
+      Deno.env.get("AUDIT_REQUEST_TIMEOUT_MS") || 45000,
     ),
   ) {
-    // O PageSpeed Insights costuma levar 15-45s por estratégia (mobile/desktop) ao pedir as 4 categorias.
-    // Timeout padrão de 55s dá margem suficiente sem estourar o AbortController à toa.
+    // O PageSpeed Insights costuma levar 15-45s por estratégia (mobile/desktop).
+    // Uma única nova tentativa evita transformar uma falha transitória em vários minutos de espera.
     // Erros 429 (rate limit) e 5xx (ex.: "Lighthouse returned error: Something went wrong",
     // que costuma ser transitório) são re-tentados antes de desistir.
     for (let i = 0; i <= retries; i++) {
@@ -1717,10 +1717,35 @@ serve(async (req: Request) => {
     let ai = docxOnly ? requestedAi : undefined;
 
     if (!docxOnly) {
-      [mobile, desktop] = await Promise.all([
+      const pageSpeedResults = await Promise.allSettled([
         runPageSpeed(url, "mobile"),
         runPageSpeed(url, "desktop"),
       ]);
+      const successfulResults = pageSpeedResults
+        .filter(
+          (result): result is PromiseFulfilledResult<any> =>
+            result.status === "fulfilled",
+        )
+        .map((result) => result.value);
+
+      if (successfulResults.length === 0) {
+        const errors = pageSpeedResults
+          .filter((result) => result.status === "rejected")
+          .map((result) => result.reason?.message ?? String(result.reason))
+          .join(" | ");
+        throw new Error(
+          `O PageSpeed Insights não respondeu em nenhuma estratégia. ${errors}`,
+        );
+      }
+
+      [mobile, desktop] = [successfulResults[0], successfulResults[1]];
+      if (successfulResults.length === 1) {
+        const failedStrategy =
+          pageSpeedResults[0].status === "rejected" ? "mobile" : "desktop";
+        console.warn(
+          `PageSpeed ${failedStrategy} falhou; continuando com o resultado disponível.`,
+        );
+      }
     } else if (!mobile || !desktop || !ai) {
       return new Response(
         JSON.stringify({ error: "Dados do relatório incompletos para exportação." }),

@@ -8,7 +8,11 @@ type Props = {
   result: any;
   previewMode: "view" | "edit";
   setPreviewMode: (mode: "view" | "edit") => void;
-  updateImprovement: (index: number, field: string, value: string | string[]) => void;
+  updateImprovement: (
+    index: number,
+    field: string,
+    value: string | string[],
+  ) => void;
   updateUiuxOverview: (value: string) => void;
   downloadDocx: () => void;
   downloading: boolean;
@@ -101,7 +105,9 @@ export default function DiagnosticPreview({
           className="w-full font-semibold"
         >
           <UserRound className="mr-2 h-5 w-5" />
-          {businessDownloading ? "Preparando relatório..." : "Baixar relatório para cliente"}
+          {businessDownloading
+            ? "Preparando relatório..."
+            : "Baixarversão corporativa"}
         </Button>
       </div>
     </div>
