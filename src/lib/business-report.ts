@@ -1,6 +1,7 @@
 import {
   AlignmentType,
   Document,
+  Header,
   HeadingLevel,
   ImageRun,
   Packer,
@@ -72,22 +73,6 @@ export async function downloadBusinessReport(
   const hostname = new URL(url).hostname.replace(/^www\./i, "").toUpperCase();
   const header = await loadCoverHeader();
   const children: Paragraph[] = [
-    new Paragraph({
-      spacing: { after: 260 },
-      children: [
-        new ImageRun({
-          type: "png",
-          data: header,
-          // Keep the original wide banner proportion used on the technical report.
-          transformation: { width: 600, height: 131 },
-          altText: {
-            title: "Cabeçalho Tupiniquim",
-            description: "Cabeçalho do relatório",
-            name: "header",
-          },
-        }),
-      ],
-    }),
     new Paragraph({
       spacing: { before: 200, after: 420 },
       children: [
@@ -182,14 +167,36 @@ export async function downloadBusinessReport(
       {
         children,
         properties: {
+          titlePage: true,
           page: {
             margin: {
-              top: 0,
+              top: 1600,
               right: 720,
               bottom: 720,
               left: 720,
             },
           },
+        },
+        headers: {
+          first: new Header({
+            children: [
+              new Paragraph({
+                spacing: { after: 0 },
+                children: [
+                  new ImageRun({
+                    type: "png",
+                    data: header,
+                    transformation: { width: 650, height: 104 },
+                    altText: {
+                      title: "Cabeçalho Tupiniquim",
+                      description: "Cabeçalho do relatório",
+                      name: "header",
+                    },
+                  }),
+                ],
+              }),
+            ],
+          }),
         },
       },
     ],

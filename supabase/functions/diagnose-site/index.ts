@@ -1422,7 +1422,7 @@ function buildHeader() {
           new ImageRun({
             type: "png",
             data: b64ToBytes(HEADER_PNG_B64),
-            transformation: { width: 600, height: 96 },
+            transformation: { width: 650, height: 104 },
             altText: {
               title: "Tupiniquim",
               description: "Cabeçalho Tupiniquim",
@@ -1499,22 +1499,6 @@ async function buildDocx(
 
   // ===== PRIMEIRA PÁGINA =====
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.LEFT,
-      spacing: { after: 260 },
-      children: [
-        new ImageRun({
-          type: "png",
-          data: b64ToBytes(HEADER_PNG_B64),
-          transformation: { width: 600, height: 96 },
-          altText: {
-            title: "Tupiniquim",
-            description: "Cabeçalho Tupiniquim",
-            name: "header",
-          },
-        }),
-      ],
-    }),
     new Paragraph({
       spacing: { before: 200, after: 420 },
       children: [
@@ -1679,7 +1663,18 @@ async function buildDocx(
   const doc = new Document({
     sections: [
       {
-        headers: { default: buildHeader() },
+        properties: {
+          titlePage: true,
+          page: {
+            margin: {
+              top: 1600,
+              right: 720,
+              bottom: 720,
+              left: 720,
+            },
+          },
+        },
+        headers: { first: buildHeader() },
         children,
       },
     ],
