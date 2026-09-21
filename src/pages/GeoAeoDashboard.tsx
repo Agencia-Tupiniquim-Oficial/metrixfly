@@ -541,18 +541,18 @@ const GeoAeoDashboard = () => {
             >
               <ArrowLeft className="h-4 w-4" /> Diagnóstico técnico
             </Link>
-            <Link
+            {/* <Link
               to="/geo-admin"
               className="text-sm text-primary hover:underline"
             >
               Administração
-            </Link>
+            </Link> */}
           </div>
           <div className="flex items-center gap-2 font-semibold">
             <Sparkles className="h-5 w-5 text-primary" /> Agent Crawl{" "}
             <span className="text-muted-foreground font-normal">GEO/AEO</span>
           </div>
-          <Badge variant="secondary">BETA</Badge>
+          <Badge variant="secondary">SpeedFly</Badge>
         </div>
       </header>
       <div className="container py-8 md:py-12">
