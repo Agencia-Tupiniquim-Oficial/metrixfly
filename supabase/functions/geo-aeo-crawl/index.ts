@@ -6,7 +6,8 @@ const corsHeaders = {
 
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const CRAWL_LIMIT = 12;
-const FETCH_TIMEOUT_MS = 10000;
+const CRAWL_CONCURRENCY = 4;
+const FETCH_TIMEOUT_MS = 8000;
 const absolute = (href: string, base: URL) => {
   try {
     const url = new URL(href, base);
@@ -100,10 +101,14 @@ Deno.serve(async req => {
     const { url } = await req.json();
     const base = new URL(url);
     if (!["http:", "https:"].includes(base.protocol)) return response({ error: "Informe uma URL HTTP ou HTTPS." }, 400);
-    let robots = ""; let sitemap = ""; let llms = "";
-    try { robots = (await fetchText(new URL("/robots.txt", base).href)).text; } catch { /* optional file */ }
-    try { sitemap = (await fetchText(new URL("/sitemap.xml", base).href)).text; } catch { /* optional file */ }
-    try { llms = (await fetchText(new URL("/llms.txt", base).href)).text; } catch { /* optional experimental file */ }
+    const [robotsResult, sitemapResult, llmsResult] = await Promise.allSettled([
+      fetchText(new URL("/robots.txt", base).href),
+      fetchText(new URL("/sitemap.xml", base).href),
+      fetchText(new URL("/llms.txt", base).href),
+    ]);
+    const robots = robotsResult.status === "fulfilled" ? robotsResult.value.text : "";
+    const sitemap = sitemapResult.status === "fulfilled" ? sitemapResult.value.text : "";
+    const llms = llmsResult.status === "fulfilled" ? llmsResult.value.text : "";
     const disallowed = [...robots.matchAll(/^\s*Disallow:\s*(\S+)/gim)]
       .map((match) => match[1])
       .filter((path) => path !== "/");
@@ -117,25 +122,33 @@ Deno.serve(async req => {
     };
     const visited = new Set<string>();
     const pages: ReturnType<typeof analyzePage>[] = [];
+    let pagesClaimed = 0;
     const sitemapQueue = sitemapUrls(sitemap, base).filter((url) =>
       new URL(url).hostname === base.hostname && canCrawl(url),
     );
     const queue = [...new Set([base.href, ...sitemapQueue])];
-    while (queue.length && pages.length < CRAWL_LIMIT) {
-      const current = queue.shift()!;
-      const normalized = absolute(current, base);
-      if (!normalized || visited.has(normalized) || new URL(normalized).hostname !== base.hostname || !canCrawl(normalized)) continue;
-      visited.add(normalized);
-      try {
-        const fetched = await fetchText(normalized);
-        const page = analyzePage(fetched.url, fetched.text);
-        pages.push(page);
-        for (const match of fetched.text.matchAll(/<a[^>]+href=["']([^"']+)["']/gi)) {
-          const link = absolute(match[1], new URL(fetched.url));
-          if (link && new URL(link).hostname === base.hostname && !visited.has(link) && canCrawl(link)) queue.push(link);
-        }
-      } catch (error) { console.warn("Página ignorada", normalized, error); }
-    }
+    const crawlPage = async () => {
+      while (pagesClaimed < CRAWL_LIMIT) {
+        const current = queue.shift();
+        if (!current) return;
+        const normalized = absolute(current, base);
+        if (!normalized || visited.has(normalized) || new URL(normalized).hostname !== base.hostname || !canCrawl(normalized)) continue;
+        visited.add(normalized);
+        pagesClaimed += 1;
+        try {
+          const fetched = await fetchText(normalized);
+          const page = analyzePage(fetched.url, fetched.text);
+          pages.push(page);
+          for (const match of fetched.text.matchAll(/<a[^>]+href=["']([^"']+)["']/gi)) {
+            const link = absolute(match[1], new URL(fetched.url));
+            if (link && new URL(link).hostname === base.hostname && !visited.has(link) && canCrawl(link)) queue.push(link);
+          }
+        } catch (error) { console.warn("Página ignorada", normalized, error); }
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(CRAWL_CONCURRENCY, queue.length) }, () => crawlPage()),
+    );
     if (!pages.length) return response({ error: "Não foi possível acessar nenhuma página do domínio." }, 502);
     const linkTargets = [...new Set(pages.flatMap((page) => page.links)
       .map((href) => absolute(href, base))

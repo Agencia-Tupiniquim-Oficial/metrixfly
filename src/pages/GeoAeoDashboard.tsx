@@ -315,35 +315,32 @@ const GeoAeoDashboard = () => {
         }
       }
 
-      // Try to generate combined .docx by invoking diagnose-site with geo payload
+      // Reuse the PageSpeed pipeline for the performance section. GEO scores
+      // are not PageSpeed category scores and must not be sent as zeros.
       try {
+        const { data: diagnosisData, error: diagnosisError } =
+          await supabase.functions.invoke("diagnose-site", {
+            body: { url: normalized },
+          });
+        if (diagnosisError) throw diagnosisError;
+        if (diagnosisData?.error) throw new Error(diagnosisData.error);
+        if (!diagnosisData?.summary?.mobile || !diagnosisData?.summary?.desktop) {
+          throw new Error("O diagnóstico PageSpeed não retornou as duas estratégias.");
+        }
+
         const { data: docData, error: docErr } =
           await supabase.functions.invoke("diagnose-site", {
             body: {
               docxOnly: true,
               url: normalized,
-              // no pagespeed data available here; include geo result so backend can merge
-              mobile: {
-                scores: {
-                  performance: 0,
-                  accessibility: 0,
-                  bestPractices: 0,
-                  seo: 0,
-                },
-                metrics: { fcp: "-", lcp: "-", tbt: "-", cls: "-", si: "-" },
-                screenshot: null,
+              mobile: diagnosisData.summary.mobile,
+              desktop: diagnosisData.summary.desktop,
+              ai: {
+                improvements: diagnosisData.improvements ?? [],
+                uiux: diagnosisData.uiux ?? null,
+                extras: diagnosisData.extras ?? [],
+                geo: { ...crawl, prompts },
               },
-              desktop: {
-                scores: {
-                  performance: 0,
-                  accessibility: 0,
-                  bestPractices: 0,
-                  seo: 0,
-                },
-                metrics: { fcp: "-", lcp: "-", tbt: "-", cls: "-", si: "-" },
-                screenshot: null,
-              },
-              ai: { improvements: [], uiux: null, extras: [], geo: crawl },
             },
           });
         if (docErr) throw docErr;

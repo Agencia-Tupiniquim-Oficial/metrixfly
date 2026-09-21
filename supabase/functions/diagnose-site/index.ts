@@ -1559,6 +1559,30 @@ async function buildDocx(
     });
   }
 
+  // ===== GEO/AEO =====
+  if (ai.geo) {
+    const geo = ai.geo;
+    children.push(sectionTitle("Visibilidade em busca e IA"));
+    children.push(
+      body(
+        `O domínio foi avaliado em ${geo.stats?.pages ?? 0} página(s), com pontuação GEO de ${geo.scores?.geo ?? "N/D"}/100, AEO de ${geo.scores?.aeo ?? "N/D"}/100 e técnica de ${geo.scores?.technical ?? "N/D"}/100.`,
+      ),
+    );
+    if (Array.isArray(geo.prompts) && geo.prompts.length > 0) {
+      children.push(subTitle("Prompt Intelligence"));
+      children.push(body("Perguntas configuradas para acompanhar a visibilidade da marca:"));
+      geo.prompts.forEach((prompt: string) => children.push(bullet(prompt)));
+    }
+    if (Array.isArray(geo.findings) && geo.findings.length > 0) {
+      children.push(subTitle("Recomendações GEO/AEO"));
+      geo.findings.forEach((finding: any) => {
+        children.push(itemTitle(finding.title));
+        if (finding.description) children.push(body(finding.description));
+        if (finding.recommendation) children.push(body(`Recomendação: ${finding.recommendation}`));
+      });
+    }
+  }
+
   // ===== PERFORMANCE =====
   children.push(new Paragraph({ children: [new PageBreak()] }));
   children.push(sectionTitle("Performance"));
