@@ -1597,7 +1597,8 @@ async function buildDocx(
         { label: "SEO", value: data.scores.seo },
       ];
 
-      // Row with big numbers
+      // Use native Word text instead of SVG images. Some Word viewers do not
+      // render SVG ImageRun values and show a broken-image placeholder.
       const numRow = new TableRow({
         children: scoreItems.map(
           (it) =>
@@ -1606,17 +1607,18 @@ async function buildDocx(
                 size: Math.floor(10000 / scoreItems.length),
                 type: WidthType.DXA,
               },
-              margins: { top: 100, bottom: 100 },
+              margins: { top: 80, bottom: 40 },
               children: [
                 new Paragraph({
                   alignment: AlignmentType.CENTER,
                   spacing: { after: 120 },
                   children: [
                     new TextRun({
-                      text: `${Math.round(it.value)}`,
+                      text: String(Math.round(it.value)),
                       bold: true,
-                      size: 56,
-                      color: scoreColor(it.value).text,
+                      size: 34,
+                      color: scoreColor(it.value).text.replace("#", ""),
+                      font: "Arial",
                     }),
                   ],
                 }),
@@ -1625,7 +1627,7 @@ async function buildDocx(
         ),
       });
 
-      // Row with labels
+      // Labels below each circle.
       const labelRow = new TableRow({
         children: scoreItems.map(
           (it) =>
@@ -1649,6 +1651,22 @@ async function buildDocx(
       const tbl = new Table({
         rows: [numRow, labelRow],
         width: { size: 10000, type: WidthType.DXA },
+        borders: {
+          top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+          insideHorizontal: {
+            style: BorderStyle.NONE,
+            size: 0,
+            color: "FFFFFF",
+          },
+          insideVertical: {
+            style: BorderStyle.NONE,
+            size: 0,
+            color: "FFFFFF",
+          },
+        },
       });
 
       children.push(new Paragraph({ spacing: { before: 160 } }));
