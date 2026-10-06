@@ -11,13 +11,13 @@ import {
 import coverHeader from "@/assets/tupiniquim-report-cover.png";
 import { downloadBlob } from "@/lib/docx-download";
 
-type Priority = {
+export type Priority = {
   titulo: string;
   porQueImporta: string;
   acao: string;
 };
 
-type BusinessSummary = {
+export type BusinessSummary = {
   resumo: string;
   contexto: string;
   impactoNegocio: string[];

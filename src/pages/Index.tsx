@@ -19,7 +19,7 @@ import DiagnosticPreview from "@/components/DiagnosticPreview";
 import DiagnosticForm from "@/components/DiagnosticForm";
 import { useDiagnosis } from "@/context/DiagnosisContext";
 import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
-import { downloadBusinessReport } from "@/lib/business-report";
+import { downloadBusinessReport, type BusinessSummary } from "@/lib/business-report";
 
 type Scores = {
   performance: number;
@@ -156,6 +156,8 @@ const Index = () => {
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   const [downloading, setDownloading] = useState(false);
   const [businessDownloading, setBusinessDownloading] = useState(false);
+  const [businessSummary, setBusinessSummary] = useState<BusinessSummary | null>(null);
+  const [businessLoading, setBusinessLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -166,6 +168,7 @@ const Index = () => {
 
     setLoading(true);
     setResult(null);
+    setBusinessSummary(null);
     try {
       const { data, error } = await supabase.functions.invoke("diagnose-site", {
         body: { url: normalized },
@@ -317,9 +320,10 @@ const Index = () => {
     }
   };
 
-  const downloadClientReport = async () => {
-    if (!result) return;
-    setBusinessDownloading(true);
+  const fetchBusinessSummary = async (): Promise<BusinessSummary | null> => {
+    if (businessSummary) return businessSummary;
+    if (!result) return null;
+    setBusinessLoading(true);
     try {
       const normalized = url.startsWith("http") ? url : `https://${url}`;
       const { data, error } = await supabase.functions.invoke("business-summary", {
@@ -345,6 +349,35 @@ const Index = () => {
         !data.proximoPasso
       ) {
         throw new Error("A função não retornou um resumo válido.");
+      }
+      const summary = data as BusinessSummary;
+      setBusinessSummary(summary);
+      return summary;
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro ao gerar versão corporativa",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível gerar a versão corporativa.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setBusinessLoading(false);
+    }
+  };
+
+  const downloadClientReport = async () => {
+    if (!result) return;
+    setBusinessDownloading(true);
+    try {
+      const normalized = url.startsWith("http") ? url : `https://${url}`;
+      let data = businessSummary;
+      if (!data) {
+        data = await fetchBusinessSummary();
+        if (!data) return;
       }
       await downloadBusinessReport(normalized, data);
       toast({
@@ -486,6 +519,10 @@ const Index = () => {
               downloading={downloading}
               downloadBusinessReport={downloadClientReport}
               businessDownloading={businessDownloading}
+              businessSummary={businessSummary}
+              setBusinessSummary={setBusinessSummary}
+              businessLoading={businessLoading}
+              onLoadBusinessSummary={fetchBusinessSummary}
             />
           </section>
         )}
