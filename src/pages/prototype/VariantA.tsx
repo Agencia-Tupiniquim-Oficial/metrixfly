@@ -194,7 +194,7 @@ export function VariantA({
                         </>
                       ) : (
                         <>
-                          <FileText className="mr-2 h-4 w-4 text-primary" /> Relatório Completo (.docx)
+                          <FileText className="mr-2 h-4 w-4 text-primary" /> Relatório técnico  (.docx)
                         </>
                       )}
                     </Button>

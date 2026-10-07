@@ -1,4 +1,4 @@
-// Prototype: Three variants of the diagnostic landing page, switchable via ?variant=, on the existing / route.
+// Main page — Variant C (Executive Storyboard) is the production UI.
 import { useState, FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,17 +6,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useDiagnosis } from "@/context/DiagnosisContext";
 import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
 import { downloadBusinessReport, type BusinessSummary } from "@/lib/business-report";
-import { PrototypeSwitcher, type VariantInfo } from "@/components/PrototypeSwitcher";
-import { VariantA } from "./prototype/VariantA";
-import { VariantB } from "./prototype/VariantB";
 import { VariantC } from "./prototype/VariantC";
 import type { DiagnosticVariantProps } from "./prototype/types";
 import {
   sampleDiagnosticResult,
   sampleBusinessSummary,
   type DiagnosticResult,
-  type DiagnosticImprovement,
 } from "./prototype/diagnosticMock";
+
 type Scores = {
   performance: number;
   accessibility: number;
@@ -83,24 +80,6 @@ async function getDiagnosticErrorMessage(error: unknown): Promise<string> {
   return error instanceof Error ? error.message : "Tente novamente";
 }
 
-const PROTOTYPE_VARIANTS: VariantInfo[] = [
-  {
-    key: "A",
-    name: "Split-Cockpit",
-    description: "Layout assimétrico com foco em conversão e impacto comercial direto",
-  },
-  {
-    key: "B",
-    name: "Auditor Studio",
-    description: "Bancada técnica tabulada com Core Web Vitals e matriz de problemas",
-  },
-  {
-    key: "C",
-    name: "Executive Storyboard",
-    description: "Narrativa executiva com boletim de notas, simulador de perda e roadmap",
-  },
-];
-
 const Index = () => {
   const { diagnostic, setDiagnostic } = useDiagnosis();
 
@@ -115,19 +94,6 @@ const Index = () => {
   const [businessLoading, setBusinessLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const currentVariant = (searchParams.get("variant") || "A").toUpperCase();
-  const [useDemoData, setUseDemoData] = useState(false);
-
-  const toggleDemoData = () => {
-    setUseDemoData((prev) => {
-      const next = !prev;
-      if (next && !url) {
-        setUrl("speedlink-demo.com.br");
-      }
-      return next;
-    });
-  };
 
   const runDiagnostic = async (e: FormEvent) => {
     e.preventDefault();
@@ -176,7 +142,6 @@ const Index = () => {
         },
     );
 
-    // persist to context so it survives navigation
     setDiagnostic((prev) => {
       if (!prev) return prev;
       return {
@@ -200,45 +165,6 @@ const Index = () => {
     setDiagnostic((prev) => {
       if (!prev) return prev;
       return { ...prev, uiux: { ...(prev.uiux ?? {}), overview: value } } as any;
-    });
-  };
-
-  const updateUiuxField = (field: "diagnosis" | "recommendations", items: string[]) => {
-    setResult((current) =>
-      current && {
-        ...current,
-        uiux: { ...(current.uiux ?? {}), [field]: items },
-      },
-    );
-
-    setDiagnostic((prev) => {
-      if (!prev) return prev;
-      return { ...prev, uiux: { ...(prev.uiux ?? {}), [field]: items } } as any;
-    });
-  };
-
-  const updateOpportunities = (device: "desktop" | "mobile", items: string[]) => {
-    setResult((current) =>
-      current && {
-        ...current,
-        summary: {
-          ...current.summary,
-          ...(device === "desktop" ? { desktop: { ...(current.summary.desktop ?? {}), opportunities: items.map((t) => ({ title: t })) } } : {}),
-          ...(device === "mobile" ? { mobile: { ...(current.summary.mobile ?? {}), opportunities: items.map((t) => ({ title: t })) } } : {}),
-        },
-      },
-    );
-
-    setDiagnostic((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        summary: {
-          ...prev.summary,
-          ...(device === "desktop" ? { desktop: { ...(prev.summary.desktop ?? {}), opportunities: items.map((t) => ({ title: t })) } } : {}),
-          ...(device === "mobile" ? { mobile: { ...(prev.summary.mobile ?? {}), opportunities: items.map((t) => ({ title: t })) } } : {}),
-        },
-      } as any;
     });
   };
 
@@ -402,11 +328,14 @@ const Index = () => {
     }
   };
 
-  const activeResult = (result ?? (useDemoData ? sampleDiagnosticResult : null)) as unknown as DiagnosticResult | null;
-  const activeBusinessSummary = businessSummary ?? (useDemoData ? sampleBusinessSummary : null);
+  const [searchParams] = useSearchParams();
+  const isDemo = searchParams.get("demo") === "1";
+
+  const activeResult = (result ?? (isDemo ? sampleDiagnosticResult : null)) as unknown as DiagnosticResult | null;
+  const activeBusinessSummary = businessSummary ?? (isDemo ? sampleBusinessSummary : null);
 
   const variantProps: DiagnosticVariantProps = {
-    url,
+    url: isDemo ? "speedlink-demo.com.br" : url,
     setUrl,
     loading,
     runDiagnostic,
@@ -430,22 +359,7 @@ const Index = () => {
     openGeoDashboard,
   };
 
-  return (
-    <>
-      {currentVariant === "A" && <VariantA {...variantProps} />}
-      {currentVariant === "B" && <VariantB {...variantProps} />}
-      {currentVariant === "C" && <VariantC {...variantProps} />}
-      {currentVariant !== "A" && currentVariant !== "B" && currentVariant !== "C" && (
-        <VariantA {...variantProps} />
-      )}
-      <PrototypeSwitcher
-        variants={PROTOTYPE_VARIANTS}
-        current={currentVariant}
-        hasSampleData={useDemoData}
-        onToggleSampleData={toggleDemoData}
-      />
-    </>
-  );
+  return <VariantC {...variantProps} />;
 };
 
 export default Index;

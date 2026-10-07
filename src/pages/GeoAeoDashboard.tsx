@@ -347,7 +347,7 @@ const GeoAeoDashboard = () => {
         const blob = docxResponseToBlob(docData);
         downloadBlob(blob, `${crawl.domain}_relatorio_completo.docx`);
         toast({
-          title: "Relatório completo pronto",
+          title: "Relatório técnico  pronto",
           description: "Download iniciado.",
         });
       } catch (e: any) {
@@ -1016,7 +1016,7 @@ const GeoAeoDashboard = () => {
                 className="bg-emerald-600 text-white"
                 disabled={loading}
               >
-                Gerar relatório completo
+                Gerar relatório técnico 
               </Button>
               <Button onClick={exportReport} variant="outline">
                 Exportar CSV

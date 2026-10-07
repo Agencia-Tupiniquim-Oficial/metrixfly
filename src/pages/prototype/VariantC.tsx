@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
   Calculator,
-  Compass,
   FileText,
   Flame,
   Gauge,
@@ -76,9 +75,6 @@ export function VariantC({
       <div className="container max-w-5xl py-12 md:py-20">
         {/* Header */}
         <header className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary border border-border text-sm font-medium text-secondary-foreground mb-6">
-            <Compass className="w-4 h-4 text-primary" /> Variante C: Storyboard com Calculadora de Negócio
-          </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 text-foreground">
             Diagnóstico &{" "}
             <span

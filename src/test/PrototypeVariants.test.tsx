@@ -60,6 +60,6 @@ describe("UI Prototype Variants for Diagnostic / Landing", () => {
     // After loading demo data, executive panel, mobile score, and preview should appear
     expect(screen.getByText("Painel de Decisão Comercial")).toBeDefined();
     expect(screen.getByText("📱 Desempenho Mobile")).toBeDefined();
-    expect(screen.getByText("Preview do relatório completo (.docx)")).toBeDefined();
+    expect(screen.getByText("Preview do relatório técnico  (.docx)")).toBeDefined();
   });
 });

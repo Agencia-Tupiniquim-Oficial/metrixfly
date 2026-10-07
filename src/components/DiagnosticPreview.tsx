@@ -102,68 +102,59 @@ export default function DiagnosticPreview({
 
   return (
     <div>
-      <Card className="border-border bg-card p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-foreground">
-              <Eye className="h-4 w-4 text-primary" />
-              {reportType === "corporate"
-                ? "Preview da versão corporativa (.docx)"
-                : "Preview do relatório completo (.docx)"}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {reportType === "corporate"
-                ? "Visualize o resumo executivo de negócios e ajuste textos antes de baixar."
-                : "Visualize o padrão e ajuste textos antes de baixar."}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-md border border-border bg-secondary p-1">
-              <Button
-                type="button"
-                size="sm"
-                variant={reportType === "full" ? "default" : "ghost"}
-                onClick={() => setReportType("full")}
-              >
-                <FileText className="mr-1.5 h-4 w-4" />
-                Relatório completo
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={reportType === "corporate" ? "default" : "ghost"}
-                onClick={handleSelectCorporate}
-              >
-                <Building2 className="mr-1.5 h-4 w-4" />
-                Versão corporativa
-              </Button>
-            </div>
-
-            <div className="inline-flex rounded-md border border-border bg-secondary p-1">
-              <Button
-                type="button"
-                size="sm"
-                variant={previewMode === "view" ? "default" : "ghost"}
-                onClick={() => setPreviewMode("view")}
-              >
-                <Eye className="mr-1.5 h-4 w-4" />
-                Visualizar
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={previewMode === "edit" ? "default" : "ghost"}
-                onClick={() => setPreviewMode("edit")}
-              >
-                <Pencil className="mr-1.5 h-4 w-4" />
-                Editar
-              </Button>
-            </div>
-          </div>
+      <Card className="border-border bg-card overflow-hidden">
+        {/* Row 1: report type selector */}
+        <div className="flex border-b border-border">
+          <button
+            type="button"
+            onClick={() => setReportType("full")}
+            className={`flex flex-1 items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition-colors
+              ${reportType === "full"
+                ? "bg-primary text-primary-foreground"
+                : "bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground"}`}
+          >
+            <FileText className="h-4 w-4 shrink-0" />
+            Relatório técnico 
+          </button>
+          <div className="w-px bg-border" />
+          <button
+            type="button"
+            onClick={handleSelectCorporate}
+            className={`flex flex-1 items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition-colors
+              ${reportType === "corporate"
+                ? "bg-primary text-primary-foreground"
+                : "bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground"}`}
+          >
+            <Building2 className="h-4 w-4 shrink-0" />
+            Versão corporativa
+          </button>
         </div>
 
-        <div className="-mx-6 -mb-6 overflow-x-auto rounded-b-lg bg-muted/40 px-4 py-8">
+        {/* Row 2: preview area with view/edit toggle anchored top-right */}
+        <div className="relative -mx-0 overflow-x-auto rounded-b-lg bg-muted/40 px-4 py-8">
+          <div className="absolute right-4 top-4 inline-flex rounded-md border border-border bg-card shadow-sm">
+            <Button
+              type="button"
+              size="sm"
+              variant={previewMode === "view" ? "default" : "ghost"}
+              onClick={() => setPreviewMode("view")}
+              className="rounded-r-none"
+            >
+              <Eye className="mr-1.5 h-4 w-4" />
+              Visualizar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={previewMode === "edit" ? "default" : "ghost"}
+              onClick={() => setPreviewMode("edit")}
+              className="rounded-l-none border-l border-border"
+            >
+              <Pencil className="mr-1.5 h-4 w-4" />
+              Editar
+            </Button>
+          </div>
+
           {reportType === "corporate" ? (
             businessLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
@@ -220,6 +211,7 @@ export default function DiagnosticPreview({
           )}
         </div>
       </Card>
+
 
       <div className="sticky bottom-4 mt-4 grid gap-3 sm:grid-cols-2">
         <Button

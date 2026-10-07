@@ -70,7 +70,7 @@ describe("DiagnosticPreview with Corporate Option", () => {
     );
 
     // Initial state: full report preview
-    expect(screen.getByText("Relatório completo")).toBeDefined();
+    expect(screen.getByText("Relatório técnico ")).toBeDefined();
     expect(screen.getByText("Versão corporativa")).toBeDefined();
 
     // Click corporate version
