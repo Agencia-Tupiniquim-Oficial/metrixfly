@@ -14,7 +14,8 @@ import { Slider } from "@/components/ui/slider";
 import DiagnosticForm from "@/components/DiagnosticForm";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 import { CleanScoresGrid } from "./CleanScoresGrid";
-import type { DiagnosticVariantProps } from "./types";
+import logoColored from "@/assets/logo-colored.png";
+ import type { DiagnosticVariantProps } from "./types";
 
 export function VariantC({
   url,
@@ -73,9 +74,10 @@ export function VariantC({
       style={{ background: "var(--gradient-hero)" }}
     >
       <div className="container max-w-5xl py-12 md:py-20">
-        {/* Header */}
-        <header className="text-center mb-10">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 text-foreground">
+         {/* Header */}
+        <header className="text-center mb-10 flex flex-col items-center">
+          <img src={logoColored} alt="Logo" className="h-20 mb-8 object-contain drop-shadow-sm" />
+           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 text-foreground">
             Diagnóstico &{" "}
             <span
               className="bg-clip-text text-transparent"
