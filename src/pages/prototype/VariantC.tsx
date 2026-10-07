@@ -5,6 +5,8 @@ import {
   Flame,
   Gauge,
   Loader2,
+  Monitor,
+  Smartphone,
   Sparkles,
   TrendingDown,
 } from "lucide-react";
@@ -41,17 +43,18 @@ export function VariantC({
   const [monthlyTraffic, setMonthlyTraffic] = useState(15000);
   const [avgTicket, setAvgTicket] = useState(250);
 
+  const getGrade = (score: number) => {
+    if (score >= 90) return { letter: "A", label: "Excelente", color: "text-emerald-700 border-emerald-500 bg-emerald-50" };
+    if (score >= 75) return { letter: "B", label: "Bom", color: "text-teal-700 border-teal-500 bg-teal-50" };
+    if (score >= 50) return { letter: "C", label: "Regular", color: "text-amber-700 border-amber-500 bg-amber-50" };
+    if (score >= 30) return { letter: "D", label: "Crítico", color: "text-orange-700 border-orange-500 bg-orange-50" };
+    return { letter: "F", label: "Grave", color: "text-rose-700 border-rose-500 bg-rose-50" };
+  };
+
   const mobileScore = result?.summary.mobile.scores.performance ?? 43;
-  const grade =
-    mobileScore >= 90
-      ? { letter: "A", label: "Excelente", color: "text-emerald-700 border-emerald-500 bg-emerald-50" }
-      : mobileScore >= 75
-        ? { letter: "B", label: "Bom", color: "text-teal-700 border-teal-500 bg-teal-50" }
-        : mobileScore >= 50
-          ? { letter: "C", label: "Regular", color: "text-amber-700 border-amber-500 bg-amber-50" }
-          : mobileScore >= 30
-            ? { letter: "D", label: "Crítico", color: "text-orange-700 border-orange-500 bg-orange-50" }
-            : { letter: "F", label: "Grave", color: "text-rose-700 border-rose-500 bg-rose-50" };
+  const desktopScore = result?.summary.desktop.scores.performance ?? 71;
+  const mobileGrade = getGrade(mobileScore);
+  const desktopGrade = getGrade(desktopScore);
 
   const simulation = useMemo(() => {
     const estimatedBounceRate = mobileScore < 50 ? 0.38 : mobileScore < 80 ? 0.22 : 0.08;
@@ -157,40 +160,50 @@ export function VariantC({
                 </span>
               </div>
 
-              <div className="grid md:grid-cols-12 gap-8 items-center">
-                <div className="md:col-span-4 flex items-center gap-6">
-                  <div
-                    className={`w-24 h-24 rounded-2xl border-[3px] flex flex-col items-center justify-center font-extrabold shadow-sm ${grade.color}`}
-                  >
-                    <span className="text-4xl">{grade.letter}</span>
-                    <span className="text-xs uppercase font-bold tracking-wider">
-                      {grade.label}
-                    </span>
+              <div className="grid md:grid-cols-2 gap-8">
+                {[
+                  {
+                    icon: Smartphone,
+                    title: "Dispositivo Móvel",
+                    badge: "Mobile",
+                    score: mobileScore,
+                    grade: mobileGrade,
+                    label: "Pontuação Mobile (Celular)"
+                  },
+                  {
+                    icon: Monitor,
+                    title: "Computador",
+                    badge: "Desktop",
+                    score: desktopScore,
+                    grade: desktopGrade,
+                    label: "Pontuação Desktop (Computador)"
+                  }
+                ].map((device) => (
+                  <div key={device.badge} className="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-xl bg-muted/20 border border-border">
+                    <div className={`w-24 h-24 rounded-2xl border-[3px] flex flex-col items-center justify-center font-extrabold shadow-sm ${device.grade.color} shrink-0`}>
+                      <span className="text-4xl">{device.grade.letter}</span>
+                      <span className="text-xs uppercase font-bold tracking-wider">{device.grade.label}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <Badge variant="outline" className="mb-1">{device.badge}</Badge>
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold block">{device.label}</span>
+                      <span className="text-3xl font-extrabold text-foreground">{device.score}/100</span>
+                      <span className="text-xs text-muted-foreground block">{device.score < 50 ? "Abaixo do padrão de mercado" : "Dentro da média esperada"}</span>
+                    </div>
                   </div>
-
-                  <div>
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold block">
-                      Score Mobile
-                    </span>
-                    <span className="text-3xl font-extrabold text-foreground">
-                      {mobileScore}/100
-                    </span>
-                    <span className="text-xs text-muted-foreground block mt-1">
-                      {mobileScore < 50 ? "Abaixo do padrão de mercado" : "Dentro da média esperada"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="md:col-span-8 border-t md:border-t-0 md:border-l border-border pt-6 md:pt-0 md:pl-8 space-y-3">
-                  <h3 className="text-xl font-bold text-foreground">
-                    O que esse resultado significa para o seu cliente
-                  </h3>
-                  <p className="text-base text-muted-foreground leading-relaxed">
-                    {businessSummary?.resumo ||
-                      `O tempo de resposta no celular (${result.summary.mobile.metrics.lcp}) gera desistência de potenciais clientes logo nos primeiros segundos após o clique nas buscas.`}
-                  </p>
-                </div>
+                ))}
               </div>
+
+              <div className="mt-8 border-t border-border pt-8 space-y-3">
+                <h3 className="text-xl font-bold text-foreground">
+                  O que esse resultado significa
+                </h3>
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  {businessSummary?.resumo ||
+                    `O tempo de resposta no celular (${result?.summary.mobile.metrics.lcp}) e no computador (${result?.summary.desktop.metrics.lcp}) geram impacto direto na conversão de potenciais clientes.`}
+                </p>
+              </div>
+
             </Card>
 
             {/* Act 2: Interactive Loss & Opportunity Calculator */}
