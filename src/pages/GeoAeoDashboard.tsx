@@ -25,6 +25,7 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
+import logoColored from "@/assets/logo-colored.png";
 
 type Page = { url: string; title: string; score: number; issues: string[] };
 type Finding = {
@@ -552,11 +553,12 @@ const GeoAeoDashboard = () => {
             <Sparkles className="h-5 w-5 text-primary" /> Agent Crawl{" "}
             <span className="text-muted-foreground font-normal">GEO/AEO</span>
           </div>
-          <Badge variant="secondary">SpeedFly</Badge>
+          <img src={logoColored} alt="Logo" className="h-8 object-contain" />
         </div>
       </header>
       <div className="container py-8 md:py-12">
         <div className="max-w-3xl">
+          <img src={logoColored} alt="Logo" className="h-12 mb-6 object-contain drop-shadow-sm" />
           <p className="mb-3 text-sm font-medium text-primary">
             VISIBILIDADE EM BUSCA E IA
           </p>
