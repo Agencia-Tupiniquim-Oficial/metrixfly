@@ -8,12 +8,12 @@ import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
 import { getDiagnosticErrorMessage } from "@/lib/error-handler";
 import { VariantC } from "./prototype/VariantC";
 import { DiagnoseResult, Improvement } from "@/types/diagnose";
+import { DiagnosticVariantProps } from "./prototype/types";
 import {
   sampleDiagnosticResult,
   sampleBusinessSummary,
   type DiagnosticResult,
 } from "./prototype/diagnosticMock";
-
 type Result = DiagnoseResult;
 
 type SideData = {
@@ -289,32 +289,30 @@ const Index = () => {
   const activeResult = (result ?? (isDemo ? sampleDiagnosticResult : null)) as unknown as DiagnosticResult | null;
   const activeBusinessSummary = businessSummary ?? (isDemo ? sampleBusinessSummary : null);
 
-  const variantProps: DiagnosticVariantProps = {
-    url: isDemo ? "speedlink-demo.com.br" : url,
-    setUrl,
-    loading,
-    runDiagnostic,
-    result: activeResult,
-    geoLoading,
-    runGeoCrawl,
-    downloadDocx,
-    downloading,
-    downloadClientReport,
-    businessDownloading,
-    businessSummary: activeBusinessSummary,
-    setBusinessSummary,
-    businessLoading,
-    fetchBusinessSummary,
-    previewMode,
-    setPreviewMode,
-    updateImprovement: (index, field, value) => {
+  return <VariantC
+    url={isDemo ? "speedlink-demo.com.br" : url}
+    setUrl={setUrl}
+    loading={loading}
+    runDiagnostic={runDiagnostic}
+    result={activeResult}
+    geoLoading={geoLoading}
+    runGeoCrawl={runGeoCrawl}
+    downloadDocx={downloadDocx}
+    downloading={downloading}
+    downloadClientReport={downloadClientReport}
+    businessDownloading={businessDownloading}
+    businessSummary={activeBusinessSummary}
+    setBusinessSummary={setBusinessSummary}
+    businessLoading={businessLoading}
+    fetchBusinessSummary={fetchBusinessSummary}
+    previewMode={previewMode}
+    setPreviewMode={setPreviewMode}
+    updateImprovement={(index, field, value) => {
       updateImprovement(index, field as keyof Improvement, value);
-    },
-    updateUiuxOverview,
-    openGeoDashboard,
-  };
-
-  return <VariantC {...variantProps} />;
+    }}
+    updateUiuxOverview={updateUiuxOverview}
+    openGeoDashboard={openGeoDashboard}
+  />;
 };
 
 export default Index;

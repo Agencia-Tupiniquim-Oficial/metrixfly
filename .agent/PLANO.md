@@ -4,6 +4,7 @@
 - [x] Configuração da esteira (.agent/)
 - [x] Centralizar tipagens de diagnóstico (src/types/diagnose.ts)
 - [x] Centralizar tratamento de erros (src/lib/error-handler.ts)
+- [x] Simplificar protótipos: Remover VariantA, VariantB e switcher no Index.tsx
 
 ### Funcionalidades Implementadas (Done)
 - [x] Integração base com API PageSpeed
