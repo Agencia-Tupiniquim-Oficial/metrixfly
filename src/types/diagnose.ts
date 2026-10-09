@@ -25,36 +25,27 @@ export type PageSummary = {
   metrics: Metrics;
   screenshot?: string | null;
   pagespeedScreenshot?: string | null;
-  opportunities?: any[];
+  opportunities?: Opportunities[];
 };
 
-export type Scores = {
-  performance: number;
-  accessibility: number;
-  bestPractices: number;
-  seo: number;
-  navigation?: string | null;
+export type Opportunities = {
+  title: string;
+  displayValue?: string;
+  score?: number;
+  impact?: string[];
+  causes?: string[];
+  recommendations?: string[];
 };
 
-export type Metrics = {
-  fcp?: string | null;
-  lcp?: string | null;
-  tbt?: string | null;
-  cls?: string | number | null;
-  si?: string | null;
-  tti?: string | null;
-  ttfb?: string | null;
-  pageSize?: string | null;
-  requests?: string | number | null;
+export type Improvement = {
+  title: string;
+  description?: string;
+  problem?: string;
+  impact?: string[];
+  causes?: string[];
+  recommendations?: string[];
 };
 
-export type PageSummary = {
-  scores: Scores;
-  metrics: Metrics;
-  screenshot?: string | null;
-  pagespeedScreenshot?: string | null;
-  opportunities?: any[];
-};
 
 export type DiagnoseResult = {
   summary: {
@@ -62,11 +53,11 @@ export type DiagnoseResult = {
     desktop: PageSummary;
     screenshot?: string | null;
   };
-  improvements: any[];
-  uiux?: any | null;
-  extras?: any[];
+  improvements: Improvement[];
+  uiux?: unknown | null;
+  extras?: unknown[];
   // optional fields used by the frontend/context
   docx?: string;
-  geo?: any;
+  geo?: unknown;
 };
 

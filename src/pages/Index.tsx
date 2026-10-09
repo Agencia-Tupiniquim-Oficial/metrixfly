@@ -5,80 +5,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useDiagnosis } from "@/context/DiagnosisContext";
 import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
-import { downloadBusinessReport, type BusinessSummary } from "@/lib/business-report";
+import { getDiagnosticErrorMessage } from "@/lib/error-handler";
 import { VariantC } from "./prototype/VariantC";
-import type { DiagnosticVariantProps } from "./prototype/types";
+import { DiagnoseResult, Improvement } from "@/types/diagnose";
 import {
   sampleDiagnosticResult,
   sampleBusinessSummary,
   type DiagnosticResult,
 } from "./prototype/diagnosticMock";
 
-type Scores = {
-  performance: number;
-  accessibility: number;
-  bestPractices: number;
-  seo: number;
-};
-type Metrics = {
-  fcp: string;
-  lcp: string;
-  tbt: string;
-  cls: string;
-  si: string;
-};
+type Result = DiagnoseResult;
+
 type SideData = {
-  scores: Scores;
-  metrics: Metrics;
+  scores: {
+    performance: number;
+    accessibility: number;
+    bestPractices: number;
+    seo: number;
+  };
+  metrics: {
+    fcp: string;
+    lcp: string;
+    tbt: string;
+    cls: string;
+    si: string;
+  };
   screenshot?: string | null;
   opportunities?: { title: string; displayValue?: string }[];
 };
-type Improvement = {
-  title: string;
-  description?: string;
-  problem?: string;
-  impact?: string[];
-  causes?: string[];
-  recommendations?: string[];
-};
-type Result = {
-  summary: { mobile: SideData; desktop: SideData; screenshot: string | null };
-  improvements: Improvement[];
-  uiux?: {
-    overview?: string;
-    diagnosis?: string[];
-    recommendations?: string[];
-  } | null;
-  extras?: { title: string; description: string }[];
-  docx: string;
-  geo?: any;
-};
 
-async function getDiagnosticErrorMessage(error: unknown): Promise<string> {
-  if (
-    error instanceof Error &&
-    error.message &&
-    error.message !== "Edge Function returned a non-2xx status code"
-  ) {
-    return error.message;
-  }
-
-  const context =
-    error && typeof error === "object" && "context" in error
-      ? (error as { context?: unknown }).context
-      : undefined;
-
-  if (context instanceof Response) {
-    try {
-      const body = (await context.clone().json()) as { error?: string };
-      if (body.error) return body.error;
-    } catch {
-      // The response may not contain JSON; keep the generic function error below.
-    }
-  }
-
-  return error instanceof Error ? error.message : "Tente novamente";
-}
 
 const Index = () => {
   const { diagnostic, setDiagnostic } = useDiagnosis();
@@ -110,7 +65,7 @@ const Index = () => {
       if (data?.error) throw new Error(data.error);
       if (error) throw error;
       setResult(data as Result);
-      setDiagnostic(data as any);
+      setDiagnostic(data as DiagnoseResult);
       toast({
         title: "Diagnóstico pronto!",
         description: "Seu relatório foi gerado com sucesso.",
@@ -149,7 +104,7 @@ const Index = () => {
         improvements: prev.improvements.map((item, i) =>
           i === index ? { ...item, [field]: value } : item,
         ),
-      } as any;
+      } satisfies DiagnoseResult;
     });
   };
 
@@ -164,7 +119,7 @@ const Index = () => {
 
     setDiagnostic((prev) => {
       if (!prev) return prev;
-      return { ...prev, uiux: { ...(prev.uiux ?? {}), overview: value } } as any;
+      return { ...prev, uiux: { ...(prev.uiux ?? {}), overview: value } } satisfies DiagnoseResult;
     });
   };
 
@@ -293,7 +248,7 @@ const Index = () => {
     }
   };
 
-  const openGeoDashboard = (crawlResult?: any) => {
+  const openGeoDashboard = (crawlResult?: unknown) => {
     if (crawlResult) {
       navigate("/geo-aeo", {
         state: { fromDiagnosis: true, crawl: crawlResult },
