@@ -1411,22 +1411,22 @@ function dataUrlToBytes(dataUrl: string): Uint8Array | null {
   }
 }
 
-// Cabeçalho com banner verde Tupiniquim (igual aos relatórios oficiais)
+// Logo Tupiniquim usada no cabeçalho do relatório completo.
 function buildHeader() {
   return new Header({
     children: [
       new Paragraph({
-        alignment: AlignmentType.LEFT,
-        spacing: { after: 0 },
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
         children: [
           new ImageRun({
             type: "png",
             data: b64ToBytes(HEADER_PNG_B64),
-            transformation: { width: 650, height: 104 },
+            transformation: { width: 100, height: 100 },
             altText: {
               title: "Tupiniquim",
-              description: "Cabeçalho Tupiniquim",
-              name: "header",
+              description: "Logo Tupiniquim",
+              name: "logo",
             },
           }),
         ],

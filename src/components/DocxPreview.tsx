@@ -1,4 +1,4 @@
-import coverHeader from "@/assets/tupiniquim-report-cover.png";
+import coverHeader from "@/assets/logo-colored.png";
 import LighthouseCard from "@/components/LighthouseCard";
 import React, { useState, useEffect, useRef } from "react";
 
@@ -145,7 +145,15 @@ function Page({ children, withHeader = false }: { children: React.ReactNode; wit
       className="bg-report-paper text-report-text mx-auto shadow-lg overflow-hidden"
       style={{ width: "100%", maxWidth: 780, minHeight: 1100, fontFamily: "Arial, Helvetica, sans-serif" }}
     >
-      {withHeader && <img src={coverHeader} alt="Cabeçalho Tupiniquim" className="w-full h-auto block" />}
+      {withHeader && (
+        <div className="flex justify-center px-[92px] pt-8">
+          <img
+            src={coverHeader}
+            alt="Logo Tupiniquim"
+            className="h-24 w-24 object-contain"
+          />
+        </div>
+      )}
       <div className={withHeader ? "px-[92px] pt-12 pb-16" : "px-[92px] py-16"}>{children}</div>
     </div>
   );

@@ -189,7 +189,7 @@ export async function downloadBusinessReport(
                 children: [
                   new ImageRun({
                     type: "png",
-                    data: await loadSiteLogo(),
+                    data: logoData,
                     transformation: { width: 80, height: 80 },
                   }),
                 ],
