@@ -1,18 +1,16 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   Calculator,
   FileText,
-  Flame,
   Gauge,
   Loader2,
   Monitor,
   Smartphone,
-  Sparkles,
-  TrendingDown,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 import DiagnosticForm from "@/components/DiagnosticForm";
 import DiagnosticPreview from "@/components/DiagnosticPreview";
 import { CleanScoresGrid } from "./CleanScoresGrid";
@@ -40,9 +38,6 @@ export function VariantC({
   updateImprovement,
   updateUiuxOverview,
 }: DiagnosticVariantProps) {
-  const [monthlyTraffic, setMonthlyTraffic] = useState(15000);
-  const [avgTicket, setAvgTicket] = useState(250);
-
   const getGrade = (score: number) => {
     if (score >= 90) return { letter: "A", label: "Excelente", color: "text-emerald-700 border-emerald-500 bg-emerald-50" };
     if (score >= 75) return { letter: "B", label: "Bom", color: "text-teal-700 border-teal-500 bg-teal-50" };
@@ -55,21 +50,7 @@ export function VariantC({
   const desktopScore = result?.summary.desktop.scores.performance ?? 71;
   const mobileGrade = getGrade(mobileScore);
   const desktopGrade = getGrade(desktopScore);
-
-  const simulation = useMemo(() => {
-    const estimatedBounceRate = mobileScore < 50 ? 0.38 : mobileScore < 80 ? 0.22 : 0.08;
-    const lostVisitors = Math.round(monthlyTraffic * estimatedBounceRate);
-    const standardConversionRate = 0.02; // 2%
-    const lostLeadsOrSales = Math.round(lostVisitors * standardConversionRate);
-    const lostRevenueEstimate = lostLeadsOrSales * avgTicket;
-
-    return {
-      estimatedBounceRate: Math.round(estimatedBounceRate * 100),
-      lostVisitors,
-      lostLeadsOrSales,
-      lostRevenueEstimate,
-    };
-  }, [monthlyTraffic, avgTicket, mobileScore]);
+  const financialCalculatorUrl = `/calculadora-financeira?mobileScore=${mobileScore}&traffic=15000&ticket=250`;
 
   return (
     <main
@@ -206,112 +187,32 @@ export function VariantC({
 
             </Card>
 
-            {/* Act 2: Interactive Loss & Opportunity Calculator */}
-            <Card className="p-8 bg-card border-border shadow-md space-y-8">
-              <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                  2
-                </span>
-                <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Simulação Financeira de Perda por Lentidão
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  <Calculator className="w-6 h-6 text-primary" />
-                  Calculadora de Retorno & Abandono de Tráfego
-                </h3>
-                <p className="text-base text-muted-foreground mt-2">
-                  Ajuste o tráfego estimado e o ticket médio para ver o impacto financeiro da taxa de desistência mobile.
+            {/* Financial simulation is separate from the optimization diagnosis. */}
+            <Card className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between bg-card border-border shadow-md">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+                  Simulação financeira
+                </p>
+                <h2 className="text-xl font-bold text-foreground">
+                  Estime o retorno de uma otimização
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Analise perdas estimadas, potencial recuperável, investimento, ROI e prazo de retorno.
                 </p>
               </div>
-
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                {/* Sliders Container */}
-                <div className="space-y-6 p-6 rounded-2xl bg-muted/30 border border-border">
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-foreground">Visitantes Mensais Estimados:</span>
-                      <span className="font-bold text-primary font-mono">
-                        {monthlyTraffic.toLocaleString("pt-BR")} acessos
-                      </span>
-                    </div>
-                    <Slider
-                      value={[monthlyTraffic]}
-                      onValueChange={(val) => setMonthlyTraffic(val[0])}
-                      min={1000}
-                      max={100000}
-                      step={1000}
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>1.000</span>
-                      <span>50.000</span>
-                      <span>100.000</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-foreground">Ticket Médio ou Valor do Lead:</span>
-                      <span className="font-bold text-primary font-mono">
-                        R$ {avgTicket.toLocaleString("pt-BR")}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[avgTicket]}
-                      onValueChange={(val) => setAvgTicket(val[0])}
-                      min={50}
-                      max={2000}
-                      step={25}
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>R$ 50</span>
-                      <span>R$ 1.000</span>
-                      <span>R$ 2.000</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Outcome KPI Card */}
-                <div className="p-6 rounded-2xl bg-rose-50/60 border border-rose-200 space-y-4">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
-                      <Flame className="w-4 h-4" /> Desperdício Comercial Estimado
-                    </span>
-                    <div className="text-4xl font-extrabold text-rose-700 mt-2 font-mono">
-                      R$ {simulation.lostRevenueEstimate.toLocaleString("pt-BR")}
-                      <span className="text-sm font-normal text-rose-600 ml-2">/ mês perdidos</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-rose-200/80 text-sm">
-                    <div>
-                      <span className="text-xs text-rose-600 block">Visitantes que desistem:</span>
-                      <span className="text-base font-bold text-rose-800 font-mono mt-0.5 block">
-                        ~{simulation.lostVisitors.toLocaleString("pt-BR")} pessoas
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-rose-600 block">Aumento de Rejeição:</span>
-                      <span className="text-base font-bold text-rose-800 font-mono mt-0.5 block">
-                        +{simulation.estimatedBounceRate}% abandono
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-rose-600 italic leading-relaxed">
-                    *Estimativa com base em estudos do Google sobre a correlação entre tempo de carregamento mobile e desistência de compra.
-                  </p>
-                </div>
-              </div>
+              <Button asChild size="lg" className="shrink-0">
+                <Link to={financialCalculatorUrl}>
+                  <Calculator aria-hidden="true" />
+                  Abrir calculadora financeira
+                </Link>
+              </Button>
             </Card>
 
-            {/* Act 3: Detailed Metrics */}
+            {/* Act 2: Detailed Metrics */}
             <div className="space-y-6">
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                  3
+                  2
                 </span>
                 <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
                   Auditoria Técnica Completa
@@ -357,11 +258,11 @@ export function VariantC({
               )}
             </div>
 
-            {/* Act 4: Diagnostic Preview and Exporting */}
+            {/* Act 3: Diagnostic Preview and Exporting */}
             <div className="space-y-6">
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                  4
+                  3
                 </span>
                 <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
                   Revisão e Exportação de Documentos (.docx)

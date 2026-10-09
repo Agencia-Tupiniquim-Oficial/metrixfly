@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound.tsx";
 import GeoAeoDashboard from "./pages/GeoAeoDashboard.tsx";
 import GeoAdmin from "./pages/GeoAdmin.tsx";
 import Reports from "./pages/Reports.tsx";
+import FinancialCalculator from "./pages/FinancialCalculator.tsx";
 import { DiagnosisProvider } from "@/context/DiagnosisContext";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/geo-aeo" element={<GeoAeoDashboard />} />
             <Route path="/geo-admin" element={<GeoAdmin />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/calculadora-financeira" element={<FinancialCalculator />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
