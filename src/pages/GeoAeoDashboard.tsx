@@ -106,10 +106,10 @@ const fallbackFindings: Finding[] = [
 
 function scoreColor(score: number) {
   return score >= 80
-    ? "text-emerald-600"
+    ? "text-emerald-600 dark:text-emerald-400"
     : score >= 50
-      ? "text-amber-600"
-      : "text-red-600";
+      ? "text-amber-600 dark:text-amber-400"
+      : "text-red-600 dark:text-red-400";
 }
 
 function severityLabel(severity: Finding["severity"]) {
@@ -118,10 +118,10 @@ function severityLabel(severity: Finding["severity"]) {
 
 function severityClass(severity: Finding["severity"]) {
   return severity === "critical"
-    ? "border-red-200 bg-red-50 text-red-700"
+    ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-200"
     : severity === "warning"
-      ? "border-amber-200 bg-amber-50 text-amber-700"
-      : "border-emerald-200 bg-emerald-50 text-emerald-700";
+      ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200"
+      : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200";
 }
 
 function Metric({
@@ -533,7 +533,7 @@ const GeoAeoDashboard = () => {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white">
+      <header className="border-b border-border bg-card">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
@@ -553,7 +553,7 @@ const GeoAeoDashboard = () => {
             <Sparkles className="h-5 w-5 text-primary" /> Agent Crawl{" "}
             <span className="text-muted-foreground font-normal">GEO/AEO</span>
           </div>
-          <img src={logoColored} alt="Logo" className="h-8 object-contain" />
+          <img src={logoColored} alt="Logo" className="mr-12 h-8 object-contain" />
         </div>
       </header>
       <div className="container py-8 md:py-12">
@@ -682,7 +682,7 @@ const GeoAeoDashboard = () => {
                 </Badge>
               </div>
             </div>
-            <div className="flex gap-1 overflow-x-auto rounded-lg border bg-white p-1 text-sm">
+            <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm">
               {[
                 "Overview",
                 "Prompt Intelligence",

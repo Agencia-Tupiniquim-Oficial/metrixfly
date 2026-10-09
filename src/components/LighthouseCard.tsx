@@ -26,7 +26,7 @@ export default function LighthouseCard({ title = "Device", scores, metrics, clas
           <ScoreCircle value={scores.accessibility} label="Acessibilidade" />
           <ScoreCircle value={scores.bestPractices} label="Práticas" />
           <ScoreCircle value={scores.seo} label="SEO" />
-          <div className="ml-auto text-sm bg-amber-50 px-2 py-1 rounded-md text-amber-700">{scores.navigation ?? "—"}</div>
+          <div className="ml-auto rounded-md bg-amber-50 px-2 py-1 text-sm text-amber-700 dark:bg-amber-950/50 dark:text-amber-200">{scores.navigation ?? "—"}</div>
         </div>
 
         <MetricTable metrics={metrics} />

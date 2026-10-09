@@ -10,29 +10,34 @@ import GeoAdmin from "./pages/GeoAdmin.tsx";
 import Reports from "./pages/Reports.tsx";
 import FinancialCalculator from "./pages/FinancialCalculator.tsx";
 import { DiagnosisProvider } from "@/context/DiagnosisContext";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <DiagnosisProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/diagnostico" element={<Index />} />
-            <Route path="/geo-aeo" element={<GeoAeoDashboard />} />
-            <Route path="/geo-admin" element={<GeoAdmin />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/calculadora-financeira" element={<FinancialCalculator />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </DiagnosisProvider>
+    <ThemeProvider>
+      <DiagnosisProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/diagnostico" element={<Index />} />
+              <Route path="/geo-aeo" element={<GeoAeoDashboard />} />
+              <Route path="/geo-admin" element={<GeoAdmin />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/calculadora-financeira" element={<FinancialCalculator />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <ThemeToggle />
+          </BrowserRouter>
+        </TooltipProvider>
+      </DiagnosisProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

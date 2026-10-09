@@ -12,7 +12,7 @@ export default function ScoreCircle({ value = 0, label = "", size = 56 }: { valu
     <div style={{ minWidth: diameter }} className="flex flex-col items-center">
       <div
         aria-hidden
-        className={`rounded-full flex items-center justify-center ring-4 ${color} bg-white shadow-sm`}
+        className={`rounded-full flex items-center justify-center ring-4 ${color} bg-white shadow-sm dark:bg-card`}
         style={{ width: diameter, height: diameter }}
       >
         <span style={{ fontSize: numberFont, lineHeight: 1 }} className="font-semibold">{v}</span>

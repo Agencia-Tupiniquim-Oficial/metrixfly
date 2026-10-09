@@ -39,11 +39,11 @@ export function VariantC({
   updateUiuxOverview,
 }: DiagnosticVariantProps) {
   const getGrade = (score: number) => {
-    if (score >= 90) return { letter: "A", label: "Excelente", color: "text-emerald-700 border-emerald-500 bg-emerald-50" };
-    if (score >= 75) return { letter: "B", label: "Bom", color: "text-teal-700 border-teal-500 bg-teal-50" };
-    if (score >= 50) return { letter: "C", label: "Regular", color: "text-amber-700 border-amber-500 bg-amber-50" };
-    if (score >= 30) return { letter: "D", label: "Crítico", color: "text-orange-700 border-orange-500 bg-orange-50" };
-    return { letter: "F", label: "Grave", color: "text-rose-700 border-rose-500 bg-rose-50" };
+    if (score >= 90) return { letter: "A", label: "Excelente", color: "text-emerald-700 border-emerald-500 bg-emerald-50 dark:text-emerald-200 dark:border-emerald-800 dark:bg-emerald-950/50" };
+    if (score >= 75) return { letter: "B", label: "Bom", color: "text-teal-700 border-teal-500 bg-teal-50 dark:text-teal-200 dark:border-teal-800 dark:bg-teal-950/50" };
+    if (score >= 50) return { letter: "C", label: "Regular", color: "text-amber-700 border-amber-500 bg-amber-50 dark:text-amber-200 dark:border-amber-800 dark:bg-amber-950/50" };
+    if (score >= 30) return { letter: "D", label: "Crítico", color: "text-orange-700 border-orange-500 bg-orange-50 dark:text-orange-200 dark:border-orange-800 dark:bg-orange-950/50" };
+    return { letter: "F", label: "Grave", color: "text-rose-700 border-rose-500 bg-rose-50 dark:text-rose-200 dark:border-rose-800 dark:bg-rose-950/50" };
   };
 
   const mobileScore = result?.summary.mobile.scores.performance ?? 43;

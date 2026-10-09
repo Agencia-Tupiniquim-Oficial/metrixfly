@@ -14,9 +14,9 @@ export function CleanScoresGrid({
   metrics,
 }: CleanScoresGridProps) {
   const getScoreBadgeClass = (val: number) => {
-    if (val >= 90) return "text-emerald-700 border-emerald-500 bg-emerald-50";
-    if (val >= 50) return "text-amber-700 border-amber-500 bg-amber-50";
-    return "text-rose-700 border-rose-500 bg-rose-50";
+    if (val >= 90) return "text-emerald-700 border-emerald-500 bg-emerald-50 dark:text-emerald-200 dark:border-emerald-800 dark:bg-emerald-950/50";
+    if (val >= 50) return "text-amber-700 border-amber-500 bg-amber-50 dark:text-amber-200 dark:border-amber-800 dark:bg-amber-950/50";
+    return "text-rose-700 border-rose-500 bg-rose-50 dark:text-rose-200 dark:border-rose-800 dark:bg-rose-950/50";
   };
 
   const metricRows = [

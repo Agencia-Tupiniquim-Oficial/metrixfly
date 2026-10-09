@@ -56,8 +56,10 @@ function MetricCard({
 }) {
   const toneClass = {
     default: "bg-muted/30 border-border text-foreground",
-    positive: "bg-emerald-50 border-emerald-200 text-emerald-800",
-    negative: "bg-rose-50 border-rose-200 text-rose-800",
+    positive:
+      "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/50 dark:border-emerald-900 dark:text-emerald-200",
+    negative:
+      "bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/50 dark:border-rose-900 dark:text-rose-200",
   }[tone];
 
   return (
