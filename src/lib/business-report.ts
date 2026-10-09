@@ -8,7 +8,9 @@ import {
   Paragraph,
   TextRun,
 } from "docx";
-import coverHeader from "@/assets/tupiniquim-report-cover.png";
+import siteLogo from "@/assets/logo-colored.png";
+
+
 import { downloadBlob } from "@/lib/docx-download";
 
 export type Priority = {
@@ -29,9 +31,9 @@ const GREEN = "008F4C";
 const DARK = "333333";
 const MUTED = "666666";
 
-async function loadCoverHeader(): Promise<ArrayBuffer> {
-  const response = await fetch(coverHeader);
-  if (!response.ok) throw new Error("Não foi possível carregar o cabeçalho do relatório.");
+async function loadSiteLogo(): Promise<ArrayBuffer> {
+  const response = await fetch(siteLogo);
+  if (!response.ok) throw new Error("Não foi possível carregar a logo do site.");
   return response.arrayBuffer();
 }
 
@@ -71,7 +73,8 @@ export async function downloadBusinessReport(
   summary: BusinessSummary,
 ): Promise<void> {
   const hostname = new URL(url).hostname.replace(/^www\./i, "").toUpperCase();
-  const header = await loadCoverHeader();
+  const logoData = await loadSiteLogo();
+
   const children: Paragraph[] = [
     new Paragraph({
       spacing: { before: 200, after: 420 },
@@ -181,17 +184,13 @@ export async function downloadBusinessReport(
           first: new Header({
             children: [
               new Paragraph({
-                spacing: { after: 0 },
+                spacing: { after: 200 },
+                alignment: AlignmentType.CENTER,
                 children: [
                   new ImageRun({
                     type: "png",
-                    data: header,
-                    transformation: { width: 650, height: 104 },
-                    altText: {
-                      title: "Cabeçalho Tupiniquim",
-                      description: "Cabeçalho do relatório",
-                      name: "header",
-                    },
+                    data: await loadSiteLogo(),
+                    transformation: { width: 80, height: 80 },
                   }),
                 ],
               }),
