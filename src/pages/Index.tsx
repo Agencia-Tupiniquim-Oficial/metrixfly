@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDiagnosis } from "@/context/DiagnosisContext";
 import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
 import { getDiagnosticErrorMessage } from "@/lib/error-handler";
+import { downloadBusinessReport } from "@/lib/business-report";
 import { VariantC } from "./prototype/VariantC";
 import { DiagnoseResult, Improvement } from "@/types/diagnose";
 import { DiagnosticVariantProps } from "./prototype/types";
