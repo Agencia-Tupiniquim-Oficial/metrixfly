@@ -61,11 +61,12 @@ Regras obrigatórias:
 - Use exatamente as chaves "resumo", "contexto", "impactoNegocio", "prioridades" e "proximoPasso".
 - "resumo" deve ter 2 ou 3 parágrafos curtos, consultivos e fáceis de entender.
 - "contexto" deve explicar como está a experiência atual de quem visita o site, sem termos técnicos.
-- "impactoNegocio" deve listar 3 ou 4 possíveis efeitos para clientes, contatos, vendas e confiança.
+- "impactoNegocio" deve listar 3 ou 4 implicações qualitativas da experiência observada, sem afirmar perdas ou ganhos comerciais como fatos.
 - "prioridades" deve ser uma lista de 3 a 5 objetos, cada um com "titulo", "porQueImporta" e "acao".
 - "proximoPasso" deve ser uma recomendação objetiva para iniciar as melhorias.
 - Não use siglas ou jargões técnicos como LCP, TBT, CLS, FCP, TTFB, render-blocking, PageSpeed, cache, JavaScript ou SEO técnico.
-- Traduza os dados para impacto de negócio: velocidade percebida, confiança, primeira impressão, facilidade para encontrar informações e risco de perder contatos/vendas.
+- Relacione as métricas e oportunidades fornecidas à experiência de uso, identificando claramente quando uma consequência é apenas possível.
+- Não afirme perdas de visitantes, conversões, vendas, receita, custos de campanha ou mudanças de posição em buscas sem dados específicos que as comprovem.
 - Não invente números, problemas ou resultados que não estejam nos dados.
 
 Dados do diagnóstico:

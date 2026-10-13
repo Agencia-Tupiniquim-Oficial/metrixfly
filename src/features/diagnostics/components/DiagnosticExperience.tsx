@@ -41,11 +41,40 @@ export function DiagnosticExperience({
   updateUiuxOverview,
 }: DiagnosticPageProps) {
   const getGrade = (score: number) => {
-    if (score >= 90) return { letter: "A", label: "Excelente", color: "text-emerald-700 border-emerald-500 bg-emerald-50 dark:text-emerald-200 dark:border-emerald-800 dark:bg-emerald-950/50" };
-    if (score >= 75) return { letter: "B", label: "Bom", color: "text-teal-700 border-teal-500 bg-teal-50 dark:text-teal-200 dark:border-teal-800 dark:bg-teal-950/50" };
-    if (score >= 50) return { letter: "C", label: "Regular", color: "text-amber-700 border-amber-500 bg-amber-50 dark:text-amber-200 dark:border-amber-800 dark:bg-amber-950/50" };
-    if (score >= 30) return { letter: "D", label: "Crítico", color: "text-orange-700 border-orange-500 bg-orange-50 dark:text-orange-200 dark:border-orange-800 dark:bg-orange-950/50" };
-    return { letter: "F", label: "Grave", color: "text-rose-700 border-rose-500 bg-rose-50 dark:text-rose-200 dark:border-rose-800 dark:bg-rose-950/50" };
+    if (score >= 90)
+      return {
+        letter: "A",
+        label: "Excelente",
+        color:
+          "text-emerald-700 border-emerald-500 bg-emerald-50 dark:text-emerald-200 dark:border-emerald-800 dark:bg-emerald-950/50",
+      };
+    if (score >= 75)
+      return {
+        letter: "B",
+        label: "Bom",
+        color:
+          "text-teal-700 border-teal-500 bg-teal-50 dark:text-teal-200 dark:border-teal-800 dark:bg-teal-950/50",
+      };
+    if (score >= 50)
+      return {
+        letter: "C",
+        label: "Regular",
+        color:
+          "text-amber-700 border-amber-500 bg-amber-50 dark:text-amber-200 dark:border-amber-800 dark:bg-amber-950/50",
+      };
+    if (score >= 30)
+      return {
+        letter: "D",
+        label: "Crítico",
+        color:
+          "text-orange-700 border-orange-500 bg-orange-50 dark:text-orange-200 dark:border-orange-800 dark:bg-orange-950/50",
+      };
+    return {
+      letter: "F",
+      label: "Grave",
+      color:
+        "text-rose-700 border-rose-500 bg-rose-50 dark:text-rose-200 dark:border-rose-800 dark:bg-rose-950/50",
+    };
   };
 
   const mobileScore = result?.summary.mobile.scores.performance ?? 43;
@@ -61,21 +90,25 @@ export function DiagnosticExperience({
       style={{ background: "var(--gradient-hero)" }}
     >
       <div className="container max-w-5xl py-12 md:py-20">
-         {/* Header */}
+        {/* Header */}
         <header className="text-center mb-10 flex flex-col items-center">
-          <img src={logoColored} alt="Logo" className="h-20 mb-8 object-contain drop-shadow-sm" />
-           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 text-foreground">
+          <img
+            src={logoColored}
+            alt="Logo"
+            className="h-20 mb-8 object-contain drop-shadow-sm"
+          />
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 text-foreground">
             Diagnóstico &{" "}
             <span
               className="bg-clip-text text-transparent"
               style={{ backgroundImage: "var(--gradient-primary)" }}
             >
-              Impacto Financeiro
+              Desempenho Web
             </span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Apresentação executiva orientada a faturamento: descubra o quanto a lentidão
-            custa ao negócio e receba o plano de otimização completo.
+            Analise as notas e métricas do PageSpeed Insights e identifique
+            oportunidades técnicas para otimizar seu site.
           </p>
         </header>
 
@@ -94,7 +127,8 @@ export function DiagnosticExperience({
           <div className="text-center py-12 space-y-3">
             <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
             <p className="text-base text-muted-foreground animate-pulse font-medium">
-              Rodando PageSpeed mobile + desktop e gerando análise com IA. Isso leva ~30-60s…
+              Rodando PageSpeed mobile + desktop e gerando análise com IA. Isso
+              leva ~30-60s…
             </p>
           </div>
         )}
@@ -110,8 +144,8 @@ export function DiagnosticExperience({
               },
               {
                 icon: Calculator,
-                title: "Simulador de Perda",
-                desc: "Quantifique o valor financeiro do abandono de visitantes por lentidão.",
+                title: "Cenários de otimização",
+                desc: "Estime o impacto da lentidão na experiência dos visitantes do seu site",
               },
               {
                 icon: FileText,
@@ -123,8 +157,12 @@ export function DiagnosticExperience({
                 <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4">
                   <Icon className="w-5 h-5" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-foreground">{title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">
+                  {title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {desc}
+                </p>
               </Card>
             ))}
           </div>
@@ -152,7 +190,7 @@ export function DiagnosticExperience({
                     badge: "Mobile",
                     score: mobileScore,
                     grade: mobileGrade,
-                    label: "Pontuação Mobile (Celular)"
+                    label: "Pontuação Mobile (Celular)",
                   },
                   {
                     icon: Monitor,
@@ -160,19 +198,36 @@ export function DiagnosticExperience({
                     badge: "Desktop",
                     score: desktopScore,
                     grade: desktopGrade,
-                    label: "Pontuação Desktop (Computador)"
-                  }
+                    label: "Pontuação Desktop (Computador)",
+                  },
                 ].map((device) => (
-                  <div key={device.badge} className="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-xl bg-muted/20 border border-border">
-                    <div className={`w-24 h-24 rounded-2xl border-[3px] flex flex-col items-center justify-center font-extrabold shadow-sm ${device.grade.color} shrink-0`}>
+                  <div
+                    key={device.badge}
+                    className="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-xl bg-muted/20 border border-border"
+                  >
+                    <div
+                      className={`w-24 h-24 rounded-2xl border-[3px] flex flex-col items-center justify-center font-extrabold shadow-sm ${device.grade.color} shrink-0`}
+                    >
                       <span className="text-4xl">{device.grade.letter}</span>
-                      <span className="text-xs uppercase font-bold tracking-wider">{device.grade.label}</span>
+                      <span className="text-xs uppercase font-bold tracking-wider">
+                        {device.grade.label}
+                      </span>
                     </div>
                     <div className="space-y-1">
-                      <Badge variant="outline" className="mb-1">{device.badge}</Badge>
-                      <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold block">{device.label}</span>
-                      <span className="text-3xl font-extrabold text-foreground">{device.score}/100</span>
-                      <span className="text-xs text-muted-foreground block">{device.score < 50 ? "Abaixo do padrão de mercado" : "Dentro da média esperada"}</span>
+                      <Badge variant="outline" className="mb-1">
+                        {device.badge}
+                      </Badge>
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold block">
+                        {device.label}
+                      </span>
+                      <span className="text-3xl font-extrabold text-foreground">
+                        {device.score}/100
+                      </span>
+                      <span className="text-xs text-muted-foreground block">
+                        {device.score < 50
+                          ? "Abaixo do padrão de mercado"
+                          : "Dentro da média esperada"}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -184,9 +239,13 @@ export function DiagnosticExperience({
                     role="status"
                     className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
                   >
-                    <CheckCircle2 aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" />
+                    <CheckCircle2
+                      aria-hidden="true"
+                      className="mt-0.5 h-5 w-5 shrink-0"
+                    />
                     <p className="text-base font-semibold leading-relaxed">
-                      Seu site está otimizado! Todas as notas de desempenho estão acima de 90.
+                      Seu site está otimizado! Todas as notas de desempenho
+                      estão acima de 90.
                     </p>
                   </div>
                 ) : (
@@ -196,31 +255,31 @@ export function DiagnosticExperience({
                     </h3>
                     <p className="text-base text-muted-foreground leading-relaxed">
                       {businessSummary?.resumo ||
-                        `O tempo de resposta no celular (${result?.summary.mobile.metrics.lcp}) e no computador (${result?.summary.desktop.metrics.lcp}) geram impacto direto na conversão de potenciais clientes.`}
+                        `O PageSpeed registrou LCP de ${result?.summary.mobile.metrics.lcp} no celular e ${result?.summary.desktop.metrics.lcp} no computador. Consulte as métricas e oportunidades abaixo para orientar a análise técnica.`}
                     </p>
                   </>
                 )}
               </div>
-
             </Card>
 
             {/* Financial simulation is separate from the optimization diagnosis. */}
             <Card className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between bg-card border-border shadow-md">
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Simulação financeira
+                  Simulação de otimização
                 </p>
                 <h2 className="text-xl font-bold text-foreground">
-                  Estime o retorno de uma otimização
+                  Estime o potencial de melhoria do seu site
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Analise perdas estimadas, potencial recuperável, investimento, ROI e prazo de retorno.
+                  Explore estimativas de otimização com base nas notas de
+                  desempenho e nos dados informados.
                 </p>
               </div>
               <Button asChild size="lg" className="shrink-0">
                 <Link to={financialCalculatorUrl}>
                   <Calculator aria-hidden="true" />
-                  Abrir calculadora financeira
+                  Abrir estimativa de otimização
                 </Link>
               </Button>
             </Card>
@@ -282,7 +341,9 @@ export function DiagnosticExperience({
                   3
                 </span>
                 <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  {optimized ? "Resultado do diagnóstico" : "Revisão e Exportação de Documentos (PDF)"}
+                  {optimized
+                    ? "Resultado do diagnóstico"
+                    : "Revisão e Exportação de Documentos (PDF)"}
                 </span>
               </div>
 

@@ -26,7 +26,13 @@ function renderWithProviders(initialEntries: string[] = ["/"]) {
 describe("Diagnostic experience", () => {
   it("renders the diagnostic landing page on the root route", () => {
     renderWithProviders(["/"]);
-    expect(screen.getByText(/Impacto Financeiro/)).toBeDefined();
+    expect(
+      screen.getByRole("heading", { name: "Diagnóstico & Desempenho Web" }),
+    ).toBeDefined();
+    expect(
+      screen.getByText(/Analise as notas e métricas do PageSpeed Insights/),
+    ).toBeDefined();
+    expect(screen.getByText("Cenários de otimização")).toBeDefined();
     expect(screen.getByText("Diagnosticar")).toBeDefined();
     expect(screen.getByText("Geo/AEO")).toBeDefined();
   });

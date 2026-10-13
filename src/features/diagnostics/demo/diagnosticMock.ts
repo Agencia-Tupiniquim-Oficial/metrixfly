@@ -49,11 +49,11 @@ export const sampleDiagnosticResult: DiagnoseResult = {
   improvements: [
     {
       title: "Carregamento Mobile Crítico (LCP em 5.8s)",
-      problem: "O tempo até o maior elemento da tela carregar ultrapassa 5 segundos na conexão 4G comum, provocando abandono precoce de usuários.",
+      problem: "O conteúdo principal leva 5.8 segundos para aparecer no mobile, conforme a métrica LCP do diagnóstico.",
       impact: [
-        "Aumento de ~35% na taxa de rejeição no celular",
-        "Perda de posições no ranking do Google Mobile-First",
-        "Queda direta no retorno de campanhas pagas (Google Ads/Meta Ads)",
+        "Demora maior para visualizar o conteúdo principal no mobile",
+        "Oportunidade de melhorar os sinais técnicos de experiência da página",
+        "Tempo de carregamento observado pode dificultar o acesso ao conteúdo",
       ],
       causes: [
         "Banner principal sem pré-carregamento e em formato JPG não otimizado",
@@ -102,7 +102,7 @@ export const sampleDiagnosticResult: DiagnoseResult = {
     diagnosis: [
       "Primeira dobra com múltiplos botões de cores semelhantes dispersando a atenção do cliente",
       "Contraste insuficiente em textos secundários cinzas sobre fundo claro",
-      "Formulário com 6 campos obrigatórios gerando atrito na conversão inicial",
+      "Formulário com 6 campos obrigatórios, que exige o preenchimento de várias informações",
     ],
     recommendations: [
       "Concentrar em um único CTA primário destacado na hero section",
@@ -114,37 +114,37 @@ export const sampleDiagnosticResult: DiagnoseResult = {
 
 export const sampleBusinessSummary: BusinessSummary = {
   resumo:
-    "O website speedlink-demo.com.br possui fundamentos visuais modernos, mas opera com grave lentidão mobile (LCP de 5.8s e score de performance 43/100). Isso afeta diretamente a conversão de leads e o custo de aquisição em campanhas pagas.",
+    "O diagnóstico de website speedlink-demo.com.br registrou nota de desempenho mobile 43/100 e LCP de 5.8 segundos. Esses dados apontam demora na exibição do conteúdo principal em dispositivos móveis.",
   contexto:
-    "Mais de 70% do tráfego atual acessa via smartphone. Um carregamento acima de 4 segundos gera perda estimada de até 35% dos visitantes antes mesmo da primeira visualização.",
+    "No mobile, o conteúdo principal levou 5.8 segundos para aparecer na medição. O diagnóstico também identificou oportunidades relacionadas à transferência de JavaScript e ao carregamento de imagens.",
   impactoNegocio: [
-    "Desperdício de orçamento em anúncios por causa da alta taxa de desistência mobile",
-    "Perda de clientes para concorrentes com sites mais rápidos na mesma região",
-    "Frustração do usuário por instabilidade visual (botões que mudam de posição ao carregar)",
+    "O conteúdo principal demora para ficar visível na experiência mobile medida",
+    "O CLS de 0.28 indica deslocamento de elementos durante o carregamento",
+    "As oportunidades identificadas mostram pontos técnicos que podem ser priorizados",
   ],
   prioridades: [
     {
       titulo: "Resolução do Carregamento Mobile Lento",
       porQueImporta:
-        "Reduz a perda imediata de visitantes e diminui o custo por lead em campanhas de tráfego pago.",
+        "A nota mobile de 43/100 e o LCP de 5.8 segundos foram registrados neste diagnóstico.",
       acao:
         "Compressão das imagens chave para WebP e adiamento de scripts pesados.",
     },
     {
       titulo: "Estabilização Visual (Core Web Vitals)",
       porQueImporta:
-        "Evita cliques errados e garante conformidade com as diretrizes do Google para ranqueamento.",
+        "O CLS de 0.28 indica deslocamento visual durante o carregamento, conforme a medição do diagnóstico.",
       acao:
         "Fixar dimensões de mídias e ajustar carregamento instantâneo de fontes.",
     },
     {
-      titulo: "Simplificação da Captação de Leads",
+      titulo: "Revisão do formulário de contato",
       porQueImporta:
-        "Gera aumento imediato no volume de contatos sem necessidade de aumentar o investimento em marketing.",
+        "O formulário analisado apresenta seis campos obrigatórios, um aspecto que pode ser revisto na experiência de preenchimento.",
       acao:
         "Redesenhar o formulário de contato com CTA único para WhatsApp.",
     },
   ],
   proximoPasso:
-    "Agendar um plano de implementação de 14 dias para aplicar o pacote de aceleração técnica e otimização de conversão.",
+    "Revisar as oportunidades listadas, priorizar as melhorias técnicas e executar um novo diagnóstico após as alterações.",
 };
