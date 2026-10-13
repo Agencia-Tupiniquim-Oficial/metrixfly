@@ -1,23 +1,4 @@
 // @ts-nocheck
-import {
-  Document,
-  Packer,
-  Paragraph,
-  TextRun,
-  HeadingLevel,
-  AlignmentType,
-  Table,
-  TableRow,
-  TableCell,
-  WidthType,
-  ShadingType,
-  ImageRun,
-  PageBreak,
-  Header,
-  BorderStyle,
-} from "https://esm.sh/docx@8.5.0";
-import { HEADER_PNG_B64 } from "./header-asset.ts";
-
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 
@@ -41,15 +22,6 @@ const corsHeaders = {
 };
 
 const PAGESPEED = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
-}
 
 async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   const params = new URLSearchParams({ url, strategy });
@@ -1040,152 +1012,6 @@ function buildSummaryResponse(mobile: any, desktop: any, ai: any) {
   return summaryResponse;
 }
 
-// Cores estilo PageSpeed (faixas de score)
-function scoreColor(score: number): { ring: string; bg: string; text: string } {
-  if (score >= 90) return { ring: "#0CCE6B", bg: "#E6F4EA", text: "#0A7D43" };
-  if (score >= 50) return { ring: "#FFA400", bg: "#FFF3E0", text: "#B86E00" };
-  return { ring: "#FF4E42", bg: "#FCE8E6", text: "#C5221F" };
-}
-
-// Renderiza um SVG estilo PageSpeed com os 4 círculos + screenshot do site embutido
-function buildPageSpeedSvg(
-  scores: {
-    performance: number;
-    accessibility: number;
-    bestPractices: number;
-    seo: number;
-  },
-  screenshotDataUrl: string | null,
-  strategy: "mobile" | "desktop",
-): string {
-  const W = 1200;
-  const H = 720;
-  const items = [
-    { label: "Desempenho", value: scores.performance },
-    { label: "Acessibilidade", value: scores.accessibility },
-    { label: "Práticas recomendadas", value: scores.bestPractices },
-    { label: "SEO", value: scores.seo },
-  ];
-
-  const circleRow = items
-    .map((it, i) => {
-      const c = scoreColor(it.value);
-      const cx = 180 + i * 230;
-      const cy = 110;
-      const r = 52;
-      const circumference = 2 * Math.PI * r;
-      const dash = (it.value / 100) * circumference;
-      return `
-      <g transform="translate(${cx}, ${cy})">
-        <circle r="${r}" fill="${c.bg}" />
-        <circle r="${r}" fill="none" stroke="${c.ring}" stroke-width="6"
-                stroke-dasharray="${dash} ${circumference}" stroke-linecap="round"
-                transform="rotate(-90)" />
-        <text text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif"
-              font-size="34" font-weight="600" fill="${c.text}">${it.value}</text>
-        <text y="${r + 30}" text-anchor="middle" font-family="Arial, sans-serif"
-              font-size="18" fill="#3C4043">${it.label}</text>
-      </g>`;
-    })
-    .join("");
-
-  // Score principal grande (Desempenho) à esquerda
-  const main = scoreColor(scores.performance);
-  const mainCx = 240;
-  const mainCy = 430;
-  const mainR = 110;
-  const mainCirc = 2 * Math.PI * mainR;
-  const mainDash = (scores.performance / 100) * mainCirc;
-
-  const screenshotEmbed = screenshotDataUrl
-    ? `<image x="640" y="290" width="${strategy === "mobile" ? 200 : 480}" height="${strategy === "mobile" ? 360 : 290}"
-              href="${screenshotDataUrl}" preserveAspectRatio="xMidYMid meet" />`
-    : `<rect x="640" y="290" width="480" height="290" fill="#F1F3F4" stroke="#DADCE0" />`;
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-     width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <rect width="${W}" height="${H}" fill="#FFFFFF" />
-  <rect x="20" y="20" width="${W - 40}" height="${H - 40}" fill="#FFFFFF" stroke="#DADCE0" rx="8" />
-
-  <!-- Tabs -->
-  <text x="${W / 2 - 60}" y="60" font-family="Arial, sans-serif" font-size="16"
-        fill="${strategy === "mobile" ? "#1A73E8" : "#5F6368"}" font-weight="${strategy === "mobile" ? "600" : "400"}">📱 Celular</text>
-  <text x="${W / 2 + 30}" y="60" font-family="Arial, sans-serif" font-size="16"
-        fill="${strategy === "desktop" ? "#1A73E8" : "#5F6368"}" font-weight="${strategy === "desktop" ? "600" : "400"}">🖥 Computador</text>
-  <line x1="40" y1="80" x2="${W - 40}" y2="80" stroke="#E8EAED" />
-
-  ${circleRow}
-
-  <line x1="40" y1="220" x2="${W - 40}" y2="220" stroke="#E8EAED" />
-
-  <!-- Score grande à esquerda -->
-  <g transform="translate(${mainCx}, ${mainCy})">
-    <circle r="${mainR}" fill="${main.bg}" />
-    <circle r="${mainR}" fill="none" stroke="${main.ring}" stroke-width="10"
-            stroke-dasharray="${mainDash} ${mainCirc}" stroke-linecap="round"
-            transform="rotate(-90)" />
-    <text text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif"
-          font-size="68" font-weight="600" fill="${main.text}">${scores.performance}</text>
-  </g>
-  <text x="${mainCx}" y="${mainCy + mainR + 40}" text-anchor="middle"
-        font-family="Arial, sans-serif" font-size="24" fill="#202124">Desempenho</text>
-
-  <!-- Screenshot do site -->
-  ${screenshotEmbed}
-
-  <!-- Legenda -->
-  <g transform="translate(120, 660)" font-family="Arial, sans-serif" font-size="13" fill="#5F6368">
-    <polygon points="0,0 10,0 5,-9" fill="#FF4E42" />
-    <text x="18" y="0">0–49</text>
-    <rect x="70" y="-9" width="10" height="9" fill="#FFA400" />
-    <text x="88" y="0">50–89</text>
-    <circle cx="150" cy="-4" r="5" fill="#0CCE6B" />
-    <text x="162" y="0">90–100</text>
-  </g>
-</svg>`;
-}
-
-// Converte SVG para PNG usando resvg-wasm (renderização local, sem limites de URL)
-let resvgInitialized = false;
-async function ensureResvg() {
-  if (resvgInitialized) return;
-  const mod: any = await import("https://esm.sh/@resvg/resvg-wasm@2.6.2");
-  const wasmRes = await fetch(
-    "https://esm.sh/@resvg/resvg-wasm@2.6.2/index_bg.wasm",
-  );
-  await mod.initWasm(await wasmRes.arrayBuffer());
-  (globalThis as any).__Resvg = mod.Resvg;
-  resvgInitialized = true;
-}
-
-async function svgToPng(svg: string): Promise<string | null> {
-  try {
-    await ensureResvg();
-    const Resvg = (globalThis as any).__Resvg;
-    const resvg = new Resvg(svg, { fitTo: { mode: "width", value: 1200 } });
-    const png = resvg.render().asPng();
-    return `data:image/png;base64,${bytesToBase64(png)}`;
-  } catch (e) {
-    console.warn("svgToPng erro", (e as Error).message);
-    return null;
-  }
-}
-
-async function buildPageSpeedCard(
-  scores: {
-    performance: number;
-    accessibility: number;
-    bestPractices: number;
-    seo: number;
-  },
-  siteScreenshotDataUrl: string | null,
-  strategy: "mobile" | "desktop",
-): Promise<string | null> {
-  const svg = buildPageSpeedSvg(scores, siteScreenshotDataUrl, strategy);
-  return await svgToPng(svg);
-}
-
 async function aiAnalysis(
   url: string,
   mobile: any,
@@ -1388,344 +1214,6 @@ Não deixe arrays vazios, não repita o mesmo problema e não invente problemas 
   }
 }
 
-// Paleta Tupiniquim (extraída dos relatórios oficiais)
-const GREEN = "008F45"; // verde Tupiniquim - títulos decorativos
-const DARK_GREEN = "006633"; // verde mais escuro para títulos de capa
-const BLACK = "000000";
-const DARK = "1A1A1A";
-const GRAY = "808080";
-const LINK = "1155CC";
-
-function b64ToBytes(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
-}
-
-function dataUrlToBytes(dataUrl: string): Uint8Array | null {
-  try {
-    return b64ToBytes(dataUrl.split(",")[1]);
-  } catch {
-    return null;
-  }
-}
-
-// Logo Tupiniquim usada no cabeçalho do relatório completo.
-function buildHeader() {
-  return new Header({
-    children: [
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 200 },
-        children: [
-          new ImageRun({
-            type: "png",
-            data: b64ToBytes(HEADER_PNG_B64),
-            transformation: { width: 100, height: 100 },
-            altText: {
-              title: "Tupiniquim",
-              description: "Logo Tupiniquim",
-              name: "logo",
-            },
-          }),
-        ],
-      }),
-    ],
-  });
-}
-
-// Parágrafo de corpo (Arial 11pt, cinza-escuro)
-function body(text: string, opts: any = {}) {
-  return new Paragraph({
-    spacing: { after: 160, line: 300 },
-    ...opts,
-    children: [
-      new TextRun({ text, size: 22, color: DARK, ...(opts.run ?? {}) }),
-    ],
-  });
-}
-
-// Título principal (rosto da seção): Bree Serif verde - "Sugestões de melhoria", "Performance", etc.
-function sectionTitle(text: string) {
-  return new Paragraph({
-    spacing: { before: 400, after: 280 },
-    children: [
-      new TextRun({ text, font: "Bree Serif", size: 34, color: "8BBC74" }),
-    ],
-  });
-}
-
-// Título de item numerado: "1. Nome do problema" - negrito preto, Arial
-function itemTitle(text: string) {
-  return new Paragraph({
-    spacing: { before: 320, after: 160 },
-    children: [
-      new TextRun({ text, bold: true, size: 24, color: BLACK, font: "Arial" }),
-    ],
-  });
-}
-
-// Subtítulo dentro do item: "Descrição", "Impacto", "Causas comuns", "Recomendações"
-function subTitle(text: string) {
-  return new Paragraph({
-    spacing: { before: 200, after: 100 },
-    children: [
-      new TextRun({ text, bold: true, size: 22, color: BLACK, font: "Arial" }),
-    ],
-  });
-}
-
-function bullet(text: string) {
-  return new Paragraph({
-    bullet: { level: 0 },
-    spacing: { after: 60, line: 280 },
-    children: [new TextRun({ text, size: 22, color: DARK, font: "Arial" })],
-  });
-}
-
-async function buildDocx(
-  url: string,
-  mobile: any,
-  desktop: any,
-  ai: any,
-): Promise<Uint8Array> {
-  const hostname = new URL(url).hostname.replace("www.", "").toUpperCase();
-  const children: any[] = [];
-  const improvements =
-    Array.isArray(ai?.improvements) && ai.improvements.length > 0
-      ? ai.improvements
-      : buildPageSpeedImprovements(mobile, desktop);
-
-  // ===== PRIMEIRA PÁGINA =====
-  children.push(
-    new Paragraph({
-      spacing: { before: 200, after: 420 },
-      children: [
-        new TextRun({
-          text: `${hostname} - DIAGNÓSTICO DE SITE`,
-          font: "Bree Serif",
-          size: 32,
-          color: GREEN,
-        }),
-      ],
-    }),
-  );
-
-  // ===== SUGESTÕES DE MELHORIA =====
-  children.push(sectionTitle("Sugestões de melhoria"));
-
-  improvements.forEach((imp: any, i: number) => {
-    children.push(itemTitle(`${i + 1}. ${imp.title}`));
-
-    if (imp.description) {
-      children.push(subTitle("Descrição"));
-      children.push(body(imp.description));
-    }
-    if (imp.impact?.length) {
-      children.push(subTitle("Impacto"));
-      imp.impact.forEach((x: string) => children.push(bullet(x)));
-    }
-    if (imp.causes?.length) {
-      children.push(subTitle("Causas comuns"));
-      imp.causes.forEach((x: string) => children.push(bullet(x)));
-    }
-    if (imp.recommendations?.length) {
-      children.push(subTitle("Recomendações"));
-      imp.recommendations.forEach((x: string) => children.push(bullet(x)));
-    }
-  });
-
-  // ===== UI/UX =====
-  if (ai.uiux) {
-    children.push(sectionTitle("Melhorias de UI/UX"));
-    if (ai.uiux.overview) children.push(body(ai.uiux.overview));
-    if (ai.uiux.diagnosis?.length) {
-      children.push(subTitle("Diagnóstico"));
-      ai.uiux.diagnosis.forEach((x: string) => children.push(bullet(x)));
-    }
-    if (ai.uiux.recommendations?.length) {
-      children.push(subTitle("Recomendações"));
-      ai.uiux.recommendations.forEach((x: string) => children.push(bullet(x)));
-    }
-  }
-
-  // ===== EXTRAS =====
-  if (ai.extras?.length) {
-    children.push(sectionTitle("Sugestões extras"));
-    ai.extras.forEach((ex: any) => {
-      children.push(itemTitle(ex.title));
-      children.push(body(ex.description));
-    });
-  }
-
-  // ===== GEO/AEO =====
-  if (ai.geo) {
-    const geo = ai.geo;
-    children.push(sectionTitle("Visibilidade em busca e IA"));
-    children.push(
-      body(
-        `O domínio foi avaliado em ${geo.stats?.pages ?? 0} página(s), com pontuação GEO de ${geo.scores?.geo ?? "N/D"}/100, AEO de ${geo.scores?.aeo ?? "N/D"}/100 e técnica de ${geo.scores?.technical ?? "N/D"}/100.`,
-      ),
-    );
-    if (Array.isArray(geo.prompts) && geo.prompts.length > 0) {
-      children.push(subTitle("Prompt Intelligence"));
-      children.push(body("Perguntas configuradas para acompanhar a visibilidade da marca:"));
-      geo.prompts.forEach((prompt: string) => children.push(bullet(prompt)));
-    }
-    if (Array.isArray(geo.findings) && geo.findings.length > 0) {
-      children.push(subTitle("Recomendações GEO/AEO"));
-      geo.findings.forEach((finding: any) => {
-        children.push(itemTitle(finding.title));
-        if (finding.description) children.push(body(finding.description));
-        if (finding.recommendation) children.push(body(`Recomendação: ${finding.recommendation}`));
-      });
-    }
-  }
-
-  // ===== PERFORMANCE =====
-  children.push(new Paragraph({ children: [new PageBreak()] }));
-  children.push(sectionTitle("Performance"));
-
-  for (const [label, data] of [
-    ["Desktop", desktop],
-    ["Mobile", mobile],
-  ] as const) {
-    children.push(
-      new Paragraph({
-        spacing: { before: 240, after: 160 },
-        children: [
-          new TextRun({
-            text: `${label}:`,
-            bold: true,
-            size: 24,
-            color: BLACK,
-            font: "Arial",
-          }),
-        ],
-      }),
-    );
-
-    children.push(
-      body(
-        `De acordo com a ferramenta PageSpeed Insights, a performance da página em dispositivos ${label.toLowerCase()} está com a pontuação de ${data.scores.performance}/100 em desempenho, ${data.scores.accessibility}/100 em acessibilidade, ${data.scores.bestPractices}/100 em práticas recomendadas e ${data.scores.seo}/100 em SEO.`,
-      ),
-    );
-
-    // Render native docx card (numbers + labels) matching the preview — no images
-    try {
-      const scoreItems = [
-        { label: "Desempenho", value: data.scores.performance },
-        { label: "Acessibilidade", value: data.scores.accessibility },
-        { label: "Práticas recomendadas", value: data.scores.bestPractices },
-        { label: "SEO", value: data.scores.seo },
-      ];
-
-      // Use native Word text instead of SVG images. Some Word viewers do not
-      // render SVG ImageRun values and show a broken-image placeholder.
-      const numRow = new TableRow({
-        children: scoreItems.map(
-          (it) =>
-            new TableCell({
-              width: {
-                size: Math.floor(10000 / scoreItems.length),
-                type: WidthType.DXA,
-              },
-              margins: { top: 80, bottom: 40 },
-              children: [
-                new Paragraph({
-                  alignment: AlignmentType.CENTER,
-                  spacing: { after: 120 },
-                  children: [
-                    new TextRun({
-                      text: String(Math.round(it.value)),
-                      bold: true,
-                      size: 34,
-                      color: scoreColor(it.value).text.replace("#", ""),
-                      font: "Arial",
-                    }),
-                  ],
-                }),
-              ],
-            }),
-        ),
-      });
-
-      // Labels below each circle.
-      const labelRow = new TableRow({
-        children: scoreItems.map(
-          (it) =>
-            new TableCell({
-              width: {
-                size: Math.floor(10000 / scoreItems.length),
-                type: WidthType.DXA,
-              },
-              children: [
-                new Paragraph({
-                  alignment: AlignmentType.CENTER,
-                  children: [
-                    new TextRun({ text: it.label, size: 22, color: DARK }),
-                  ],
-                }),
-              ],
-            }),
-        ),
-      });
-
-      const tbl = new Table({
-        rows: [numRow, labelRow],
-        width: { size: 10000, type: WidthType.DXA },
-        borders: {
-          top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-          bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-          left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-          right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-          insideHorizontal: {
-            style: BorderStyle.NONE,
-            size: 0,
-            color: "FFFFFF",
-          },
-          insideVertical: {
-            style: BorderStyle.NONE,
-            size: 0,
-            color: "FFFFFF",
-          },
-        },
-      });
-
-      children.push(new Paragraph({ spacing: { before: 160 } }));
-      children.push(tbl);
-      children.push(new Paragraph({ spacing: { after: 160 } }));
-    } catch (e) {
-      // Fallback: if building native card fails, skip it and continue
-      console.warn("build native card failed:", e?.message ?? e);
-    }
-  } // fecha o for (Desktop/Mobile)
-
-  const doc = new Document({
-    sections: [
-      {
-        properties: {
-          titlePage: true,
-          page: {
-            margin: {
-              top: 1600,
-              right: 720,
-              bottom: 720,
-              left: 720,
-            },
-          },
-        },
-        headers: { first: buildHeader() },
-        children,
-      },
-    ],
-  });
-
-  return await Packer.toBuffer(doc);
-} // fecha buildDocx
-
-// ===================================================================
 // Handler HTTP
 // ===================================================================
 serve(async (req: Request) => {
@@ -1734,8 +1222,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { url, docxOnly, mobile: requestedMobile, desktop: requestedDesktop, ai: requestedAi } =
-      await req.json();
+    const { url } = await req.json();
 
     if (!url) {
       return new Response(
@@ -1747,49 +1234,35 @@ serve(async (req: Request) => {
       );
     }
 
-    // The report preview already contains the PageSpeed and AI data. Reusing it
-    // avoids a second, slow external diagnosis when exporting the document.
-    let mobile = docxOnly ? requestedMobile : undefined;
-    let desktop = docxOnly ? requestedDesktop : undefined;
-    let ai = docxOnly ? requestedAi : undefined;
+    let mobile;
+    let desktop;
+    let ai;
+    const pageSpeedResults = await Promise.allSettled([
+      runPageSpeed(url, "mobile"),
+      runPageSpeed(url, "desktop"),
+    ]);
+    const successfulResults = pageSpeedResults
+      .filter(
+        (result): result is PromiseFulfilledResult<any> =>
+          result.status === "fulfilled",
+      )
+      .map((result) => result.value);
 
-    if (!docxOnly) {
-      const pageSpeedResults = await Promise.allSettled([
-        runPageSpeed(url, "mobile"),
-        runPageSpeed(url, "desktop"),
-      ]);
-      const successfulResults = pageSpeedResults
-        .filter(
-          (result): result is PromiseFulfilledResult<any> =>
-            result.status === "fulfilled",
-        )
-        .map((result) => result.value);
-
-      if (successfulResults.length === 0) {
-        const errors = pageSpeedResults
-          .filter((result) => result.status === "rejected")
-          .map((result) => result.reason?.message ?? String(result.reason))
-          .join(" | ");
-        throw new Error(
-          `O PageSpeed Insights não respondeu em nenhuma estratégia. ${errors}`,
-        );
-      }
-
-      [mobile, desktop] = [successfulResults[0], successfulResults[1]];
-      if (successfulResults.length === 1) {
-        const failedStrategy =
-          pageSpeedResults[0].status === "rejected" ? "mobile" : "desktop";
-        console.warn(
-          `PageSpeed ${failedStrategy} falhou; continuando com o resultado disponível.`,
-        );
-      }
-    } else if (!mobile || !desktop || !ai) {
-      return new Response(
-        JSON.stringify({ error: "Dados do relatório incompletos para exportação." }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+    if (successfulResults.length === 0) {
+      const errors = pageSpeedResults
+        .filter((result) => result.status === "rejected")
+        .map((result) => result.reason?.message ?? String(result.reason))
+        .join(" | ");
+      throw new Error(
+        `O PageSpeed Insights não respondeu em nenhuma estratégia. ${errors}`,
+      );
+    }
+    [mobile, desktop] = [successfulResults[0], successfulResults[1]];
+    if (successfulResults.length === 1) {
+      const failedStrategy =
+        pageSpeedResults[0].status === "rejected" ? "mobile" : "desktop";
+      console.warn(
+        `PageSpeed ${failedStrategy} falhou; continuando com o resultado disponível.`,
       );
     }
 
@@ -1809,24 +1282,22 @@ serve(async (req: Request) => {
       "Skipped visual card generation and cleared screenshots to reduce latency.",
     );
 
-    if (!docxOnly) {
-      const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
-      console.log("Gerando IA… (se configurada)");
-      if (openRouterApiKey) {
-        try {
-          ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
-          console.log("IA ok via OpenRouter.");
-        } catch (e) {
-          console.warn("aiAnalysis (OpenRouter) falhou:", e?.message ?? e);
-          ai = { improvements: [], uiux: null, extras: [] };
-        }
-      } else {
-        console.warn(
-          "Nenhuma chave de IA configurada (OPENROUTER_API_KEY) — pulando análise IA e usando fallback.",
-        );
+    console.log("Gerando IA… (se configurada)");
+    if (openRouterApiKey) {
+      try {
+        ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
+        console.log("IA ok via OpenRouter.");
+      } catch (e) {
+        console.warn("aiAnalysis (OpenRouter) falhou:", e?.message ?? e);
         ai = { improvements: [], uiux: null, extras: [] };
       }
+    } else {
+      console.warn(
+        "Nenhuma chave de IA configurada (OPENROUTER_API_KEY) — pulando análise IA e usando fallback.",
+      );
+      ai = { improvements: [], uiux: null, extras: [] };
     }
     // As oportunidades reais do PageSpeed garantem conteúdo mesmo quando a IA não está disponível.
     const pageSpeedImprovements = buildPageSpeedImprovements(mobile, desktop);
@@ -1885,20 +1356,6 @@ serve(async (req: Request) => {
         })),
       };
     }
-    // Se docxOnly=true, gera e devolve o arquivo .docx em vez do JSON de resumo.
-    if (docxOnly) {
-      const docxBytes = await buildDocx(url, mobile, desktop, ai);
-      return new Response(docxBytes, {
-        headers: {
-          ...corsHeaders,
-          // Supabase Functions Client recognizes this as a binary response and
-          // returns a Blob instead of attempting to parse the document as text.
-          "Content-Type": "application/octet-stream",
-          "Content-Disposition": `attachment; filename="diagnostico.docx"`,
-        },
-      });
-    }
-
     const summaryResponse = {
       success: true,
       summary: {

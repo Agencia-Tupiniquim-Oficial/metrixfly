@@ -6,7 +6,7 @@ Itens levantados para avaliação. Ainda não representam decisões de implement
 
 - [ ] Manter PageSpeed Insights como fonte de métricas e avaliar Lighthouse como fallback independente da Lovable.
 - [ ] Ajustar os relatórios para continuar exibindo texto e métricas quando screenshots ou outras imagens falharem; avaliar o impacto no tempo de diagnóstico.
-- [ ] Preparar o cabeçalho do `.docx` para futura personalização com logotipos de parceiros (white-label).
+- [ ] Preparar o cabeçalho do PDF para futura personalização com logotipos de parceiros (white-label).
 - [ ] Adicionar análise comparativa de performance e stack entre o site analisado e concorrentes.
 
 ## Produto e experiência

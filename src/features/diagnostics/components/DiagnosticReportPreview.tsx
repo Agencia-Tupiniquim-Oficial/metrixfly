@@ -146,7 +146,7 @@ function Page({ children, withHeader = false }: { children: React.ReactNode; wit
   );
 }
 
-export default function DocxPreview({
+export default function DiagnosticReportPreview({
   url,
   mobile,
   desktop,

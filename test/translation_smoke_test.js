@@ -2,10 +2,7 @@
 // Node-compatible smoke test for translation pipeline (mocked Supabase + OpenRouter)
 // Run: node test/translation_smoke_test.js
 
-// No external deps required for the smoke test. It writes a placeholder "docx" file
-// to validate the flow (you'll inspect logs and the generated test-output.docx file).
-
-import fs from 'fs/promises';
+// No external dependencies are required for this smoke test.
 
 // Minimal static dictionaries
 const PAGE_SPEED_SHORT_DESCRIPTIONS = {
@@ -131,12 +128,6 @@ function buildSummaryResponse(mobile, desktop, ai) {
   };
 }
 
-async function buildDocx(url, mobile, desktop, ai) {
-  // For smoke test we write a simple placeholder file named test-output.docx
-  const text = `Relatório (placeholder) para ${url}\n\nImprovements:\n${ai.improvements.map(i=>`- ${i.title}: ${i.description}`).join('\n')}`;
-  return Buffer.from(text, 'utf8');
-}
-
 // Test runner
 async function run() {
   const url = 'https://example.com';
@@ -151,10 +142,7 @@ async function run() {
   const summary = buildSummaryResponse(mobile, desktop, ai);
   console.log('Summary:', JSON.stringify(summary, null, 2));
 
-  const buf = await buildDocx(url, mobile, desktop, ai);
-  const outPath = './test-output.docx';
-  await fs.writeFile(outPath, buf);
-  console.log('Wrote docx placeholder to', outPath);
+  console.log('Translation smoke test completed.');
 }
 
 run().catch((e) => { console.error(e); process.exit(1); });

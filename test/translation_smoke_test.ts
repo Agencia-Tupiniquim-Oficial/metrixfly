@@ -1,7 +1,5 @@
 // test/translation_smoke_test.ts
 // Smoke test for translation pipeline (mocked Supabase + OpenRouter)
-import { Document, Packer, Paragraph, TextRun } from "https://esm.sh/docx@8.5.0";
-
 // Minimal static dictionaries
 const PAGE_SPEED_SHORT_DESCRIPTIONS: Record<string,string> = {
   "unused-javascript": "Há JavaScript carregado que não é utilizado no carregamento inicial.",
@@ -81,12 +79,6 @@ function buildSummaryResponse(mobile:any, desktop:any, ai:any) {
   return { success:true, summary: { mobile:{ scores: mobile.scores, metrics: mobile.metrics, opportunities: mobile.opportunities }, desktop:{ scores: desktop.scores, metrics: desktop.metrics, opportunities: desktop.opportunities }, screenshot: null }, improvements: finalAi.improvements, uiux: finalAi.uiux, extras: finalAi.extras };
 }
 
-async function buildDocx(url:string, mobile:any, desktop:any, ai:any) {
-  const doc = new Document({ sections:[{ children:[ new Paragraph({ children:[ new TextRun({ text: `Relatório para ${url}` }) ] }) ] }] });
-  const buffer = await Packer.toBuffer(doc);
-  return buffer;
-}
-
 // Test runner
 async function run() {
   const url = 'https://example.com';
@@ -101,10 +93,7 @@ async function run() {
   const summary = buildSummaryResponse(mobile, desktop, ai);
   console.log('Summary:', JSON.stringify(summary, null, 2));
 
-  const buf = await buildDocx(url, mobile, desktop, ai);
-  const outPath = './test-output.docx';
-  await Deno.writeFile(outPath, buf);
-  console.log('Wrote docx to', outPath);
+  console.log('Translation smoke test completed.');
 }
 
 run().catch(e=>{ console.error(e); Deno.exit(1); });

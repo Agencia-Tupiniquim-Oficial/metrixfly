@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
+import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -329,32 +329,25 @@ const GeoAeoDashboard = () => {
           throw new Error("O diagnóstico PageSpeed não retornou as duas estratégias.");
         }
 
-        const { data: docData, error: docErr } =
-          await supabase.functions.invoke("diagnose-site", {
-            body: {
-              docxOnly: true,
-              url: normalized,
-              mobile: diagnosisData.summary.mobile,
-              desktop: diagnosisData.summary.desktop,
-              ai: {
-                improvements: diagnosisData.improvements ?? [],
-                uiux: diagnosisData.uiux ?? null,
-                extras: diagnosisData.extras ?? [],
-                geo: { ...crawl, prompts },
-              },
-            },
-          });
-        if (docErr) throw docErr;
-        const blob = docxResponseToBlob(docData);
-        downloadBlob(blob, `${crawl.domain}_relatorio_completo.docx`);
+        const {
+          createGeoAeoReportPdf,
+          downloadPdf,
+          reportPdfFilename,
+        } = await import("@/features/diagnostics/services/pdf-reports");
+        const blob = await createGeoAeoReportPdf(
+          normalized,
+          diagnosisData as DiagnoseResult,
+          { ...crawl, prompts },
+        );
+        downloadPdf(blob, reportPdfFilename(normalized, "relatorio_completo"));
         toast({
-          title: "Relatório técnico  pronto",
+          title: "Relatório PDF pronto",
           description: "Download iniciado.",
         });
       } catch (error: unknown) {
         console.error(error);
         toast({
-          title: "Erro ao gerar .docx",
+          title: "Erro ao gerar PDF",
           description:
             error instanceof Error ? error.message : String(error),
           variant: "destructive",

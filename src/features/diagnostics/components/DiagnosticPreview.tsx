@@ -1,8 +1,8 @@
-import BusinessDocxPreview from "@/features/diagnostics/components/BusinessDocxPreview";
-import DocxPreview from "@/features/diagnostics/components/DocxPreview";
+import BusinessReportPreview from "@/features/diagnostics/components/BusinessReportPreview";
+import DiagnosticReportPreview from "@/features/diagnostics/components/DiagnosticReportPreview";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { BusinessSummary } from "@/features/diagnostics/services/business-report";
+import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
 import { Building2, Download, Eye, FileText, Loader2, Pencil, UserRound } from "lucide-react";
 import { useState } from "react";
 import type { DiagnoseResult, Improvement } from "@/features/diagnostics/model/diagnose";
@@ -18,9 +18,9 @@ type Props = {
     value: string | string[],
   ) => void;
   updateUiuxOverview: (value: string) => void;
-  downloadDocx: () => void;
+  downloadTechnicalPdf: () => void;
   downloading: boolean;
-  downloadBusinessReport: () => void;
+  downloadBusinessPdf: () => void;
   businessDownloading: boolean;
   businessSummary?: BusinessSummary | null;
   setBusinessSummary?: (summary: BusinessSummary) => void;
@@ -35,9 +35,9 @@ export default function DiagnosticPreview({
   setPreviewMode,
   updateImprovement,
   updateUiuxOverview,
-  downloadDocx,
+  downloadTechnicalPdf,
   downloading,
-  downloadBusinessReport,
+  downloadBusinessPdf,
   businessDownloading,
   businessSummary,
   setBusinessSummary,
@@ -124,7 +124,7 @@ export default function DiagnosticPreview({
                 </div>
               </div>
             ) : businessSummary ? (
-              <BusinessDocxPreview
+              <BusinessReportPreview
                 url={url}
                 summary={businessSummary}
                 editable={previewMode === "edit"}
@@ -152,7 +152,7 @@ export default function DiagnosticPreview({
               </div>
             )
           ) : (
-            <DocxPreview
+            <DiagnosticReportPreview
               url={url}
               mobile={result.summary.mobile}
               desktop={result.summary.desktop}
@@ -170,7 +170,7 @@ export default function DiagnosticPreview({
 
       <div className="sticky bottom-4 mt-4 grid gap-3 sm:grid-cols-2">
         <Button
-          onClick={downloadDocx}
+          onClick={downloadTechnicalPdf}
           disabled={downloading}
           size="lg"
           variant={reportType === "full" ? "hero" : "outline"}
@@ -178,10 +178,10 @@ export default function DiagnosticPreview({
           style={reportType === "full" ? { boxShadow: "var(--shadow-glow)" } : undefined}
         >
           <Download className="mr-2 h-5 w-5" />
-          Baixar relatório .docx completo
+          Baixar relatório técnico em PDF
         </Button>
         <Button
-          onClick={downloadBusinessReport}
+          onClick={downloadBusinessPdf}
           disabled={businessDownloading || businessLoading}
           size="lg"
           variant={reportType === "corporate" ? "hero" : "outline"}
@@ -195,7 +195,7 @@ export default function DiagnosticPreview({
           )}
           {businessDownloading
             ? "Preparando relatório..."
-            : "Baixar versão corporativa"}
+            : "Baixar versão corporativa em PDF"}
         </Button>
       </div>
     </div>

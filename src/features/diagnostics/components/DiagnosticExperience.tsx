@@ -25,7 +25,7 @@ export function DiagnosticExperience({
   result,
   geoLoading,
   runGeoCrawl,
-  downloadDocx,
+  downloadTechnicalPdf,
   downloading,
   downloadClientReport,
   businessDownloading,
@@ -112,7 +112,7 @@ export function DiagnosticExperience({
               },
               {
                 icon: FileText,
-                title: "Relatórios Word (.docx)",
+                title: "Relatórios em PDF",
                 desc: "Gere versões técnicas e comerciais prontas para apresentação.",
               },
             ].map(({ icon: Icon, title, desc }) => (
@@ -265,7 +265,7 @@ export function DiagnosticExperience({
                   3
                 </span>
                 <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Revisão e Exportação de Documentos (.docx)
+                  Revisão e Exportação de Documentos (PDF)
                 </span>
               </div>
 
@@ -276,9 +276,9 @@ export function DiagnosticExperience({
                 setPreviewMode={setPreviewMode}
                 updateImprovement={updateImprovement}
                 updateUiuxOverview={updateUiuxOverview}
-                downloadDocx={downloadDocx}
+                downloadTechnicalPdf={downloadTechnicalPdf}
                 downloading={downloading}
-                downloadBusinessReport={downloadClientReport}
+                downloadBusinessPdf={downloadClientReport}
                 businessDownloading={businessDownloading}
                 businessSummary={businessSummary}
                 setBusinessSummary={setBusinessSummary}

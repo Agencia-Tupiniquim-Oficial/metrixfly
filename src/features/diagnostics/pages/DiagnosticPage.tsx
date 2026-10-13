@@ -3,12 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useDiagnosis } from "@/features/diagnostics/state/DiagnosisContext";
-import { docxResponseToBlob, downloadBlob } from "@/lib/docx-download";
 import { getDiagnosticErrorMessage } from "@/features/diagnostics/services/error-handler";
-import { downloadBusinessReport } from "@/features/diagnostics/services/business-report";
 import { DiagnosticExperience } from "@/features/diagnostics/components/DiagnosticExperience";
 import type { DiagnoseResult, Improvement } from "@/features/diagnostics/model/diagnose";
-import type { BusinessSummary } from "@/features/diagnostics/services/business-report";
+import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
 import {
   sampleDiagnosticResult,
   sampleBusinessSummary,
@@ -103,36 +101,18 @@ const DiagnosticPage = () => {
     });
   };
 
-  const downloadDocx = async () => {
+  const downloadTechnicalPdf = async () => {
     if (!result) return;
     setDownloading(true);
     try {
       const normalized = url.startsWith("http") ? url : "https://" + url;
-      const { data, error } = await supabase.functions.invoke("diagnose-site", {
-        body: {
-          docxOnly: true,
-          url: normalized,
-          mobile: result.summary.mobile,
-          desktop: result.summary.desktop,
-          ai: {
-            improvements: result.improvements,
-            uiux: result.uiux,
-            extras: result.extras,
-          },
-        },
-      });
-      if (error) throw error;
-      const blob = docxResponseToBlob(data);
-      const host = (() => {
-        try {
-          return new URL(
-            url.startsWith("http") ? url : "https://" + url,
-          ).hostname.replace("www.", "");
-        } catch {
-          return "site";
-        }
-      })();
-      downloadBlob(blob, `${host}_diagnostico.docx`);
+      const {
+        createDiagnosticReportPdf,
+        downloadPdf,
+        reportPdfFilename,
+      } = await import("@/features/diagnostics/services/pdf-reports");
+      const blob = await createDiagnosticReportPdf(normalized, result);
+      downloadPdf(blob, reportPdfFilename(normalized, "diagnostico"));
       toast({
         title: "Relatório pronto",
         description: "Download iniciado.",
@@ -141,7 +121,7 @@ const DiagnosticPage = () => {
       console.error(err);
       toast({
         title: "Erro ao baixar relatório",
-        description: err instanceof Error ? err.message : "Não foi possível gerar o arquivo .docx.",
+        description: err instanceof Error ? err.message : "Não foi possível gerar o arquivo PDF.",
         variant: "destructive",
       });
     } finally {
@@ -208,7 +188,13 @@ const DiagnosticPage = () => {
         data = await fetchBusinessSummary();
         if (!data) return;
       }
-      await downloadBusinessReport(normalized, data);
+      const {
+        createBusinessReportPdf,
+        downloadPdf,
+        reportPdfFilename,
+      } = await import("@/features/diagnostics/services/pdf-reports");
+      const blob = await createBusinessReportPdf(normalized, data);
+      downloadPdf(blob, reportPdfFilename(normalized, "relatorio_cliente"));
       toast({
         title: "Relatório para cliente pronto",
         description: "Download iniciado.",
@@ -277,7 +263,7 @@ const DiagnosticPage = () => {
     result={activeResult}
     geoLoading={geoLoading}
     runGeoCrawl={runGeoCrawl}
-    downloadDocx={downloadDocx}
+    downloadTechnicalPdf={downloadTechnicalPdf}
     downloading={downloading}
     downloadClientReport={downloadClientReport}
     businessDownloading={businessDownloading}

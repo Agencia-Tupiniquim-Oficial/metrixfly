@@ -61,6 +61,5 @@ export type DiagnoseResult = {
   improvements: Improvement[];
   uiux?: UiUxSummary | null;
   extras?: { title: string; description: string }[];
-  docx?: string;
   geo?: { domain?: string } | null;
 };

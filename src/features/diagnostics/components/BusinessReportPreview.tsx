@@ -1,5 +1,5 @@
 import coverHeader from "@/assets/logo-colored.png";
-import type { BusinessSummary, Priority } from "@/features/diagnostics/services/business-report";
+import type { BusinessSummary, Priority } from "@/features/diagnostics/model/business-report";
 import React, { useState, useEffect } from "react";
 
 type Props = {
@@ -148,7 +148,7 @@ function Bullets({
   );
 }
 
-export default function BusinessDocxPreview({
+export default function BusinessReportPreview({
   url,
   summary,
   editable = false,

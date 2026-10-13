@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import type { BusinessSummary } from "../services/business-report";
+import type { BusinessSummary } from "./business-report";
 import type { DiagnoseResult, Improvement } from "./diagnose";
 
 export type DiagnosticPageProps = {
@@ -10,7 +10,7 @@ export type DiagnosticPageProps = {
   result: DiagnoseResult | null;
   geoLoading: boolean;
   runGeoCrawl: (event: FormEvent) => void;
-  downloadDocx: () => void;
+  downloadTechnicalPdf: () => void;
   downloading: boolean;
   downloadClientReport: () => void;
   businessDownloading: boolean;

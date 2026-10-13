@@ -1,4 +1,4 @@
-import type { BusinessSummary } from "@/features/diagnostics/services/business-report";
+import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
 
 export const sampleDiagnosticResult: DiagnoseResult = {

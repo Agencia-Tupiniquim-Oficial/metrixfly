@@ -7,7 +7,7 @@ Aplicação web para analisar sites e apresentar oportunidades de melhoria em pe
 - Analisa páginas com o PageSpeed Insights para dispositivos móveis e desktop.
 - Executa rastreamento GEO/AEO por meio de funções Supabase.
 - Apresenta métricas, oportunidades e recomendações em uma interface voltada a usuários de negócio.
-- Gera relatórios `.docx` técnico e executivo.
+- Gera relatórios PDF técnico, executivo e GEO/AEO.
 - Inclui uma calculadora de impacto financeiro e páginas de administração e relatórios.
 
 ## Stack atual

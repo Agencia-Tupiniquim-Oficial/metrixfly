@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import BusinessDocxPreview from "@/features/diagnostics/components/BusinessDocxPreview";
+import BusinessReportPreview from "@/features/diagnostics/components/BusinessReportPreview";
 import DiagnosticPreview from "@/features/diagnostics/components/DiagnosticPreview";
-import type { BusinessSummary } from "@/features/diagnostics/services/business-report";
+import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
 
 const mockSummary: BusinessSummary = {
   resumo: "Resumo executivo do site de teste.",
@@ -18,9 +18,9 @@ const mockSummary: BusinessSummary = {
   proximoPasso: "Iniciar pela compressão das imagens principais.",
 };
 
-describe("BusinessDocxPreview", () => {
+describe("BusinessReportPreview", () => {
   it("renders corporate summary sections correctly", () => {
-    render(<BusinessDocxPreview url="https://exemplo.com.br" summary={mockSummary} />);
+    render(<BusinessReportPreview url="https://exemplo.com.br" summary={mockSummary} />);
 
     expect(screen.getByText("EXEMPLO.COM.BR - RELATÓRIO EXECUTIVO")).toBeDefined();
     expect(screen.getByText("Visão geral")).toBeDefined();
@@ -59,9 +59,9 @@ describe("DiagnosticPreview with Corporate Option", () => {
         setPreviewMode={vi.fn()}
         updateImprovement={vi.fn()}
         updateUiuxOverview={vi.fn()}
-        downloadDocx={vi.fn()}
+        downloadTechnicalPdf={vi.fn()}
         downloading={false}
-        downloadBusinessReport={vi.fn()}
+        downloadBusinessPdf={vi.fn()}
         businessDownloading={false}
         businessSummary={null}
         businessLoading={false}
