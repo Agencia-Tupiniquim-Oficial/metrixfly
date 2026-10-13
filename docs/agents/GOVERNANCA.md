@@ -1,33 +1,21 @@
-# Governança de Desenvolvimento - Metrixfly
+# Governanca de desenvolvimento - Metrixfly
 
-Este projeto mantém a governança e a documentação para agentes em `docs/agents/`:
+## Fontes de orientacao
 
-- **`MANIFESTO.md`**: propósito, princípios técnicos e regras de engenharia.
-- **`INSTRUCOES.md`**: fluxo de trabalho para mudanças.
-- **`PLANO.md`**: estado de execução e backlog.
-- **`LEARNINGS.md`**: padrões e aprendizados específicos do projeto.
+- `AGENTS.md` e a entrada principal das instrucoes de projeto. OpenCode/OMP e hosts compatíveis com `AGENTS.md` podem carrega-lo; `.github/copilot-instructions.md` e apenas a ponte para hosts do Copilot que usam esse caminho.
+- `docs/agents/INSTRUCOES.md` define o procedimento de trabalho; `MANIFESTO.md` registra principios de produto e arquitetura; `LEARNINGS.md` guarda fatos tecnicos duradouros; `PLANO.md` e reservado a iniciativas de agentes com varias etapas.
+- O backlog de produto fica em `docs/roadmap.md`, nao em `PLANO.md`.
+- `.agents/skills/` contem somente skills mantidas para o Metrixfly. Elas sao procedimentos sob demanda, nao substituem nem alteram as regras permanentes.
 
-As instruções curtas carregadas automaticamente pelo GitHub Copilot para este workspace estão em `.github/copilot-instructions.md`; OpenCode/OMP lê `AGENTS.md` na raiz. Ambos apontam para a documentação detalhada de governança e aprendizados desta pasta.
+## Limites de autonomia
 
-## Skills de referência
+- Preserve alteracoes locais. Nao descarte, sobrescreva ou inclua no stage trabalho preexistente sem autorizacao.
+- Crie uma branch especifica quando for seguro e apropriado; nao use stash, reset ou troca de branch para esconder conflitos. Se a branch misturar trabalho alheio a tarefa, pare e combine a proxima acao.
+- Nao faca commit sem pedido explicito. Nunca faca push, merge ou deploy sem autorizacao.
+- Nao aplique migracoes nem alteracoes em banco remoto, nem execute operacoes destrutivas ou irreversiveis, sem autorizacao explicita.
+- Nao altere arquivos de ambiente, segredos ou configuracoes sensiveis sem necessidade e autorizacao. Nunca exponha credenciais no frontend; segredos de integracoes de backend pertencem ao ambiente seguro das Edge Functions do Supabase.
+- Ao concluir, diferencie verificacoes aprovadas, falhas preexistentes, limitacoes e passos que dependem de validacao manual.
 
-`.agents/skills/` contém as skills de referência baixadas. OpenCode/OMP descobre skills nesse local; carregue uma quando a tarefa corresponder ao seu propósito. As skills não substituem as regras do Metrixfly, que ficam em `docs/agents/`.
+## Hooks Git
 
-## Git hooks
-
-O hook Git `.husky/pre-commit` executa `lint-staged`, configurado em `package.json`. Ele roda antes de criar um commit; não é um hook de ciclo de vida do Copilot. Mantenha os hooks Git em `.husky/`.
-
-## Fluxo de trabalho
-
-1. **Entender**: leia `PLANO.md` e `LEARNINGS.md`; consulte o manifesto e os módulos afetados.
-2. **Planejar**: para mudanças que atravessem múltiplos módulos, registre as etapas em `PLANO.md`.
-3. **Executar**: siga os padrões React, TypeScript e Tailwind existentes; organize código específico sob `src/features/<domínio>`.
-4. **Validar**: rode os testes ou verificações direcionadas; antes de concluir uma mudança ampla, execute `npm run check` e `npm run build`.
-5. **Reportar**: atualize `PLANO.md` e registre aprendizados duradouros quando forem relevantes.
-
-## Guardrails
-
-- Não exponha credenciais ou chaves secretas no frontend. Segredos de integrações externas pertencem às Edge Functions do Supabase.
-- Prefira tipos explícitos e evite introduzir `any`.
-- Mudanças de comportamento devem ter testes em `src/test/` ou junto ao módulo correspondente.
-- `npm run check` executa ESLint e Vitest; reporte falhas preexistentes separadamente, sem ocultá-las.
+`.husky/pre-commit` executa `lint-staged`, configurado em `package.json`. Esse hook e do Git e nao depende do Copilot, OpenCode/OMP ou do provedor de IA selecionado.

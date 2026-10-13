@@ -1,26 +1,33 @@
-# Instruções de Operação (Modus Operandi)
+# Fluxo de trabalho
 
-Sempre que receber uma tarefa, este é o loop de trabalho obrigatório:
+Siga este procedimento para funcionalidades e correcoes. Ajuste a profundidade das verificacoes ao risco e ao escopo; nao transforme tarefas pequenas em processos artificiais.
 
-1. **ENTENDER (Contexto)**:
-   - Leia `docs/agents/PLANO.md` para entender onde estamos no projeto.
-   - Use `grep` ou `xd://lsp` para identificar arquivos e componentes impactados antes de qualquer edição.
+## 1. Entender e mapear impacto
 
-2. **PLANEJAR (Update)**:
-   - Se a tarefa for complexa, quebre-a em subtarefas no `docs/agents/PLANO.md`.
-   - Se a tarefa já estiver no plano, verifique se não há dependências pendentes.
+- Reescreva o pedido como criterios de aceitacao observaveis. Pergunte somente quando uma ambiguidade puder mudar comportamento, escopo, seguranca ou dados.
+- Leia o codigo, os tipos, os testes e os padroes dos modulos afetados. Consulte `MANIFESTO.md` e `LEARNINGS.md` quando forem pertinentes; nao leia nem atualize documentos sem relacao com a tarefa.
+- Para mudancas de produto, mantenha a logica especifica em `src/features/<dominio>` e os elementos compartilhados em `src/components`, `src/hooks`, `src/lib` ou `src/integrations`. Respeite as fronteiras do Supabase.
 
-3. **EXECUTAR (Ação)**:
-   - Aplique as mudanças mantendo a consistência do estilo do projeto (React/Tailwind/TypeScript).
+## 2. Conferir Git e preparar o trabalho
 
-4. **VALIDAR (Prova)**:
-   - Rode os testes (`npm test`) e, para alterações de estrutura ou configuração, também o build (`npm run build`).
-   - Verifique visualmente os componentes alterados (se aplicável).
+- Antes de editar, registre mentalmente a branch atual e examine `git status --short`, `git diff` e `git diff --cached`. Separe mudancas preexistentes das mudancas da tarefa.
+- Crie uma branch com nome especifico se isso for seguro e nao misturar alteracoes preexistentes. Nao descarte, esconda ou inclua no stage mudancas alheias. Se nao conseguir isolar o trabalho com seguranca, pare e pergunte.
 
-5. **REPORTAR (Estado)**:
-   - Atualize `docs/agents/PLANO.md`, marcando os itens concluídos.
+## 3. Implementar
 
-### Regras de Ouro:
-- Nunca assuma; verifique os tipos do domínio em `src/features/<dominio>/model/`.
-- Em caso de dúvida sobre integrações Supabase, consulte `src/integrations/supabase/client.ts`.
-- Se algo quebrar, PARE e reporte imediatamente.
+- Prefira uma mudanca localizada que satisfaca os criterios, seguindo os padroes do modulo. Evite refatoracoes nao necessarias.
+- Para mudanca de comportamento, acrescente ou atualize testes no seam adequado; investigue regressao com uma reproducao verificavel quando corrigir um bug.
+- Nao altere banco remoto, segredos, configuracoes sensiveis ou servicos externos sem autorizacao.
+
+## 4. Validar e revisar
+
+- Escolha verificacoes pertinentes entre os comandos disponiveis: `npm test`, `npm run lint`, `npm run build` e `npm run check`.
+- Nao ha script `typecheck` em `package.json`; para alteracoes TypeScript, use `npx tsc --noEmit -p tsconfig.app.json`. `npm run check` executa ESLint antes do Vitest; se o lint interromper o script, rode `npm test` separadamente.
+- Corrija problemas introduzidos pela mudanca e repita as verificacoes afetadas. Identifique erros preexistentes sem atribui-los a tarefa nem declarar sucesso global.
+- Revise `git diff` e `git diff --cached`: confirme os criterios, imports, testes, seguranca, ausencia de alteracoes incidentais e preservacao do trabalho alheio.
+
+## 5. Reportar
+
+Informe o que mudou, a branch, os comandos executados e seus resultados, limitacoes ou falhas preexistentes, e o que ainda exige validacao manual. Nao declare a tarefa concluida apenas porque os arquivos foram editados.
+
+Use `PLANO.md` somente para uma iniciativa de agentes que tenha varias etapas; atualize `LEARNINGS.md` apenas para fatos tecnicos duradouros que ainda nao estejam documentados.

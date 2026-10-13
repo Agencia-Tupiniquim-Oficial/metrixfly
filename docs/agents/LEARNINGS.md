@@ -1,20 +1,14 @@
-# Memória de Aprendizado do Metrixfly (LEARNINGS.md)
+# Aprendizados tecnicos do Metrixfly
 
-Este arquivo serve como a memória de longo prazo do agente. Aqui registramos padrões, restrições, lições aprendidas e comportamentos específicos do sistema que não devem ser esquecidos.
+Registre aqui somente fatos tecnicos duradouros, nao obvios e ainda nao documentados em outro lugar. Nao use este arquivo como diario de tarefas ou lista de erros temporarios.
 
-## Registro de Lições
-*   **Data | Tópico | Lição Aprendida**
-*   2026-10-09 | Infraestrutura | O projeto não utiliza Docker; toda automação deve ser feita via scripts `npm` ou shell scripts locais.
-*   2026-10-09 | Tipagem | Evitar `any`. Tipos compartilhados do diagnóstico ficam em `src/features/diagnostics/model/diagnose.ts`.
-*   2026-10-09 | Governança | Toda alteração de comportamento deve ser refletida no `PLANO.md` e, se relevante, documentada aqui.
-*   2026-10-13 | Estrutura | `.agents/skills/` é uma referência baixada; `docs/agents/` contém a governança específica do Metrixfly.
-*   2026-10-13 | Estrutura | Código próprio de cada domínio fica em `src/features/<domínio>`; `src/components/ui` é compartilhado.
+## Infraestrutura e testes
 
-## Padrões de Código
-*   ... (Espaço para registrar refatorações futuras que não devem ser revertidas)
+- O projeto nao usa Docker; o fluxo local parte dos scripts npm e das ferramentas ja instaladas no repositorio.
+- O Vitest inclui `src/**/*.{test,spec}.{ts,tsx}`. Os smoke tests em `test/` nao fazem parte da suite Vitest padrao e precisam ser executados conforme seu proprio procedimento.
 
-## Dicas de Depuração
-*   ... (Ex: "Sempre limpar o cache do Supabase se o relatório não atualizar")
+## Tipagem e dominios
 
----
-*Instrução para a IA: Ao iniciar qualquer tarefa, leia este arquivo. Se você descobrir uma nova regra ou limitação técnica, adicione-a aqui imediatamente.*
+- Tipos compartilhados do diagnostico ficam em `src/features/diagnostics/model/diagnose.ts`.
+- Logica especifica de cada dominio pertence a `src/features/<dominio>`; componentes UI compartilhados ficam em `src/components/`.
+- Segredos de integracoes externas nao pertencem ao frontend; use o ambiente de backend das Supabase Edge Functions.

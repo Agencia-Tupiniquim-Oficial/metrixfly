@@ -38,9 +38,9 @@ src/
 docs/                           # backlog e documentação do produto
   agents/                       # governança e documentação para agentes
 .github/
-  copilot-instructions.md       # instruções de projeto carregadas pelo Copilot
-AGENTS.md                       # instruções de projeto carregadas pelo OpenCode/OMP
-.agents/skills/                 # skills de referência baixadas
+  copilot-instructions.md       # ponto de entrada de compatibilidade do Copilot
+AGENTS.md                       # instruções principais compartilhadas
+.agents/skills/                 # skills próprias do Metrixfly para agentes compatíveis
 .husky/
   pre-commit                    # hook Git executado antes dos commits
 supabase/
@@ -51,7 +51,7 @@ test/                           # smoke tests auxiliares de integrações/docume
 
 As funcionalidades específicas ficam em `src/features/<domínio>`. Elementos usados por mais de uma funcionalidade permanecem em `src/components`, `src/hooks`, `src/lib` e `src/integrations`. As funções de `supabase/functions` permanecem na estrutura esperada pelo Supabase CLI.
 
-As instruções automáticas do Copilot estão em `.github/copilot-instructions.md`; OpenCode/OMP lê `AGENTS.md` na raiz. Ambos apontam para a governança detalhada em `docs/agents/`. OpenCode também pode descobrir skills em `.agents/skills/`, que permanece separado das regras do Metrixfly.
+`AGENTS.md` é a fonte principal das instruções compartilhadas. `.github/copilot-instructions.md` existe como ponto de entrada para hosts do Copilot que carregam esse caminho e evita duplicar as regras. A governança detalhada está em `docs/agents/`; skills próprias do projeto são descobertas em `.agents/skills/` por OpenCode e agentes que suportam o padrão.
 
 ## Requisitos e configuração
 
