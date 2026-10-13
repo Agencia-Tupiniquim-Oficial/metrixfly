@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  CheckCircle2,
   Calculator,
   FileText,
   Gauge,
@@ -16,6 +17,7 @@ import DiagnosticPreview from "@/features/diagnostics/components/DiagnosticPrevi
 import { CleanScoresGrid } from "./CleanScoresGrid";
 import logoColored from "@/assets/logo-colored.png";
 import type { DiagnosticPageProps } from "@/features/diagnostics/model/page-props";
+import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
 
 export function DiagnosticExperience({
   url,
@@ -50,6 +52,7 @@ export function DiagnosticExperience({
   const desktopScore = result?.summary.desktop.scores.performance ?? 71;
   const mobileGrade = getGrade(mobileScore);
   const desktopGrade = getGrade(desktopScore);
+  const optimized = isDiagnosticOptimized(result);
   const financialCalculatorUrl = `/calculadora-financeira?mobileScore=${mobileScore}&traffic=15000&ticket=250`;
 
   return (
@@ -176,13 +179,27 @@ export function DiagnosticExperience({
               </div>
 
               <div className="mt-8 border-t border-border pt-8 space-y-3">
-                <h3 className="text-xl font-bold text-foreground">
-                  O que esse resultado significa
-                </h3>
-                <p className="text-base text-muted-foreground leading-relaxed">
-                  {businessSummary?.resumo ||
-                    `O tempo de resposta no celular (${result?.summary.mobile.metrics.lcp}) e no computador (${result?.summary.desktop.metrics.lcp}) geram impacto direto na conversão de potenciais clientes.`}
-                </p>
+                {optimized ? (
+                  <div
+                    role="status"
+                    className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
+                  >
+                    <CheckCircle2 aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" />
+                    <p className="text-base font-semibold leading-relaxed">
+                      Seu site está otimizado! Todas as notas de desempenho estão acima de 90.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-bold text-foreground">
+                      O que esse resultado significa
+                    </h3>
+                    <p className="text-base text-muted-foreground leading-relaxed">
+                      {businessSummary?.resumo ||
+                        `O tempo de resposta no celular (${result?.summary.mobile.metrics.lcp}) e no computador (${result?.summary.desktop.metrics.lcp}) geram impacto direto na conversão de potenciais clientes.`}
+                    </p>
+                  </>
+                )}
               </div>
 
             </Card>
@@ -265,7 +282,7 @@ export function DiagnosticExperience({
                   3
                 </span>
                 <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Revisão e Exportação de Documentos (PDF)
+                  {optimized ? "Resultado do diagnóstico" : "Revisão e Exportação de Documentos (PDF)"}
                 </span>
               </div>
 

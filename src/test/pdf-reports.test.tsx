@@ -9,7 +9,10 @@ import {
   downloadPdf,
   type GeoReportData,
 } from "@/features/diagnostics/services/pdf-reports";
-import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
+import {
+  isDiagnosticOptimized,
+  type DiagnoseResult,
+} from "@/features/diagnostics/model/diagnose";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
 
 vi.mock("@/assets/logo-colored.png", () => ({
@@ -105,6 +108,117 @@ async function readPdfText(blob: Blob): Promise<string> {
 }
 
 describe("PDF reports", () => {
+  it("requires complete desktop and mobile scores strictly above 90", () => {
+    const healthyDiagnostic: DiagnoseResult = {
+      ...diagnostic,
+      scoreAvailability: { mobile: true, desktop: true },
+      summary: {
+        mobile: {
+          ...diagnostic.summary.mobile,
+          scores: { performance: 91, accessibility: 92, bestPractices: 93, seo: 94 },
+        },
+        desktop: {
+          ...diagnostic.summary.desktop,
+          scores: { performance: 95, accessibility: 96, bestPractices: 97, seo: 98 },
+        },
+      },
+    };
+
+    expect(isDiagnosticOptimized(healthyDiagnostic)).toBe(true);
+    expect(
+      isDiagnosticOptimized({
+        ...healthyDiagnostic,
+        summary: {
+          ...healthyDiagnostic.summary,
+          desktop: {
+            ...healthyDiagnostic.summary.desktop,
+            scores: { ...healthyDiagnostic.summary.desktop.scores, seo: 90 },
+          },
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isDiagnosticOptimized({
+        ...healthyDiagnostic,
+        summary: {
+          ...healthyDiagnostic.summary,
+          mobile: {
+            ...healthyDiagnostic.summary.mobile,
+            scores: { ...healthyDiagnostic.summary.mobile.scores, performance: 90 },
+          },
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isDiagnosticOptimized({
+        ...healthyDiagnostic,
+        scoreAvailability: { mobile: true, desktop: false },
+      }),
+    ).toBe(false);
+    expect(
+      isDiagnosticOptimized({
+        ...healthyDiagnostic,
+        scoreAvailability: undefined,
+      }),
+    ).toBe(false);
+    const incompleteDiagnostic = structuredClone(healthyDiagnostic);
+    Reflect.deleteProperty(incompleteDiagnostic.summary.desktop.scores, "accessibility");
+    expect(isDiagnosticOptimized(incompleteDiagnostic)).toBe(false);
+    expect(
+      isDiagnosticOptimized({
+        ...healthyDiagnostic,
+        summary: {
+          ...healthyDiagnostic.summary,
+          mobile: {
+            ...healthyDiagnostic.summary.mobile,
+            scores: {
+              ...healthyDiagnostic.summary.mobile.scores,
+              performance: Number.NaN,
+            },
+          },
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it("exports an optimized result without technical suggestions", async () => {
+    const optimizedDiagnostic: DiagnoseResult = {
+      ...diagnostic,
+      scoreAvailability: { mobile: true, desktop: true },
+      summary: {
+        mobile: {
+          ...diagnostic.summary.mobile,
+          scores: { performance: 91, accessibility: 92, bestPractices: 93, seo: 94 },
+        },
+        desktop: {
+          ...diagnostic.summary.desktop,
+          scores: { performance: 95, accessibility: 96, bestPractices: 97, seo: 98 },
+        },
+      },
+      improvements: [{ title: "Recomendação que não deve aparecer" }],
+      uiux: { overview: "Análise desnecessária", recommendations: ["Recomendação UI"] },
+      extras: [{ title: "Sugestão extra", description: "Conteúdo não aplicável." }],
+    };
+    const blob = await createDiagnosticReportPdf(
+      "https://site.test",
+      optimizedDiagnostic,
+    );
+    const text = await readPdfText(blob);
+
+    expect(text).toContain(
+      "SEU SITE ESTÁ OTIMIZADO! TODAS AS NOTAS DE DESEMPENHO ESTÃO ACIMA DE 90.",
+    );
+    expect(text).toContain("DESKTOP");
+    expect(text).toContain("MOBILE");
+    expect(text).toContain("91");
+    expect(text).toContain("95");
+    expect(text).not.toContain("SUGESTÕES DE MELHORIA");
+    expect(text).not.toContain("RECOMENDAÇÃO QUE NÃO DEVE APARECER");
+    expect(text).not.toContain("ANÁLISE DESNECESSÁRIA");
+    expect(text).not.toContain("SUGESTÃO EXTRA");
+    expect(text).not.toContain("OTIMIZAR IMAGENS");
+  });
+
   it("generates a readable technical PDF with diagnostic content", async () => {
     const blob = await createDiagnosticReportPdf("https://www.site.test", diagnostic);
 

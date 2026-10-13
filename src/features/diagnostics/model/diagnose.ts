@@ -58,8 +58,44 @@ export type DiagnoseResult = {
     desktop: PageSummary;
     screenshot?: string | null;
   };
+  scoreAvailability?: {
+    mobile: boolean;
+    desktop: boolean;
+  };
   improvements: Improvement[];
   uiux?: UiUxSummary | null;
   extras?: { title: string; description: string }[];
   geo?: { domain?: string } | null;
 };
+
+export function isDiagnosticOptimized(
+  result: DiagnoseResult | null | undefined,
+): boolean {
+  if (
+    !result ||
+    result.scoreAvailability?.mobile !== true ||
+    result.scoreAvailability.desktop !== true
+  ) {
+    return false;
+  }
+
+  const scoreGroups = [
+    result.summary?.mobile?.scores,
+    result.summary?.desktop?.scores,
+  ];
+  const scoreNames = [
+    "performance",
+    "accessibility",
+    "bestPractices",
+    "seo",
+  ] as const;
+
+  return scoreGroups.every(
+    (scores) =>
+      scores !== undefined &&
+      scoreNames.every((name) => {
+        const score = scores[name];
+        return typeof score === "number" && Number.isFinite(score) && score > 90;
+      }),
+  );
+}

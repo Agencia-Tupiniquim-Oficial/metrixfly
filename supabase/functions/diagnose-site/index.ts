@@ -1241,6 +1241,10 @@ serve(async (req: Request) => {
       runPageSpeed(url, "mobile"),
       runPageSpeed(url, "desktop"),
     ]);
+    const scoreAvailability = {
+      mobile: pageSpeedResults[0].status === "fulfilled",
+      desktop: pageSpeedResults[1].status === "fulfilled",
+    };
     const successfulResults = pageSpeedResults
       .filter(
         (result): result is PromiseFulfilledResult<any> =>
@@ -1358,6 +1362,7 @@ serve(async (req: Request) => {
     }
     const summaryResponse = {
       success: true,
+      scoreAvailability,
       summary: {
         mobile: {
           scores: mobile.scores,

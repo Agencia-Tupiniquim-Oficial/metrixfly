@@ -16,6 +16,7 @@ import type {
   Improvement,
   PageSummary,
 } from "@/features/diagnostics/model/diagnose";
+import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
 
 const GREEN = "#008F4C";
@@ -122,6 +123,15 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
   },
+  optimizedCallout: {
+    backgroundColor: "#F0FDF4",
+    borderLeftWidth: 3,
+    borderLeftColor: GREEN,
+    padding: 12,
+    marginBottom: 16,
+    color: DARK_GREEN,
+    fontFamily: "Helvetica-Bold",
+  },
 });
 
 function hostLabel(url: string): string {
@@ -194,7 +204,15 @@ function BulletList({ items }: { items?: string[] }) {
   );
 }
 
-function ScoreCards({ summary, label }: { summary: PageSummary; label: string }) {
+function ScoreCards({
+  summary,
+  label,
+  showOpportunities = true,
+}: {
+  summary: PageSummary;
+  label: string;
+  showOpportunities?: boolean;
+}) {
   const scores = [
     ["Desempenho", summary.scores.performance],
     ["Acessibilidade", summary.scores.accessibility],
@@ -233,7 +251,7 @@ function ScoreCards({ summary, label }: { summary: PageSummary; label: string })
           ),
         )}
       </View>
-      {summary.opportunities?.length ? (
+      {showOpportunities && summary.opportunities?.length ? (
         <>
           <Text style={styles.subheading}>Oportunidades do PageSpeed</Text>
           <BulletList
@@ -372,6 +390,7 @@ function TechnicalReport({
   geo?: GeoReportData;
 }) {
   const hostname = hostLabel(url);
+  const optimized = isDiagnosticOptimized(result);
   return (
     <Document
       title={`${hostname} - Diagnóstico de site`}
@@ -381,43 +400,61 @@ function TechnicalReport({
     >
       <ReportPage>
         <Text style={styles.title}>{hostname} - DIAGNÓSTICO DE SITE</Text>
-        <ImprovementSection items={result.improvements} />
-        {result.uiux && (
+        {optimized ? (
+          <View style={styles.optimizedCallout}>
+            <Text>
+              Seu site está otimizado! Todas as notas de desempenho estão acima de 90.
+            </Text>
+          </View>
+        ) : (
           <>
-            <Section>Melhorias de UI/UX</Section>
-            {result.uiux.overview ? (
-              <Text style={styles.paragraph}>{result.uiux.overview}</Text>
-            ) : null}
-            {result.uiux.diagnosis?.length ? (
+            <ImprovementSection items={result.improvements} />
+            {result.uiux && (
               <>
-                <Text style={styles.subheading}>Diagnóstico</Text>
-                <BulletList items={result.uiux.diagnosis} />
+                <Section>Melhorias de UI/UX</Section>
+                {result.uiux.overview ? (
+                  <Text style={styles.paragraph}>{result.uiux.overview}</Text>
+                ) : null}
+                {result.uiux.diagnosis?.length ? (
+                  <>
+                    <Text style={styles.subheading}>Diagnóstico</Text>
+                    <BulletList items={result.uiux.diagnosis} />
+                  </>
+                ) : null}
+                {result.uiux.recommendations?.length ? (
+                  <>
+                    <Text style={styles.subheading}>Recomendações</Text>
+                    <BulletList items={result.uiux.recommendations} />
+                  </>
+                ) : null}
               </>
-            ) : null}
-            {result.uiux.recommendations?.length ? (
+            )}
+            {result.extras?.length ? (
               <>
-                <Text style={styles.subheading}>Recomendações</Text>
-                <BulletList items={result.uiux.recommendations} />
+                <Section>Sugestões extras</Section>
+                {result.extras.map((extra, index) => (
+                  <View key={`${index}-${extra.title}`} style={styles.improvement}>
+                    <Text style={styles.improvementTitle}>{extra.title}</Text>
+                    <Text>{extra.description}</Text>
+                  </View>
+                ))}
               </>
             ) : null}
           </>
         )}
-        {result.extras?.length ? (
-          <>
-            <Section>Sugestões extras</Section>
-            {result.extras.map((extra, index) => (
-              <View key={`${index}-${extra.title}`} style={styles.improvement}>
-                <Text style={styles.improvementTitle}>{extra.title}</Text>
-                <Text>{extra.description}</Text>
-              </View>
-            ))}
-          </>
-        ) : null}
         {geo ? <GeoSections geo={geo} /> : null}
-        <View break>
+        <View break={!optimized}>
           <Section>Performance</Section>
-          <ScoreCards summary={result.summary.desktop} label="Desktop" />
-          <ScoreCards summary={result.summary.mobile} label="Mobile" />
+          <ScoreCards
+            summary={result.summary.desktop}
+            label="Desktop"
+            showOpportunities={!optimized}
+          />
+          <ScoreCards
+            summary={result.summary.mobile}
+            label="Mobile"
+            showOpportunities={!optimized}
+          />
         </View>
       </ReportPage>
     </Document>

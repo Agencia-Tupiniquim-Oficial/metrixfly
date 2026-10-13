@@ -3,9 +3,13 @@ import DiagnosticReportPreview from "@/features/diagnostics/components/Diagnosti
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
-import { Building2, Download, Eye, FileText, Loader2, Pencil, UserRound } from "lucide-react";
+import { Building2, CheckCircle2, Download, Eye, FileText, Loader2, Pencil, UserRound } from "lucide-react";
 import { useState } from "react";
-import type { DiagnoseResult, Improvement } from "@/features/diagnostics/model/diagnose";
+import {
+  isDiagnosticOptimized,
+  type DiagnoseResult,
+  type Improvement,
+} from "@/features/diagnostics/model/diagnose";
 
 type Props = {
   url: string;
@@ -47,6 +51,37 @@ export default function DiagnosticPreview({
   const [reportType, setReportType] = useState<"full" | "corporate">("full");
 
   if (!result) return null;
+
+  if (isDiagnosticOptimized(result)) {
+    return (
+      <Card className="flex flex-col gap-5 border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-900 dark:bg-emerald-950/40">
+        <div className="flex items-start gap-3 text-emerald-900 dark:text-emerald-100">
+          <CheckCircle2 aria-hidden="true" className="mt-0.5 h-6 w-6 shrink-0" />
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold">Seu site está otimizado!</h2>
+            <p className="text-sm leading-relaxed">
+              Todas as notas de desempenho estão acima de 90. Não há sugestões
+              técnicas adicionais para este diagnóstico.
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={downloadTechnicalPdf}
+          disabled={downloading}
+          size="lg"
+          variant="hero"
+          className="w-full font-semibold sm:w-fit"
+        >
+          {downloading ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-5 w-5" />
+          )}
+          Baixar resultado do diagnóstico em PDF
+        </Button>
+      </Card>
+    );
+  }
 
   const handleSelectCorporate = () => {
     setReportType("corporate");
