@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateFinancialEstimate,
   estimateAbandonmentRate,
-} from "@/lib/financial-calculator";
+} from "@/features/financial-calculator/model/financial-calculator";
 
 describe("financial calculator", () => {
   it("uses mobile performance as an editable abandonment starting point", () => {

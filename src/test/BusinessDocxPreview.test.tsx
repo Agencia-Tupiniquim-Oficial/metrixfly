@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import BusinessDocxPreview from "@/components/BusinessDocxPreview";
-import DiagnosticPreview from "@/components/DiagnosticPreview";
-import type { BusinessSummary } from "@/lib/business-report";
+import BusinessDocxPreview from "@/features/diagnostics/components/BusinessDocxPreview";
+import DiagnosticPreview from "@/features/diagnostics/components/DiagnosticPreview";
+import type { BusinessSummary } from "@/features/diagnostics/services/business-report";
 
 const mockSummary: BusinessSummary = {
   resumo: "Resumo executivo do site de teste.",
@@ -70,13 +70,13 @@ describe("DiagnosticPreview with Corporate Option", () => {
     );
 
     // Initial state: full report preview
-    expect(screen.getByText("Relatório técnico ")).toBeDefined();
+    expect(screen.getByText(/Relatório técnico/)).toBeDefined();
     expect(screen.getByText("Versão corporativa")).toBeDefined();
 
     // Click corporate version
     fireEvent.click(screen.getByText("Versão corporativa"));
 
     expect(onLoad).toHaveBeenCalled();
-    expect(screen.getByText("Preview da versão corporativa (.docx)")).toBeDefined();
+    expect(screen.getByText("Versão corporativa pronta para gerar")).toBeDefined();
   });
 });

@@ -1,0 +1,66 @@
+// src/types/diagnose.ts
+
+export type Scores = {
+  performance: number;
+  accessibility: number;
+  bestPractices: number;
+  seo: number;
+  navigation?: number | string | null;
+};
+
+export type Metrics = {
+  fcp?: string | null;
+  lcp?: string | null;
+  tbt?: string | null;
+  cls?: string | number | null;
+  si?: string | null;
+  tti?: string | null;
+  ttfb?: string | null;
+  pageSize?: string | null;
+  requests?: string | number | null;
+};
+
+export type PageSummary = {
+  scores: Scores;
+  metrics: Metrics;
+  screenshot?: string | null;
+  pagespeedScreenshot?: string | null;
+  opportunities?: Opportunities[];
+};
+
+export type Opportunities = {
+  title: string;
+  displayValue?: string;
+  score?: number;
+  impact?: string[];
+  causes?: string[];
+  recommendations?: string[];
+};
+
+export type Improvement = {
+  title: string;
+  description?: string;
+  problem?: string;
+  impact?: string[];
+  causes?: string[];
+  recommendations?: string[];
+};
+
+export type UiUxSummary = {
+  overview?: string;
+  diagnosis?: string[];
+  recommendations?: string[];
+};
+
+export type DiagnoseResult = {
+  summary: {
+    mobile: PageSummary;
+    desktop: PageSummary;
+    screenshot?: string | null;
+  };
+  improvements: Improvement[];
+  uiux?: UiUxSummary | null;
+  extras?: { title: string; description: string }[];
+  docx?: string;
+  geo?: { domain?: string } | null;
+};

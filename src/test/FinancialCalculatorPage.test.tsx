@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import FinancialCalculator from "@/pages/FinancialCalculator";
+import FinancialCalculator from "@/features/financial-calculator/pages/FinancialCalculator";
 
 describe("FinancialCalculator page", () => {
   it("uses diagnostic values as defaults and shows detailed financial estimates", () => {
