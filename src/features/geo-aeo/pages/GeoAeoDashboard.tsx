@@ -73,7 +73,11 @@ type CrawlResult = {
       brokenLinksPenalty: number;
       formula: string;
     };
-    coverage?: { pagesCrawled: number; sitemapUrls: number; brokenLinksChecked: number };
+    coverage?: {
+      pagesCrawled: number;
+      sitemapUrls: number;
+      brokenLinksChecked: number;
+    };
   };
   visibility: {
     chatgpt: number | null;
@@ -106,7 +110,11 @@ function scoreColor(score: number) {
 }
 
 function severityLabel(severity: Finding["severity"]) {
-  return severity === "critical" ? "Crítico" : severity === "warning" ? "Atenção" : "Aprovado";
+  return severity === "critical"
+    ? "Crítico"
+    : severity === "warning"
+      ? "Atenção"
+      : "Aprovado";
 }
 
 function severityClass(severity: Finding["severity"]) {
@@ -214,7 +222,10 @@ const GeoAeoDashboard = () => {
     setCrawlStage("Verificando robots.txt e sitemap.xml...");
     let stageTimer: number | undefined;
     try {
-      stageTimer = window.setTimeout(() => setCrawlStage("Descobrindo páginas importantes..."), 1200);
+      stageTimer = window.setTimeout(
+        () => setCrawlStage("Descobrindo páginas importantes..."),
+        1200,
+      );
       const { data, error } = await supabase.functions.invoke("geo-aeo-crawl", {
         body: { url: normalized },
       });
@@ -329,15 +340,17 @@ const GeoAeoDashboard = () => {
           });
         if (diagnosisError) throw diagnosisError;
         if (diagnosisData?.error) throw new Error(diagnosisData.error);
-        if (!diagnosisData?.summary?.mobile || !diagnosisData?.summary?.desktop) {
-          throw new Error("O diagnóstico PageSpeed não retornou as duas estratégias.");
+        if (
+          !diagnosisData?.summary?.mobile ||
+          !diagnosisData?.summary?.desktop
+        ) {
+          throw new Error(
+            "O diagnóstico PageSpeed não retornou as duas estratégias.",
+          );
         }
 
-        const {
-          createGeoAeoReportPdf,
-          downloadPdf,
-          reportPdfFilename,
-        } = await import("@/features/diagnostics/services/pdf-reports");
+        const { createGeoAeoReportPdf, downloadPdf, reportPdfFilename } =
+          await import("@/features/diagnostics/services/pdf-reports");
         const blob = await createGeoAeoReportPdf(
           normalized,
           diagnosisData as DiagnoseResult,
@@ -352,8 +365,7 @@ const GeoAeoDashboard = () => {
         console.error(error);
         toast({
           title: "Erro ao gerar PDF",
-          description:
-            error instanceof Error ? error.message : String(error),
+          description: error instanceof Error ? error.message : String(error),
           variant: "destructive",
         });
       }
@@ -405,18 +417,21 @@ const GeoAeoDashboard = () => {
     !robotsVisibility.available || !hasContentSignals
       ? null
       : `Sinais de uso — busca: ${contentSignalLabel(robotsVisibility.contentSignals.search)}, entrada em modelos de IA: ${contentSignalLabel(robotsVisibility.contentSignals.aiInput)}, treinamento: ${contentSignalLabel(robotsVisibility.contentSignals.aiTrain)}. Esses sinais não substituem as regras de rastreamento.`;
-  const robotsRecommendation =
-    !robotsVisibility.available
-      ? robotsPayloadMissing
-        ? "A resposta de geo-aeo-crawl não inclui o campo robotsTxt. Atualize/republique a função para disponibilizar o conteúdo e o erro técnico da coleta."
-        : "Confirme se o domínio publica /robots.txt e se ele pode ser acessado publicamente."
-      : robotsApproved
-        ? "Os agentes avaliados podem rastrear o site conforme as regras publicadas."
-        : "Revise as diretivas Allow e Disallow se quiser liberar outros caminhos ou agentes.";
+  const robotsRecommendation = !robotsVisibility.available
+    ? robotsPayloadMissing
+      ? "A resposta de geo-aeo-crawl não inclui o campo robotsTxt. Atualize/republique a função para disponibilizar o conteúdo e o erro técnico da coleta."
+      : "Confirme se o domínio publica /robots.txt e se ele pode ser acessado publicamente."
+    : robotsApproved
+      ? "Os agentes avaliados podem rastrear o site conforme as regras publicadas."
+      : "Revise as diretivas Permitir e Não permitir se quiser liberar outros caminhos ou agentes.";
   const prioritizedFindings = useMemo(
     () =>
       [...(result?.findings ?? []), ...fallbackFindings]
-        .sort((a, b) => Number(b.severity === "critical") - Number(a.severity === "critical"))
+        .sort(
+          (a, b) =>
+            Number(b.severity === "critical") -
+            Number(a.severity === "critical"),
+        )
         .slice(0, 6),
     [result],
   );
@@ -545,12 +560,20 @@ const GeoAeoDashboard = () => {
             <Sparkles className="h-5 w-5 text-primary" /> Agent Crawl{" "}
             <span className="text-muted-foreground font-normal">GEO/AEO</span>
           </div>
-          <img src={logoColored} alt="Logo" className="mr-12 h-8 object-contain" />
+          <img
+            src={logoColored}
+            alt="Logo"
+            className="mr-12 h-8 object-contain"
+          />
         </div>
       </header>
       <div className="container py-8 md:py-12">
         <div className="max-w-3xl">
-          <img src={logoColored} alt="Logo" className="h-12 mb-6 object-contain drop-shadow-sm" />
+          <img
+            src={logoColored}
+            alt="Logo"
+            className="h-12 mb-6 object-contain drop-shadow-sm"
+          />
           <p className="mb-3 text-sm font-medium text-primary">
             VISIBILIDADE EM BUSCA E IA
           </p>
@@ -620,9 +643,19 @@ const GeoAeoDashboard = () => {
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span>{crawlStage}</span>
             </div>
-            <Progress value={crawlStage.includes("Consolidando") ? 90 : crawlStage.includes("Descobrindo") ? 45 : 15} className="mt-3 h-1.5" />
+            <Progress
+              value={
+                crawlStage.includes("Consolidando")
+                  ? 90
+                  : crawlStage.includes("Descobrindo")
+                    ? 45
+                    : 15
+              }
+              className="mt-3 h-1.5"
+            />
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              O agente analisa até 12 páginas do domínio e ignora falhas isoladas.
+              O agente analisa até 12 páginas do domínio e ignora falhas
+              isoladas.
             </p>
           </Card>
         )}
@@ -687,9 +720,13 @@ const GeoAeoDashboard = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className={`text-5xl font-bold ${scoreColor(overall)}`}>{overall}</div>
+                  <div className={`text-5xl font-bold ${scoreColor(overall)}`}>
+                    {overall}
+                  </div>
                   <div className="text-sm text-muted-foreground">
-                    <div className="font-medium text-foreground">Score geral</div>
+                    <div className="font-medium text-foreground">
+                      Score geral
+                    </div>
                     <div>de prontidão digital</div>
                   </div>
                 </div>
@@ -697,17 +734,36 @@ const GeoAeoDashboard = () => {
             </Card>
             <div className="grid gap-4 md:grid-cols-3">
               {[
-                ["GEO", result.scores.geo, "Presença em mecanismos generativos"],
+                [
+                  "GEO",
+                  result.scores.geo,
+                  "Presença em mecanismos generativos",
+                ],
                 ["AEO", result.scores.aeo, "Capacidade de responder perguntas"],
-                ["Técnico", result.scores.technical, "Saúde estrutural do domínio"],
+                [
+                  "Técnico",
+                  result.scores.technical,
+                  "Saúde estrutural do domínio",
+                ],
               ].map(([label, value, description]) => (
-                <Card key={label as string} className="border-slate-200 p-5 shadow-sm">
+                <Card
+                  key={label as string}
+                  className="border-slate-200 p-5 shadow-sm"
+                >
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="text-sm font-semibold">{label as string}</div>
-                      <p className="mt-1 text-xs text-muted-foreground">{description as string}</p>
+                      <div className="text-sm font-semibold">
+                        {label as string}
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {description as string}
+                      </p>
                     </div>
-                    <span className={`text-2xl font-bold ${scoreColor(value as number)}`}>{value}</span>
+                    <span
+                      className={`text-2xl font-bold ${scoreColor(value as number)}`}
+                    >
+                      {value}
+                    </span>
                   </div>
                   <Progress value={value as number} className="mt-4 h-1.5" />
                 </Card>
@@ -716,16 +772,23 @@ const GeoAeoDashboard = () => {
             <Card className="border-slate-200 p-6 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold">Recomendações prioritárias</h3>
+                  <h3 className="text-lg font-semibold">
+                    Recomendações prioritárias
+                  </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Ações com maior impacto identificadas nesta análise.
                   </p>
                 </div>
-                <Badge variant="outline">{prioritizedFindings.length + 1} itens</Badge>
+                <Badge variant="outline">
+                  {prioritizedFindings.length + 1} itens
+                </Badge>
               </div>
               <div className="mt-5 grid gap-3 lg:grid-cols-2">
                 {prioritizedFindings.map((finding, index) => (
-                  <div key={`${finding.title}-${index}`} className="rounded-lg border border-slate-200 p-4">
+                  <div
+                    key={`${finding.title}-${index}`}
+                    className="rounded-lg border border-slate-200 p-4"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex gap-3">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold">
@@ -733,14 +796,21 @@ const GeoAeoDashboard = () => {
                         </span>
                         <div>
                           <p className="font-medium">{finding.title}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{finding.description}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {finding.description}
+                          </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className={`shrink-0 ${severityClass(finding.severity)}`}>
+                      <Badge
+                        variant="outline"
+                        className={`shrink-0 ${severityClass(finding.severity)}`}
+                      >
                         {severityLabel(finding.severity)}
                       </Badge>
                     </div>
-                    <p className="mt-3 border-t pt-3 text-sm text-primary">{finding.recommendation}</p>
+                    <p className="mt-3 border-t pt-3 text-sm text-primary">
+                      {finding.recommendation}
+                    </p>
                   </div>
                 ))}
                 <div className="rounded-lg border border-slate-200 p-4">
@@ -750,7 +820,9 @@ const GeoAeoDashboard = () => {
                         {prioritizedFindings.length + 1}
                       </span>
                       <div>
-                        <p className="font-medium">Visibilidade por mecanismo</p>
+                        <p className="font-medium">
+                          Visibilidade por mecanismo
+                        </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {robotsCardDescription}
                         </p>
@@ -844,28 +916,46 @@ const GeoAeoDashboard = () => {
             </div>
             {result.scoreBreakdown?.technical && (
               <Card className="p-6">
-                <h3 className="font-semibold">Como a pontuação foi calculada</h3>
+                <h3 className="font-semibold">
+                  Como a pontuação foi calculada
+                </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {result.scoreBreakdown.technical.formula}
                 </p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-4">
                   {[
                     ["Base média", result.scoreBreakdown.technical.base],
-                    ["Bônus robots.txt", result.scoreBreakdown.technical.robotsBonus],
-                    ["Bônus sitemap.xml", result.scoreBreakdown.technical.sitemapBonus],
-                    ["Desconto por links quebrados", result.scoreBreakdown.technical.brokenLinksPenalty],
+                    [
+                      "Bônus robots.txt",
+                      result.scoreBreakdown.technical.robotsBonus,
+                    ],
+                    [
+                      "Bônus sitemap.xml",
+                      result.scoreBreakdown.technical.sitemapBonus,
+                    ],
+                    [
+                      "Desconto por links quebrados",
+                      result.scoreBreakdown.technical.brokenLinksPenalty,
+                    ],
                   ].map(([label, value]) => (
-                    <div key={label as string} className="rounded-lg bg-muted/50 p-3">
+                    <div
+                      key={label as string}
+                      className="rounded-lg bg-muted/50 p-3"
+                    >
                       <div className="text-lg font-semibold">{value}</div>
-                      <div className="text-xs text-muted-foreground">{label as string}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {label as string}
+                      </div>
                     </div>
                   ))}
                 </div>
                 {result.scoreBreakdown.coverage && (
                   <p className="mt-4 text-xs text-muted-foreground">
-                    {result.scoreBreakdown.coverage.pagesCrawled} páginas analisadas ·{" "}
-                    {result.scoreBreakdown.coverage.sitemapUrls} URLs encontradas no sitemap ·{" "}
-                    {result.scoreBreakdown.coverage.brokenLinksChecked} links verificados
+                    {result.scoreBreakdown.coverage.pagesCrawled} páginas
+                    analisadas · {result.scoreBreakdown.coverage.sitemapUrls}{" "}
+                    URLs encontradas no sitemap ·{" "}
+                    {result.scoreBreakdown.coverage.brokenLinksChecked} links
+                    verificados
                   </p>
                 )}
               </Card>
@@ -934,7 +1024,7 @@ const GeoAeoDashboard = () => {
                 className="bg-emerald-600 text-white"
                 disabled={loading}
               >
-                Gerar relatório técnico 
+                Gerar relatório técnico
               </Button>
               <Button onClick={exportReport} variant="outline">
                 Exportar CSV
