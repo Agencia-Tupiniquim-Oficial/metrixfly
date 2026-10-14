@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import type { BusinessSummary } from "./business-report";
 import type { DiagnoseResult, Improvement } from "./diagnose";
+import type { QuoteRequest } from "./quote-request";
 
 export type DiagnosticPageProps = {
   url: string;
@@ -26,5 +27,7 @@ export type DiagnosticPageProps = {
     value: string | string[],
   ) => void;
   updateUiuxOverview: (value: string) => void;
+  sendQuoteRequest?: (request: QuoteRequest) => Promise<void>;
+  quoteSending: boolean;
   openGeoDashboard?: (crawl?: unknown) => void;
 };

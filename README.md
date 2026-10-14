@@ -61,6 +61,8 @@ As funcionalidades específicas ficam em `src/features/<domínio>`. Elementos us
 
 Segredos usados por Edge Functions, como chaves de provedores externos, devem ser configurados como secrets no Supabase; não os coloque em variáveis `VITE_*` nem no código do navegador. O arquivo `.env` local não deve ser versionado.
 
+O envio de solicitações de orçamento usa a Edge Function `quote-request` e a API do Resend. Antes de publicar essa função, configure `RESEND_API_KEY` e `RESEND_FROM_EMAIL` nos secrets do Supabase. O endereço definido em `RESEND_FROM_EMAIL` precisa estar verificado e autorizado na conta Resend; para usar `no-reply@tupiniquimdesign.com.br`, verifique esse remetente primeiro. Sem essas configurações, a função retorna erro e o formulário permite uma nova tentativa, sem indicar sucesso.
+
 ## Comandos
 
 ```bash

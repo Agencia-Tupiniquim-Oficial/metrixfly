@@ -32,6 +32,7 @@ describe("DiagnosticPreview", () => {
         updateUiuxOverview={vi.fn()}
         downloadTechnicalPdf={vi.fn()}
         downloading={false}
+        onSubmitQuoteRequest={vi.fn().mockResolvedValue(undefined)}
         downloadBusinessPdf={vi.fn()}
         businessDownloading={false}
       />,
@@ -40,6 +41,7 @@ describe("DiagnosticPreview", () => {
     expect(screen.getByRole("heading", { name: "Seu site está otimizado!" })).toBeTruthy();
     expect(screen.getByText(/Todas as notas de desempenho estão acima de 90/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Baixar resultado do diagnóstico em PDF/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Solicitar orçamento" })).toBeTruthy();
     expect(screen.queryByText("Relatório técnico")).toBeNull();
     expect(screen.queryByText("Reduzir scripts")).toBeNull();
     expect(screen.queryByText("Otimizar imagem abaixo da dobra")).toBeNull();

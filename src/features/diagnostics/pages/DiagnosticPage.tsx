@@ -1,12 +1,19 @@
 import { useState, FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 import { useDiagnosis } from "@/features/diagnostics/state/DiagnosisContext";
 import { getDiagnosticErrorMessage } from "@/features/diagnostics/services/error-handler";
 import { DiagnosticExperience } from "@/features/diagnostics/components/DiagnosticExperience";
 import type { DiagnoseResult, Improvement } from "@/features/diagnostics/model/diagnose";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
+import {
+  buildDiagnosticSummary,
+  validateDiagnosticPdf,
+  type QuoteEmailRequest,
+  type QuoteRequest,
+} from "@/features/diagnostics/model/quote-request";
 import {
   sampleDiagnosticResult,
   sampleBusinessSummary,
@@ -22,6 +29,7 @@ const DiagnosticPage = () => {
   const [result, setResult] = useState<Result | null>(diagnostic ?? null);
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   const [downloading, setDownloading] = useState(false);
+  const [quoteSending, setQuoteSending] = useState(false);
   const [businessDownloading, setBusinessDownloading] = useState(false);
   const [businessSummary, setBusinessSummary] = useState<BusinessSummary | null>(null);
   const [businessLoading, setBusinessLoading] = useState(false);
@@ -42,8 +50,13 @@ const DiagnosticPage = () => {
       });
       if (data?.error) throw new Error(data.error);
       if (error) throw error;
-      setResult(data as Result);
-      setDiagnostic(data as DiagnoseResult);
+      const diagnosis = data as DiagnoseResult;
+      const diagnosticResult = {
+        ...diagnosis,
+        geo: { ...diagnosis.geo, domain: normalized },
+      } satisfies DiagnoseResult;
+      setResult(diagnosticResult);
+      setDiagnostic(diagnosticResult);
       toast({
         title: "Diagnóstico pronto!",
         description: "Seu relatório foi gerado com sucesso.",
@@ -105,7 +118,15 @@ const DiagnosticPage = () => {
     if (!result) return;
     setDownloading(true);
     try {
-      const normalized = url.startsWith("http") ? url : "https://" + url;
+      const analyzedUrl = result.geo?.domain?.trim() || url.trim();
+      const normalized = /^https?:\/\//i.test(analyzedUrl)
+        ? analyzedUrl
+        : `https://${analyzedUrl}`;
+      try {
+        new URL(normalized);
+      } catch {
+        throw new Error("Não foi possível identificar o domínio analisado para nomear o relatório.");
+      }
       const {
         createDiagnosticReportPdf,
         downloadPdf,
@@ -126,6 +147,79 @@ const DiagnosticPage = () => {
       });
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const sendQuoteRequest = async (request: QuoteRequest) => {
+    if (!result) {
+      throw new Error("Gere um diagnóstico antes de solicitar um orçamento.");
+    }
+    if (isDemo) {
+      throw new Error("Solicitações de orçamento não estão disponíveis no modo de demonstração.");
+    }
+
+    setQuoteSending(true);
+    try {
+      const analyzedUrl = result.geo?.domain?.trim() || url.trim();
+      const normalizedUrl = /^https?:\/\//i.test(analyzedUrl)
+        ? analyzedUrl
+        : `https://${analyzedUrl}`;
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(normalizedUrl);
+      } catch {
+        throw new Error("Não foi possível identificar o domínio analisado.");
+      }
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        throw new Error("O domínio analisado precisa usar HTTP ou HTTPS.");
+      }
+
+      const { createDiagnosticReportPdf } = await import(
+        "@/features/diagnostics/services/pdf-reports"
+      );
+      const pdf = await createDiagnosticReportPdf(normalizedUrl, result);
+      validateDiagnosticPdf(pdf);
+      const payload: QuoteEmailRequest = {
+        ...request,
+        domain: normalizedUrl,
+        diagnosticSummary: buildDiagnosticSummary(result),
+      };
+      const formData = new FormData();
+      formData.append("form-name", payload["form-name"]);
+      formData.append("name", payload.name);
+      formData.append("company", payload.company);
+      formData.append("email", payload.email);
+      formData.append("phone", payload.phone);
+      formData.append("domain", payload.domain);
+      formData.append("diagnosticSummary", payload.diagnosticSummary);
+      formData.append("report", pdf, "diagnostico.pdf");
+      const { data, error } = await supabase.functions.invoke("quote-request", {
+        body: formData,
+      });
+      if (error) {
+        if (error instanceof FunctionsHttpError) {
+          let responseBody: unknown;
+          try {
+            responseBody = await error.context.json();
+          } catch {
+            responseBody = null;
+          }
+          if (
+            responseBody &&
+            typeof responseBody === "object" &&
+            "error" in responseBody &&
+            typeof responseBody.error === "string"
+          ) {
+            throw new Error(responseBody.error);
+          }
+        }
+        throw error;
+      }
+      if (data?.success !== true) {
+        throw new Error("O serviço não confirmou o envio da solicitação.");
+      }
+    } finally {
+      setQuoteSending(false);
     }
   };
 
@@ -277,6 +371,8 @@ const DiagnosticPage = () => {
       updateImprovement(index, field as keyof Improvement, value);
     }}
     updateUiuxOverview={updateUiuxOverview}
+    sendQuoteRequest={isDemo ? undefined : sendQuoteRequest}
+    quoteSending={quoteSending}
     openGeoDashboard={openGeoDashboard}
   />;
 };

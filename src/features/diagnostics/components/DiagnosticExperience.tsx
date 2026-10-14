@@ -39,6 +39,8 @@ export function DiagnosticExperience({
   setPreviewMode,
   updateImprovement,
   updateUiuxOverview,
+  sendQuoteRequest,
+  quoteSending,
 }: DiagnosticPageProps) {
   const getGrade = (score: number) => {
     if (score >= 90)
@@ -354,6 +356,8 @@ export function DiagnosticExperience({
                 setPreviewMode={setPreviewMode}
                 updateImprovement={updateImprovement}
                 updateUiuxOverview={updateUiuxOverview}
+                onSubmitQuoteRequest={sendQuoteRequest}
+                quoteSending={quoteSending}
                 downloadTechnicalPdf={downloadTechnicalPdf}
                 downloading={downloading}
                 downloadBusinessPdf={downloadClientReport}

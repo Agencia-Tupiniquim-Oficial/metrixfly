@@ -1,8 +1,10 @@
 import BusinessReportPreview from "@/features/diagnostics/components/BusinessReportPreview";
+import QuoteRequestDialog from "@/features/diagnostics/components/QuoteRequestDialog";
 import DiagnosticReportPreview from "@/features/diagnostics/components/DiagnosticReportPreview";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
+import type { QuoteRequest } from "@/features/diagnostics/model/quote-request";
 import { Building2, CheckCircle2, Download, Eye, FileText, Loader2, Pencil, UserRound } from "lucide-react";
 import { useState } from "react";
 import {
@@ -30,6 +32,8 @@ type Props = {
   setBusinessSummary?: (summary: BusinessSummary) => void;
   businessLoading?: boolean;
   onLoadBusinessSummary?: () => Promise<BusinessSummary | null>;
+  onSubmitQuoteRequest?: (request: QuoteRequest) => Promise<void>;
+  quoteSending?: boolean;
 };
 
 export default function DiagnosticPreview({
@@ -47,6 +51,8 @@ export default function DiagnosticPreview({
   setBusinessSummary,
   businessLoading = false,
   onLoadBusinessSummary,
+  onSubmitQuoteRequest,
+  quoteSending = false,
 }: Props) {
   const [reportType, setReportType] = useState<"full" | "corporate">("full");
 
@@ -79,6 +85,12 @@ export default function DiagnosticPreview({
           )}
           Baixar resultado do diagnóstico em PDF
         </Button>
+        {onSubmitQuoteRequest && (
+          <QuoteRequestDialog
+            onSubmitRequest={onSubmitQuoteRequest}
+            sending={quoteSending}
+          />
+        )}
       </Card>
     );
   }
@@ -203,7 +215,7 @@ export default function DiagnosticPreview({
       </Card>
 
 
-      <div className="sticky bottom-4 mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="sticky bottom-4 mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Button
           onClick={downloadTechnicalPdf}
           disabled={downloading}
@@ -232,6 +244,12 @@ export default function DiagnosticPreview({
             ? "Preparando relatório..."
             : "Baixar versão corporativa em PDF"}
         </Button>
+        {onSubmitQuoteRequest && (
+          <QuoteRequestDialog
+            onSubmitRequest={onSubmitQuoteRequest}
+            sending={quoteSending}
+          />
+        )}
       </div>
     </div>
   );
