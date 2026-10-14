@@ -16,15 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Bot,
-  CheckCircle2,
-  ChevronRight,
-  CircleAlert,
-  Download,
   FileSearch,
   Globe2,
   Loader2,
   Network,
-  Plus,
   Search,
   Sparkles,
   Target,
@@ -171,10 +166,6 @@ const GeoAeoDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [crawlStage, setCrawlStage] = useState("Preparando o rastreamento...");
   const [result, setResult] = useState<CrawlResult | null>(null);
-  const [prompts, setPrompts] = useState<string[]>([]);
-  const [prompt, setPrompt] = useState("");
-  const [competitors, setCompetitors] = useState<string[]>([]);
-  const [competitor, setCompetitor] = useState("");
   const [responseRecords, setResponseRecords] = useState<ResponseRecord[]>([]);
   const [responsePlatform, setResponsePlatform] = useState("ChatGPT");
   const [responsePrompt, setResponsePrompt] = useState("");
@@ -350,7 +341,7 @@ const GeoAeoDashboard = () => {
         const blob = await createGeoAeoReportPdf(
           normalized,
           diagnosisData as DiagnoseResult,
-          { ...crawl, prompts },
+          { ...crawl, prompts: [] },
         );
         downloadPdf(blob, reportPdfFilename(normalized, "relatorio_completo"));
         toast({
@@ -429,40 +420,6 @@ const GeoAeoDashboard = () => {
         .slice(0, 6),
     [result],
   );
-  const addPrompt = async () => {
-    const value = prompt.trim();
-    if (!value || prompts.includes(value)) return;
-    setPrompts((current) => [...current, value]);
-    setPrompt("");
-    if (projectId) {
-      const { error } = await supabase
-        .from("geo_prompts")
-        .insert({ project_id: projectId, prompt: value });
-      if (error)
-        toast({
-          title: "Prompt não salvo",
-          description: error.message,
-          variant: "destructive",
-        });
-    }
-  };
-  const addCompetitor = async () => {
-    const value = competitor.trim();
-    if (!value || competitors.includes(value)) return;
-    setCompetitors((current) => [...current, value]);
-    setCompetitor("");
-    if (projectId) {
-      const { error } = await supabase
-        .from("geo_competitors")
-        .insert({ project_id: projectId, domain: value });
-      if (error)
-        toast({
-          title: "Concorrente não salvo",
-          description: error.message,
-          variant: "destructive",
-        });
-    }
-  };
   const exportReport = () => {
     if (!result) return;
     const rows = [
@@ -639,8 +596,8 @@ const GeoAeoDashboard = () => {
               <div className="flex-1">
                 <p className="font-medium">Salve os projetos da sua agência</p>
                 <p className="text-xs text-muted-foreground">
-                  Entre com seu e-mail para manter históricos, prompts e
-                  evidências isolados por usuário.
+                  Entre com seu e-mail para manter históricos e evidências
+                  isolados por usuário.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -708,30 +665,11 @@ const GeoAeoDashboard = () => {
                 <h2 className="text-2xl font-bold">Resumo executivo</h2>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={exportReport}>
-                  <Download className="mr-2 h-4 w-4" /> CSV
-                </Button>
                 <Badge variant="outline">
                   Atualizado{" "}
                   {new Date(result.crawledAt).toLocaleString("pt-BR")}
                 </Badge>
               </div>
-            </div>
-            <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm">
-              {[
-                "Overview",
-                "Prompt Intelligence",
-                "Crawl técnico",
-                "Concorrentes",
-              ].map((tab, index) => (
-                <a
-                  key={tab}
-                  href={`#geo-${index}`}
-                  className="whitespace-nowrap rounded-md px-3 py-2 font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  {tab}
-                </a>
-              ))}
             </div>
             <Card className="overflow-hidden border-slate-200 shadow-sm">
               <div className="flex flex-col justify-between gap-6 p-6 sm:flex-row sm:items-center">
@@ -783,7 +721,7 @@ const GeoAeoDashboard = () => {
                     Ações com maior impacto identificadas nesta análise.
                   </p>
                 </div>
-                <Badge variant="outline">{prioritizedFindings.length} itens</Badge>
+                <Badge variant="outline">{prioritizedFindings.length + 1} itens</Badge>
               </div>
               <div className="mt-5 grid gap-3 lg:grid-cols-2">
                 {prioritizedFindings.map((finding, index) => (
@@ -805,6 +743,45 @@ const GeoAeoDashboard = () => {
                     <p className="mt-3 border-t pt-3 text-sm text-primary">{finding.recommendation}</p>
                   </div>
                 ))}
+                <div className="rounded-lg border border-slate-200 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold">
+                        {prioritizedFindings.length + 1}
+                      </span>
+                      <div>
+                        <p className="font-medium">Visibilidade por mecanismo</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {robotsCardDescription}
+                        </p>
+                        {robotsVisibility.robotsUrl && (
+                          <a
+                            href={robotsVisibility.robotsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 inline-block break-all text-xs text-primary underline"
+                          >
+                            robots.txt
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`shrink-0 ${severityClass(robotsApproved ? "passed" : "warning")}`}
+                    >
+                      {robotsApproved ? "Aprovado" : "Atenção"}
+                    </Badge>
+                  </div>
+                  <p className="mt-3 border-t pt-3 text-sm text-primary">
+                    {robotsRecommendation}
+                  </p>
+                  {contentSignalSummary && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {contentSignalSummary}
+                    </p>
+                  )}
+                </div>
               </div>
             </Card>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -825,7 +802,7 @@ const GeoAeoDashboard = () => {
                 icon={TrendingUp}
               />
             </div>
-            <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+            <div>
               <Card className="p-6">
                 <div className="flex items-center gap-3">
                   <div
@@ -864,55 +841,6 @@ const GeoAeoDashboard = () => {
                   ))}
                 </div>
               </Card>
-              <Card className="p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold">Visibilidade por mecanismo</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Verifica as regras de rastreamento publicadas no robots.txt.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-5 rounded-lg border border-slate-200 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex gap-3">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold">
-                        1
-                      </span>
-                      <div>
-                        <p className="font-medium">robots.txt</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {robotsCardDescription}
-                        </p>
-                        {robotsVisibility.robotsUrl && (
-                          <a
-                            href={robotsVisibility.robotsUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-1 inline-block break-all text-xs text-primary underline"
-                          >
-                            {robotsVisibility.robotsUrl}
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`shrink-0 ${severityClass(robotsApproved ? "passed" : "warning")}`}
-                    >
-                      {robotsApproved ? "Aprovado" : "Atenção"}
-                    </Badge>
-                  </div>
-                  <p className="mt-3 border-t pt-3 text-sm text-primary">
-                    {robotsRecommendation}
-                  </p>
-                  {contentSignalSummary && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {contentSignalSummary}
-                    </p>
-                  )}
-                </div>
-              </Card>
             </div>
             {result.scoreBreakdown?.technical && (
               <Card className="p-6">
@@ -942,69 +870,31 @@ const GeoAeoDashboard = () => {
                 )}
               </Card>
             )}
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 font-semibold">
-                  <CircleAlert className="h-4 w-4 text-amber-500" />{" "}
-                  Oportunidades prioritárias
-                </h3>
+            <Card className="p-6">
+              <h3 className="mb-4 flex items-center gap-2 font-semibold">
+                <Network className="h-4 w-4 text-primary" /> Entidades e tópicos
+              </h3>
+              {result.entities.length ? (
                 <div className="space-y-4">
-                  {[...result.findings, ...fallbackFindings]
-                    .slice(0, 5)
-                    .map((finding, index) => (
-                      <div
-                        key={`${finding.title}-${index}`}
-                        className="flex gap-3 border-b pb-4 last:border-0 last:pb-0"
-                      >
-                        {finding.severity === "passed" ? (
-                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                        ) : (
-                          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                        )}
-                        <div>
-                          <p className="font-medium">{finding.title}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {finding.description}
-                          </p>
-                          <p className="mt-2 text-sm text-primary">
-                            {finding.recommendation}
-                          </p>
-                        </div>
+                  {result.entities.slice(0, 6).map((entity) => (
+                    <div key={entity.name}>
+                      <div className="mb-1 flex justify-between text-sm">
+                        <span>{entity.name}</span>
+                        <span className="text-muted-foreground">
+                          {entity.coverage}% · {entity.pages} pág.
+                        </span>
                       </div>
-                    ))}
+                      <Progress value={entity.coverage} />
+                    </div>
+                  ))}
                 </div>
-              </Card>
-              <Card className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 font-semibold">
-                  <Network className="h-4 w-4 text-primary" /> Entidades e
-                  tópicos
-                </h3>
-                {result.entities.length ? (
-                  <div className="space-y-4">
-                    {result.entities.slice(0, 6).map((entity) => (
-                      <div key={entity.name}>
-                        <div className="mb-1 flex justify-between text-sm">
-                          <span>{entity.name}</span>
-                          <span className="text-muted-foreground">
-                            {entity.coverage}% · {entity.pages} pág.
-                          </span>
-                        </div>
-                        <Progress value={entity.coverage} />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Nenhuma entidade semântica detectada. Adicione conteúdo
-                    topical e dados estruturados.
-                  </p>
-                )}
-                <Button variant="outline" className="mt-6 w-full">
-                  Ver mapa de tópicos{" "}
-                  <ChevronRight className="ml-auto h-4 w-4" />
-                </Button>
-              </Card>
-            </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma entidade semântica detectada. Adicione conteúdo
+                  topical e dados estruturados.
+                </p>
+              )}
+            </Card>
             <Card className="p-6">
               <h3 className="mb-4 font-semibold">Score por página</h3>
               <div className="overflow-x-auto">
@@ -1038,41 +928,6 @@ const GeoAeoDashboard = () => {
                 </table>
               </div>
             </Card>
-            <div id="geo-1" className="grid gap-6 lg:grid-cols-2">
-              <Card className="p-6">
-                <h3 className="flex items-center gap-2 font-semibold">
-                  <Bot className="h-4 w-4 text-primary" /> Prompt Intelligence
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Cadastre perguntas reais para acompanhar visibilidade,
-                  menções, posição e citações. A execução automática exige uma
-                  integração autorizada com cada mecanismo.
-                </p>
-                <div className="mt-4 flex gap-2">
-                  <Input
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addPrompt()}
-                    placeholder="ex.: melhor agência de SEO para e-commerce"
-                  />
-                  <Button onClick={addPrompt} size="icon">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                {prompts.length ? (
-                  <div className="mt-4 space-y-2">
-                    {prompts.map((item) => (
-                      <div
-                        key={item}
-                        className="rounded-md bg-muted/50 p-3 text-sm"
-                      >
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </Card>
-            </div>
             <div className="grid gap-3 md:grid-cols-2">
               <Button
                 onClick={() => runCrawlAndReport()}
