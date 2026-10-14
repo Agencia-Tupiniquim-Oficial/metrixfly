@@ -43,7 +43,14 @@ async function fetchText(url: string) {
     clearTimeout(timeout);
   }
   if (!res.ok) throw new Error(`O site retornou HTTP ${res.status}.`);
-  return { text: await res.text(), url: res.url };
+  const text = await res.text();
+  return {
+    text,
+    url: res.url,
+    status: res.status,
+    contentType: res.headers.get("content-type"),
+    bytes: new TextEncoder().encode(text).byteLength,
+  };
 }
 
 async function checkUrl(url: string): Promise<number | null> {
@@ -109,6 +116,7 @@ Deno.serve(async req => {
     const robots = robotsResult.status === "fulfilled" ? robotsResult.value.text : "";
     const sitemap = sitemapResult.status === "fulfilled" ? sitemapResult.value.text : "";
     const llms = llmsResult.status === "fulfilled" ? llmsResult.value.text : "";
+    const robotsUrl = new URL("/robots.txt", base).href;
     const disallowed = [...robots.matchAll(/^\s*Disallow:\s*(\S+)/gim)]
       .map((match) => match[1])
       .filter((path) => path !== "/");
@@ -198,6 +206,19 @@ Deno.serve(async req => {
         imagesWithoutAlt: pages.reduce((sum, p) => sum + p.imagesWithoutAlt, 0),
         internalLinks: pages.reduce((sum, p) => sum + p.internalLinks, 0),
         brokenLinks: brokenLinks.length,
+      },
+      robotsTxt: {
+        available: robotsResult.status === "fulfilled",
+        url: robotsResult.status === "fulfilled" ? robotsResult.value.url : robotsUrl,
+        content: robotsResult.status === "fulfilled" ? robots : null,
+        httpStatus: robotsResult.status === "fulfilled" ? robotsResult.value.status : null,
+        contentType: robotsResult.status === "fulfilled" ? robotsResult.value.contentType : null,
+        bytes: robotsResult.status === "fulfilled" ? robotsResult.value.bytes : null,
+        error: robotsResult.status === "rejected"
+          ? robotsResult.reason instanceof Error
+            ? robotsResult.reason.message
+            : String(robotsResult.reason)
+          : null,
       },
       visibility: { chatgpt: null, gemini: null, perplexity: null },
       pages: pages.map(({ text, schema, faqs, canonical, noindex, images, imagesWithoutAlt, internalLinks, links, ...page }) => ({

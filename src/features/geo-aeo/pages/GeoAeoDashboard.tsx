@@ -2,6 +2,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
+import {
+  analyzeRobotsTxt,
+  type RobotsDocument,
+  type ContentSignal,
+} from "@/features/geo-aeo/lib/robots";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -80,6 +85,7 @@ type CrawlResult = {
     gemini: number | null;
     perplexity: number | null;
   };
+  robotsTxt?: RobotsDocument;
   pages: Page[];
   findings: Finding[];
   entities: { name: string; coverage: number; pages: number }[];
@@ -87,14 +93,6 @@ type CrawlResult = {
 };
 
 const fallbackFindings: Finding[] = [
-  {
-    severity: "warning",
-    title: "Configure seus prompts de monitoramento",
-    description:
-      "A visibilidade em ChatGPT, Gemini e Perplexity precisa de consultas definidas para ser medida.",
-    recommendation:
-      "Adicione perguntas reais dos seus clientes e rode o monitoramento semanalmente.",
-  },
   {
     severity: "passed",
     title: "Crawler pronto para análise",
@@ -122,6 +120,21 @@ function severityClass(severity: Finding["severity"]) {
     : severity === "warning"
       ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200"
       : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200";
+}
+
+function contentSignalLabel(signal: ContentSignal) {
+  switch (signal) {
+    case "yes":
+      return "Sim";
+    case "no":
+      return "Não";
+    case "conflicting":
+      return "Conflitante";
+    case "unverifiable":
+      return "Não foi possível verificar";
+    case "unspecified":
+      return "Não informado";
+  }
 }
 
 function Metric({
@@ -381,6 +394,34 @@ const GeoAeoDashboard = () => {
         : 0,
     [result],
   );
+  const robotsVisibility = useMemo(
+    () => analyzeRobotsTxt(result?.robotsTxt, result?.domain),
+    [result],
+  );
+  const robotsPayloadMissing = result != null && result.robotsTxt == null;
+  const robotsApproved =
+    robotsVisibility.available && robotsVisibility.status === "allowed";
+  const robotsCardDescription = !robotsVisibility.available
+    ? robotsPayloadMissing
+      ? "A auditoria não retornou o conteúdo do robots.txt. Atualize a função de crawl para verificar as regras."
+      : `Não foi possível consultar o robots.txt. ${result?.robotsTxt?.error ?? ""}`
+    : robotsVisibility.explanation;
+  const hasContentSignals =
+    robotsVisibility.contentSignals.search !== "unspecified" ||
+    robotsVisibility.contentSignals.aiInput !== "unspecified" ||
+    robotsVisibility.contentSignals.aiTrain !== "unspecified";
+  const contentSignalSummary =
+    !robotsVisibility.available || !hasContentSignals
+      ? null
+      : `Sinais de uso — busca: ${contentSignalLabel(robotsVisibility.contentSignals.search)}, entrada em modelos de IA: ${contentSignalLabel(robotsVisibility.contentSignals.aiInput)}, treinamento: ${contentSignalLabel(robotsVisibility.contentSignals.aiTrain)}. Esses sinais não substituem as regras de rastreamento.`;
+  const robotsRecommendation =
+    !robotsVisibility.available
+      ? robotsPayloadMissing
+        ? "A resposta de geo-aeo-crawl não inclui o campo robotsTxt. Atualize/republique a função para disponibilizar o conteúdo e o erro técnico da coleta."
+        : "Confirme se o domínio publica /robots.txt e se ele pode ser acessado publicamente."
+      : robotsApproved
+        ? "Os agentes avaliados podem rastrear o site conforme as regras publicadas."
+        : "Revise as diretivas Allow e Disallow se quiser liberar outros caminhos ou agentes.";
   const prioritizedFindings = useMemo(
     () =>
       [...(result?.findings ?? []), ...fallbackFindings]
@@ -824,26 +865,52 @@ const GeoAeoDashboard = () => {
                 </div>
               </Card>
               <Card className="p-6">
-                <h3 className="font-semibold">Visibilidade por mecanismo</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Configure prompts para ativar o monitoramento.
-                </p>
-                <div className="mt-5 space-y-4">
-                  {[
-                    ["ChatGPT", result.visibility.chatgpt],
-                    ["Gemini", result.visibility.gemini],
-                    ["Perplexity", result.visibility.perplexity],
-                  ].map(([name, value]) => (
-                    <div
-                      key={name as string}
-                      className="flex items-center justify-between border-b pb-3"
-                    >
-                      <span>{name as string}</span>
-                      <span className="font-semibold text-muted-foreground">
-                        {value == null ? "Não monitorado" : `${value}/100`}
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold">Visibilidade por mecanismo</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Verifica as regras de rastreamento publicadas no robots.txt.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-5 rounded-lg border border-slate-200 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold">
+                        1
                       </span>
+                      <div>
+                        <p className="font-medium">robots.txt</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {robotsCardDescription}
+                        </p>
+                        {robotsVisibility.robotsUrl && (
+                          <a
+                            href={robotsVisibility.robotsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 inline-block break-all text-xs text-primary underline"
+                          >
+                            {robotsVisibility.robotsUrl}
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                    <Badge
+                      variant="outline"
+                      className={`shrink-0 ${severityClass(robotsApproved ? "passed" : "warning")}`}
+                    >
+                      {robotsApproved ? "Aprovado" : "Atenção"}
+                    </Badge>
+                  </div>
+                  <p className="mt-3 border-t pt-3 text-sm text-primary">
+                    {robotsRecommendation}
+                  </p>
+                  {contentSignalSummary && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {contentSignalSummary}
+                    </p>
+                  )}
                 </div>
               </Card>
             </div>
