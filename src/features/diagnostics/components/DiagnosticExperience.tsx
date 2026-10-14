@@ -103,7 +103,7 @@ export function DiagnosticExperience({
               className="bg-clip-text text-transparent"
               style={{ backgroundImage: "var(--gradient-primary)" }}
             >
-              Desempenho Web
+              Desempenho 
             </span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
