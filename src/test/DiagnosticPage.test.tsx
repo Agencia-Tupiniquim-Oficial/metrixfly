@@ -43,4 +43,16 @@ describe("Diagnostic experience", () => {
     expect(screen.getByText("Pontuação Mobile (Celular)")).toBeDefined();
     expect(screen.getByText("Versão corporativa")).toBeDefined();
   });
+
+  it("exposes the optimization estimate as a link with its diagnostic parameters", () => {
+    renderWithProviders(["/?demo=1"]);
+    const estimateLink = screen.getByRole("link", {
+      name: "Abrir estimativa de otimização",
+    });
+
+    expect(estimateLink).toHaveAttribute(
+      "href",
+      "/calculadora-financeira?mobileScore=43&traffic=15000&ticket=250",
+    );
+  });
 });

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/calculadora-financeira",
+      "destination": "/index.html"
+    }
+  ]
+}
