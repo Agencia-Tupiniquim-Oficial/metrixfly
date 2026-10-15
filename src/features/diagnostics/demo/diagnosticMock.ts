@@ -110,6 +110,18 @@ export const sampleDiagnosticResult: DiagnoseResult = {
       "Reduzir formulário de contato para Nome e WhatsApp na primeira etapa",
     ],
   },
+  extras: [
+    {
+      title: "Campos ocultos de rastreamento no formulário de contato",
+      description:
+        "Adicionar campos ocultos para metadados de rastreio, como origem e localização, com o objetivo de melhorar a rastreabilidade e a captura de informações dos leads. Essa melhoria aumenta consideravelmente a precisão na análise geral das estratégias da marca.",
+    },
+    {
+      title: "WhatsApp flutuante para atendimento",
+      description:
+        "O site não apresenta botão flutuante de WhatsApp visível na interface. Recomenda-se implementar um ícone fixo no canto inferior direito da tela, sempre visível em todas as páginas, que abre uma conversa direta com a empresa no WhatsApp. Esse recurso reduz a fricção para o contato inicial, agiliza o atendimento e aumenta a taxa de conversão de visitantes em leads qualificados.",
+    },
+  ],
 };
 
 export const sampleBusinessSummary: BusinessSummary = {

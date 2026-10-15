@@ -27,7 +27,7 @@ describe("Diagnostic experience", () => {
   it("renders the diagnostic landing page on the root route", () => {
     renderWithProviders(["/"]);
     expect(
-      screen.getByRole("heading", { name: "Diagnóstico & Desempenho Web" }),
+      screen.getByRole("heading", { name: "Diagnóstico & Desempenho" }),
     ).toBeDefined();
     expect(
       screen.getByText(/Analise as notas e métricas do PageSpeed Insights/),
