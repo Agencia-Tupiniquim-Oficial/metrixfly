@@ -14,6 +14,10 @@ import {
   type DiagnoseResult,
 } from "@/features/diagnostics/model/diagnose";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
+import {
+  getPageSpeedAuditTitle,
+  normalizePageSpeedDescription,
+} from "../../supabase/functions/_shared/pagespeed-translations.ts";
 
 vi.mock("@/assets/logo-colored.png", () => ({
   default:
@@ -230,6 +234,83 @@ describe("PDF reports", () => {
     expect(text).toContain("OTIMIZAR IMAGENS");
     expect(text).toContain("72");
     expect(text).toContain("2.4 S");
+  });
+
+  it("exports the same normalized Portuguese PageSpeed descriptions", async () => {
+    const findings = [
+      {
+        id: "button-name",
+        source: "Buttons do not have an accessible name.",
+      },
+      {
+        id: "forced-reflow-insight",
+        source: "Forced reflow occurs when JavaScript queries layout properties.",
+      },
+      {
+        id: "meta-viewport",
+        source:
+          "The user-scalable setting and maximum-scale can prevent users from zooming.",
+      },
+    ];
+    const normalizedDescriptions = findings.map(({ id, source }) =>
+      normalizePageSpeedDescription(id, source, undefined),
+    );
+    const translatedDiagnostic: DiagnoseResult = {
+      ...diagnostic,
+      improvements: findings.map(({ id }, index) => ({
+        title: getPageSpeedAuditTitle(id) ?? "Melhoria técnica",
+        description: normalizedDescriptions[index],
+      })),
+    };
+
+    const blob = await createDiagnosticReportPdf(
+      "https://site.test",
+      translatedDiagnostic,
+    );
+    const text = await readPdfText(blob);
+
+    for (const description of normalizedDescriptions) {
+      expect(text).toContain(description.toLocaleUpperCase("pt-BR"));
+    }
+    expect(text).not.toContain("BUTTONS DO NOT HAVE AN ACCESSIBLE NAME");
+    expect(text).not.toContain("FORCED REFLOW OCCURS");
+  });
+
+  it("exports the same normalized Portuguese PageSpeed opportunity titles", async () => {
+    const sourceTitles = [
+      "Forced reflow",
+      "Heading elements are not in a sequentially-descending order",
+      "Minimize main-thread work",
+      "LCP breakdown",
+      "Buttons do not have an accessible name",
+      '`[user-scalable="no"]` is used in the `<meta name="viewport">` element or the `[maximum-scale]` attribute is less than 5.',
+    ];
+    const translatedTitles = sourceTitles.map(
+      (title) => getPageSpeedAuditTitle("", title) ?? title,
+    );
+    const translatedDiagnostic: DiagnoseResult = {
+      ...diagnostic,
+      summary: {
+        ...diagnostic.summary,
+        mobile: {
+          ...diagnostic.summary.mobile,
+          opportunities: translatedTitles.map((title) => ({ title })),
+        },
+      },
+    };
+
+    const blob = await createDiagnosticReportPdf(
+      "https://site.test",
+      translatedDiagnostic,
+    );
+    const text = await readPdfText(blob);
+
+    for (const title of translatedTitles) {
+      expect(text).toContain(title.toLocaleUpperCase("pt-BR"));
+    }
+    for (const sourceTitle of sourceTitles) {
+      expect(text).not.toContain(sourceTitle.toLocaleUpperCase("pt-BR"));
+    }
   });
 
   it("does not repeat numbering already present in improvement titles", async () => {
