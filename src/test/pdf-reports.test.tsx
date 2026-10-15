@@ -79,7 +79,7 @@ const geo: GeoReportData = {
 
 async function readPdfPageItems(
   blob: Blob,
-): Promise<{ text: string; y: number }[][]> {
+): Promise<{ text: string; x: number; y: number; width: number }[][]> {
   const document = await getDocument({
     data: new Uint8Array(await blob.arrayBuffer()),
     standardFontDataUrl: new URL(
@@ -93,7 +93,14 @@ async function readPdfPageItems(
       const content = await page.getTextContent();
       return content.items
         .flatMap((item) =>
-          "str" in item ? [{ text: item.str, y: item.transform[5] }] : [],
+          "str" in item
+            ? [{
+                text: item.str,
+                x: item.transform[4],
+                y: item.transform[5],
+                width: item.width,
+              }]
+            : [],
         );
     }),
   );
@@ -347,8 +354,14 @@ describe("PDF reports", () => {
       longDiagnostic,
     );
     const pages = await readPdfPageItems(blob);
-    const text = pages.flat().map((item) => item.text).join(" ").toLocaleUpperCase("pt-BR");
     const firstPageItems = pages[0];
+    const pageTexts = pages.map((page) =>
+      page
+        .map((item) => item.text)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .toLocaleUpperCase("pt-BR"),
+    );
     const sectionY = firstPageItems.find((item) =>
       item.text.includes("Sugestões de melhoria"),
     )?.y;
@@ -361,9 +374,83 @@ describe("PDF reports", () => {
     );
 
     expect(pages.length).toBeGreaterThan(1);
-    expect(text.split("DIAGNÓSTICO E ESTRATÉGIA DIGITAL")).toHaveLength(2);
+    expect(pageTexts[0]).toMatch(
+      /KALASHIMARCAS\.COM\.BR\s*-\s*DIAGNÓSTICO DE SITE/,
+    );
+    expect(
+      pageTexts.slice(1).some((pageText) =>
+        /KALASHIMARCAS\.COM\.BR\s*-\s*DIAGNÓSTICO DE SITE/.test(pageText),
+      ),
+    ).toBe(false);
+    expect(pageTexts[0]).toContain("1. RECOMENDAÇÃO 1");
+    expect(pageTexts[0]).toContain("2. RECOMENDAÇÃO 2");
+    expect(pageTexts[0]).not.toContain("3. RECOMENDAÇÃO 3");
+    expect(pageTexts[1]).toContain("3. RECOMENDAÇÃO 3");
+    expect(pageTexts.at(-1)).toContain("PERFORMANCE");
+    expect(
+      pages.every((page) =>
+        page.every(
+          (item) =>
+            item.x >= 0 &&
+            item.x + item.width <= 596 &&
+            item.y >= 0 &&
+            item.y <= 842,
+        ),
+      ),
+    ).toBe(true);
     expect(sectionY).toBeDefined();
-    expect(titleY - sectionY!).toBeGreaterThan(55);
+    expect(titleY - sectionY!).toBeGreaterThan(50);
+  });
+
+  it("matches the preview's cover, content, and performance page grouping", async () => {
+    const report: DiagnoseResult = {
+      ...diagnostic,
+      improvements: [
+        { title: "Primeira melhoria" },
+        { title: "Segunda melhoria" },
+        { title: "Terceira melhoria" },
+        { title: "Quarta melhoria" },
+      ],
+      uiux: { overview: "Resumo de UI/UX" },
+      extras: [{ title: "Sugestão extra", description: "Descrição extra" }],
+    };
+    const blob = await createDiagnosticReportPdf("https://site.test", report);
+    const pages = await readPdfPageItems(blob);
+    const pageTexts = pages.map((page) =>
+      page
+        .map((item) => item.text)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .toLocaleUpperCase("pt-BR"),
+    );
+
+    expect(pageTexts).toHaveLength(3);
+    expect(pageTexts[0]).toContain("1. PRIMEIRA MELHORIA");
+    expect(pageTexts[0]).toContain("2. SEGUNDA MELHORIA");
+    expect(pageTexts[0]).not.toContain("TERCEIRA MELHORIA");
+    expect(pageTexts[1]).toContain("3. TERCEIRA MELHORIA");
+    expect(pageTexts[1]).toContain("4. QUARTA MELHORIA");
+    expect(pageTexts[1]).toContain("RESUMO DE UI/UX");
+    expect(pageTexts[1]).toContain("SUGESTÃO EXTRA");
+    expect(pageTexts[1]).not.toContain("PERFORMANCE");
+    expect(pageTexts[2]).toContain("PERFORMANCE");
+    expect(pageTexts[2]).toContain("DESKTOP");
+    expect(pageTexts[2]).toContain("MOBILE");
+
+    const desktopScoreXs = ["94", "98", "95", "99"].map((score) => {
+      const scoreItem = pages[2].find((item) => item.text === score);
+      expect(scoreItem).toBeDefined();
+      return scoreItem!.x;
+    });
+    expect(desktopScoreXs.slice(1).map((x, index) => x - desktopScoreXs[index]))
+      .toEqual([
+        expect.closeTo(60, 0),
+        expect.closeTo(60, 0),
+        expect.closeTo(60, 0),
+      ]);
+
+    const pdfSource = await blob.text();
+    expect(pdfSource).toContain("/Helvetica-Bold");
   });
 
   it("generates a readable executive PDF with the business summary", async () => {

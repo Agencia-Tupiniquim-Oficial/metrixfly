@@ -101,4 +101,34 @@ describe("DiagnosticReportPreview", () => {
       screen.getByRole("heading", { name: "3. Otimizar CSS", level: 3 }),
     ).toBeTruthy();
   });
+
+  it("groups cover, remaining recommendations, and performance consistently", () => {
+    const { container } = render(
+      <DiagnosticReportPreview
+        url="https://site.test"
+        mobile={{ scores: { performance: 72, accessibility: 91, bestPractices: 88, seo: 96 }, metrics: {} }}
+        desktop={{ scores: { performance: 94, accessibility: 98, bestPractices: 95, seo: 99 }, metrics: {} }}
+        improvements={[
+          { title: "Primeira melhoria" },
+          { title: "Segunda melhoria" },
+          { title: "Terceira melhoria" },
+          { title: "Quarta melhoria" },
+        ]}
+        uiux={{ overview: "Resumo de UI/UX" }}
+        extras={[{ title: "Sugestão extra", description: "Descrição extra" }]}
+      />,
+    );
+    const pages = container.querySelectorAll("div.mx-auto");
+
+    expect(pages).toHaveLength(3);
+    expect(pages[0].textContent).toContain("1. Primeira melhoria");
+    expect(pages[0].textContent).toContain("2. Segunda melhoria");
+    expect(pages[0].textContent).not.toContain("Terceira melhoria");
+    expect(pages[1].textContent).toContain("3. Terceira melhoria");
+    expect(pages[1].textContent).toContain("4. Quarta melhoria");
+    expect(pages[1].textContent).toContain("Resumo de UI/UX");
+    expect(pages[1].textContent).toContain("Sugestão extra");
+    expect(pages[1].textContent).not.toContain("Performance");
+    expect(pages[2].textContent).toContain("Performance");
+  });
 });

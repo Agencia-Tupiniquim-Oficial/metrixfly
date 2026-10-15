@@ -1,6 +1,12 @@
 import coverHeader from "@/assets/logo-colored.png";
 import LighthouseCard from "@/features/diagnostics/components/LighthouseCard";
 import React, { useState, useEffect, useRef } from "react";
+import {
+  DIAGNOSTIC_REPORT_COLORS,
+  DIAGNOSTIC_REPORT_FONTS,
+  DIAGNOSTIC_REPORT_LAYOUT,
+  DIAGNOSTIC_REPORT_TYPOGRAPHY,
+} from "@/features/diagnostics/components/diagnostic-report-design";
 import type {
   Improvement,
   PageSummary,
@@ -24,8 +30,12 @@ type Props = {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2
-      className="text-[27px] pb-2 mt-10 mb-5 text-report-green-soft"
-      style={{ fontFamily: "'Bree Serif', Georgia, serif" }}
+      className="font-normal"
+      style={{
+        color: DIAGNOSTIC_REPORT_COLORS.greenSoft,
+        fontFamily: DIAGNOSTIC_REPORT_FONTS.webHeading,
+        ...DIAGNOSTIC_REPORT_TYPOGRAPHY.section,
+      }}
     >
       {children}
     </h2>
@@ -33,7 +43,17 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function SubTitle({ children }: { children: React.ReactNode }) {
-  return <h4 className="text-base font-bold text-report-heading mt-4 mb-1.5">{children}</h4>;
+  return (
+    <h4
+      className="font-bold"
+      style={{
+        color: DIAGNOSTIC_REPORT_COLORS.heading,
+        ...DIAGNOSTIC_REPORT_TYPOGRAPHY.subheading,
+      }}
+    >
+      {children}
+    </h4>
+  );
 }
 
 function Bullets({
@@ -50,7 +70,14 @@ function Bullets({
 
   if (!editable) {
     return (
-      <ul className="list-disc pl-10 space-y-0.5 text-[15px] text-report-text leading-relaxed">
+      <ul
+        className="list-disc pl-10 space-y-0.5"
+        style={{
+          color: DIAGNOSTIC_REPORT_COLORS.text,
+          fontSize: DIAGNOSTIC_REPORT_TYPOGRAPHY.bullet.fontSize,
+          lineHeight: DIAGNOSTIC_REPORT_TYPOGRAPHY.bullet.lineHeight,
+        }}
+      >
         {items.map((it, i) => (
           <li key={i}>{it}</li>
         ))}
@@ -76,7 +103,14 @@ function Bullets({
 
   return (
     <div>
-      <ul className="list-disc pl-10 space-y-0.5 text-[15px] text-report-text leading-relaxed">
+      <ul
+        className="list-disc pl-10 space-y-0.5"
+        style={{
+          color: DIAGNOSTIC_REPORT_COLORS.text,
+          fontSize: DIAGNOSTIC_REPORT_TYPOGRAPHY.bullet.fontSize,
+          lineHeight: DIAGNOSTIC_REPORT_TYPOGRAPHY.bullet.lineHeight,
+        }}
+      >
         {local.map((it, i) => (
           <li key={i} className="flex items-start gap-2">
             <span
@@ -129,11 +163,25 @@ function EditableText({ value, onChange, className = "" }: { value: string; onCh
 function Page({ children, withHeader = false }: { children: React.ReactNode; withHeader?: boolean }) {
   return (
     <div
-      className="bg-report-paper text-report-text mx-auto shadow-lg overflow-hidden"
-      style={{ width: "100%", maxWidth: 780, minHeight: 1100, fontFamily: "Arial, Helvetica, sans-serif" }}
+      className="mx-auto shadow-lg overflow-hidden"
+      style={{
+        width: "100%",
+        maxWidth: DIAGNOSTIC_REPORT_LAYOUT.pageWidth,
+        minHeight: DIAGNOSTIC_REPORT_LAYOUT.pageMinHeight,
+        backgroundColor: DIAGNOSTIC_REPORT_COLORS.paper,
+        color: DIAGNOSTIC_REPORT_COLORS.text,
+        fontFamily: DIAGNOSTIC_REPORT_FONTS.webBody,
+      }}
     >
       {withHeader && (
-        <div className="flex justify-center px-[92px] pt-8">
+        <div
+          className="flex justify-center"
+          style={{
+            paddingLeft: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
+            paddingRight: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
+            paddingTop: DIAGNOSTIC_REPORT_LAYOUT.coverTopPadding,
+          }}
+        >
           <img
             src={coverHeader}
             alt="Logo Tupiniquim"
@@ -141,7 +189,16 @@ function Page({ children, withHeader = false }: { children: React.ReactNode; wit
           />
         </div>
       )}
-      <div className={withHeader ? "px-[92px] pt-12 pb-16" : "px-[92px] py-16"}>{children}</div>
+      <div
+        style={{
+          paddingLeft: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
+          paddingRight: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
+          paddingTop: withHeader ? 48 : DIAGNOSTIC_REPORT_LAYOUT.pagePaddingY,
+          paddingBottom: withHeader ? 64 : DIAGNOSTIC_REPORT_LAYOUT.pagePaddingY,
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -172,21 +229,39 @@ export default function DiagnosticReportPreview({
       <Page withHeader>
         <div>
           <h1
-            className="text-[28px] mb-12 text-report-green"
-            style={{ fontFamily: "'Bree Serif', Georgia, serif" }}
+            className="font-normal"
+            style={{
+              color: DIAGNOSTIC_REPORT_COLORS.green,
+              fontFamily: DIAGNOSTIC_REPORT_FONTS.webHeading,
+              ...DIAGNOSTIC_REPORT_TYPOGRAPHY.title,
+            }}
           >
             {hostname} - DIAGNÓSTICO DE SITE
           </h1>
           <SectionTitle>Sugestões de melhoria</SectionTitle>
-          {improvements.slice(0, 2).map((imp, i) => (
-            <div key={i} className="mb-8">
-              <h3 className="text-[18px] font-bold text-report-heading mt-6 mb-5">
+          {improvements.slice(0, DIAGNOSTIC_REPORT_LAYOUT.coverImprovementCount).map((imp, i) => (
+            <div
+              key={i}
+              style={{ marginBottom: DIAGNOSTIC_REPORT_LAYOUT.coverImprovementGap }}
+            >
+              <h3
+                className="font-bold"
+                style={{
+                  color: DIAGNOSTIC_REPORT_COLORS.heading,
+                  ...DIAGNOSTIC_REPORT_TYPOGRAPHY.coverImprovementTitle,
+                }}
+              >
                 {i + 1}. <EditableText value={imp.title} onChange={editable ? (value) => onImprovementChange?.(i, "title", value) : undefined} />
               </h3>
               {(imp.description || imp.problem) && (
                 <>
                   <SubTitle>Descrição</SubTitle>
-                  <p className="text-[16px] text-report-text leading-relaxed">
+                  <p
+                    style={{
+                      color: DIAGNOSTIC_REPORT_COLORS.text,
+                      ...DIAGNOSTIC_REPORT_TYPOGRAPHY.coverDescription,
+                    }}
+                  >
                     <EditableText value={imp.description ?? imp.problem ?? ""} onChange={editable ? (value) => onImprovementChange?.(i, "description", value) : undefined} />
                   </p>
                 </>
@@ -216,22 +291,36 @@ export default function DiagnosticReportPreview({
 
       {/* Conteúdo */}
       <Page>
-        {improvements.slice(2).map((imp, i) => (
-          <div key={i} className="mb-6">
-            <h3 className="text-base font-bold text-report-heading mt-4 mb-2">
-              {i + 3}.{" "}
+        {improvements.slice(DIAGNOSTIC_REPORT_LAYOUT.coverImprovementCount).map((imp, i) => (
+          <div
+            key={i}
+            style={{ marginBottom: DIAGNOSTIC_REPORT_LAYOUT.contentImprovementGap }}
+          >
+            <h3
+              className="font-bold"
+              style={{
+                color: DIAGNOSTIC_REPORT_COLORS.heading,
+                ...DIAGNOSTIC_REPORT_TYPOGRAPHY.contentImprovementTitle,
+              }}
+            >
+              {i + DIAGNOSTIC_REPORT_LAYOUT.coverImprovementCount + 1}.{" "}
               <EditableText
                 value={imp.title}
-                onChange={editable ? (value) => onImprovementChange?.(i + 2, "title", value) : undefined}
+                onChange={editable ? (value) => onImprovementChange?.(i + DIAGNOSTIC_REPORT_LAYOUT.coverImprovementCount, "title", value) : undefined}
               />
             </h3>
             {(imp.description || imp.problem) && (
               <>
                 <SubTitle>Descrição</SubTitle>
-                <p className="text-[15px] text-report-text leading-relaxed">
+                <p
+                  style={{
+                    color: DIAGNOSTIC_REPORT_COLORS.text,
+                    ...DIAGNOSTIC_REPORT_TYPOGRAPHY.description,
+                  }}
+                >
                   <EditableText
                     value={imp.description ?? imp.problem ?? ""}
-                    onChange={editable ? (value) => onImprovementChange?.(i + 2, "description", value) : undefined}
+                    onChange={editable ? (value) => onImprovementChange?.(i + DIAGNOSTIC_REPORT_LAYOUT.coverImprovementCount, "description", value) : undefined}
                   />
                 </p>
               </>
@@ -239,19 +328,19 @@ export default function DiagnosticReportPreview({
             {imp.impact?.length ? (
               <>
                 <SubTitle>Impacto</SubTitle>
-                <Bullets items={imp.impact} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i + 2, "impact", items) : undefined} />
+                <Bullets items={imp.impact} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i + DIAGNOSTIC_REPORT_LAYOUT.coverImprovementCount, "impact", items) : undefined} />
               </>
             ) : null}
             {imp.causes?.length ? (
               <>
                 <SubTitle>Causas comuns</SubTitle>
-                <Bullets items={imp.causes} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i + 2, "causes", items) : undefined} />
+                <Bullets items={imp.causes} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i + DIAGNOSTIC_REPORT_LAYOUT.coverImprovementCount, "causes", items) : undefined} />
               </>
             ) : null}
             {imp.recommendations?.length ? (
               <>
                 <SubTitle>Recomendações</SubTitle>
-                <Bullets items={imp.recommendations} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i + 2, "recommendations", items) : undefined} />
+                <Bullets items={imp.recommendations} editable={editable} onChange={editable ? (items) => onImprovementChange?.(i + DIAGNOSTIC_REPORT_LAYOUT.coverImprovementCount, "recommendations", items) : undefined} />
               </>
             ) : null}
           </div>
@@ -261,7 +350,13 @@ export default function DiagnosticReportPreview({
           <>
             <SectionTitle>Melhorias de UI/UX</SectionTitle>
             {uiux.overview && (
-              <p className="text-[15px] text-report-text leading-relaxed mb-3">
+              <p
+                className="mb-3"
+                style={{
+                  color: DIAGNOSTIC_REPORT_COLORS.text,
+                  ...DIAGNOSTIC_REPORT_TYPOGRAPHY.description,
+                }}
+              >
                 <EditableText value={uiux.overview} onChange={editable ? onUiuxOverviewChange : undefined} />
               </p>
             )}
@@ -285,8 +380,24 @@ export default function DiagnosticReportPreview({
             <SectionTitle>Sugestões extras</SectionTitle>
             {extras.map((ex, i) => (
               <div key={i} className="mb-4">
-                <h3 className="text-base font-bold text-report-heading mb-1">{ex.title}</h3>
-                <p className="text-[15px] text-report-text leading-relaxed">{ex.description}</p>
+                <h3
+                  className="font-bold mb-1"
+                  style={{
+                    color: DIAGNOSTIC_REPORT_COLORS.heading,
+                    ...DIAGNOSTIC_REPORT_TYPOGRAPHY.extraTitle,
+                    marginTop: 0,
+                  }}
+                >
+                  {ex.title}
+                </h3>
+                <p
+                  style={{
+                    color: DIAGNOSTIC_REPORT_COLORS.text,
+                    ...DIAGNOSTIC_REPORT_TYPOGRAPHY.description,
+                  }}
+                >
+                  {ex.description}
+                </p>
               </div>
             ))}
           </>
