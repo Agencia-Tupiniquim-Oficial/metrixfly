@@ -18,6 +18,7 @@ import {
   sampleDiagnosticResult,
   sampleBusinessSummary,
 } from "@/features/diagnostics/demo/diagnosticMock";
+import { importPdfReports } from "@/lib/dynamic-import";
 type Result = DiagnoseResult;
 
 const DiagnosticPage = () => {
@@ -131,7 +132,7 @@ const DiagnosticPage = () => {
         createDiagnosticReportPdf,
         downloadPdf,
         reportPdfFilename,
-      } = await import("@/features/diagnostics/services/pdf-reports");
+      } = await importPdfReports();
       const blob = await createDiagnosticReportPdf(normalized, result);
       downloadPdf(blob, reportPdfFilename(normalized, "diagnostico"));
       toast({
@@ -174,9 +175,7 @@ const DiagnosticPage = () => {
         throw new Error("O domínio analisado precisa usar HTTP ou HTTPS.");
       }
 
-      const { createDiagnosticReportPdf } = await import(
-        "@/features/diagnostics/services/pdf-reports"
-      );
+      const { createDiagnosticReportPdf } = await importPdfReports();
       const pdf = await createDiagnosticReportPdf(normalizedUrl, result);
       validateDiagnosticPdf(pdf);
       const payload: QuoteEmailRequest = {
@@ -286,7 +285,7 @@ const DiagnosticPage = () => {
         createBusinessReportPdf,
         downloadPdf,
         reportPdfFilename,
-      } = await import("@/features/diagnostics/services/pdf-reports");
+      } = await importPdfReports();
       const blob = await createBusinessReportPdf(normalized, data);
       downloadPdf(blob, reportPdfFilename(normalized, "relatorio_cliente"));
       toast({

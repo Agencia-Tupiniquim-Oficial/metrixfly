@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
+import { importPdfReports } from "@/lib/dynamic-import";
 import {
   analyzeRobotsTxt,
   type RobotsDocument,
@@ -350,7 +351,7 @@ const GeoAeoDashboard = () => {
         }
 
         const { createGeoAeoReportPdf, downloadPdf, reportPdfFilename } =
-          await import("@/features/diagnostics/services/pdf-reports");
+          await importPdfReports();
         const blob = await createGeoAeoReportPdf(
           normalized,
           diagnosisData as DiagnoseResult,
