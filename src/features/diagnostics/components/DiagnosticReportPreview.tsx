@@ -216,7 +216,6 @@ export default function DiagnosticReportPreview({
 
       {/* Conteúdo */}
       <Page>
-        <SectionTitle>Sugestões de melhoria</SectionTitle>
         {improvements.slice(2).map((imp, i) => (
           <div key={i} className="mb-6">
             <h3 className="text-base font-bold text-report-heading mt-4 mb-2">
