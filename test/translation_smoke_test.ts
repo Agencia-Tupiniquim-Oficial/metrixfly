@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // test/translation_smoke_test.ts
 // Smoke test for translation pipeline (mocked Supabase + OpenRouter)
 // Minimal static dictionaries

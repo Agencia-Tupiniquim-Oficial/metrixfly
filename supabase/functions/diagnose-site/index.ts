@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 import {
@@ -32,6 +32,78 @@ const corsHeaders = {
 
 const PAGESPEED = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 
+type JsonRecord = Record<string, unknown>;
+
+type PageSpeedAudit = {
+  id: string;
+  title?: string;
+  description?: string;
+  displayValue?: string;
+  score?: number | null;
+  scoreDisplayMode?: string;
+  details?: {
+    type?: string;
+    overallSavingsMs?: number;
+    overallSavingsBytes?: number;
+    items?: unknown[];
+    data?: string;
+  };
+};
+
+type PageSpeedOpportunity = {
+  id: string;
+  title: string;
+  rawDescription?: string;
+  description?: string;
+  descriptionStatic?: string | null;
+  displayValue?: string;
+  score?: number | null;
+  details?: PageSpeedAudit["details"];
+};
+
+type PageSpeedResult = {
+  strategy: "mobile" | "desktop";
+  scores: Record<string, number>;
+  metrics: Record<string, string | number | null>;
+  screenshot: string | null;
+  pagespeedScreenshot?: string | null;
+  opportunities: PageSpeedOpportunity[];
+  finalUrl?: string;
+};
+
+type DiagnosticImprovement = {
+  id?: string;
+  title: string;
+  description: string;
+  rawDescription?: string;
+  displayValue?: string;
+  score?: number | null;
+  impact: string[];
+  causes: string[];
+  recommendations: string[];
+};
+
+type AiAnalysisResult = {
+  improvements?: unknown[];
+  uiux?: unknown;
+  extras?: unknown[];
+  _pageSpeedTranslations?: Record<string, string>;
+};
+
+function asRecord(value: unknown): JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : {};
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function errorName(error: unknown): string | undefined {
+  return error instanceof Error ? error.name : undefined;
+}
+
 async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   const params = new URLSearchParams({ url, strategy });
   ["performance", "accessibility", "best-practices", "seo"].forEach((c) =>
@@ -42,7 +114,7 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
 
   async function safeFetchWithRetries(
     fullUrl: string,
-    options: any = {},
+    options: RequestInit = {},
     retries = 1,
     backoff = 800,
     perRequestTimeout = Number(
@@ -72,12 +144,12 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
         } else {
           return res;
         }
-      } catch (e) {
+      } catch (e: unknown) {
         clearTimeout(id);
         // Trata abort/timeout como erro transitório e re-tenta se ainda houver tentativas
         if (i === retries) throw e;
         console.warn(
-          `PageSpeed falhou (${e?.message ?? e}), tentando de novo (${i + 1}/${retries})...`,
+          `PageSpeed falhou (${errorMessage(e)}), tentando de novo (${i + 1}/${retries})...`,
         );
         await new Promise((r) => setTimeout(r, backoff * (i + 1)));
       }
@@ -87,8 +159,11 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
   let res: Response;
   try {
     res = await safeFetchWithRetries(`${PAGESPEED}?${params}`);
-  } catch (e: any) {
-    if (e?.name === "AbortError" || /abort/i.test(String(e?.message ?? ""))) {
+  } catch (e: unknown) {
+    if (
+      errorName(e) === "AbortError" ||
+      /abort/i.test(errorMessage(e))
+    ) {
       throw new Error(
         `PageSpeed Insights (${strategy}) demorou demais para responder e a requisição foi cancelada. Tente novamente ou aumente a secret AUDIT_REQUEST_TIMEOUT_MS.`,
       );
@@ -111,10 +186,10 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
     }
     throw new Error(googleMsg ?? `PageSpeed ${strategy} falhou: ${res.status}`);
   }
-  const data = await res.json().catch(() => ({}));
-  const lr = data?.lighthouseResult ?? data ?? {};
-  const cats = lr?.categories ?? {};
-  const audits = lr?.audits ?? {};
+  const data = asRecord(await res.json().catch(() => ({})));
+  const lr = asRecord(data.lighthouseResult ?? data);
+  const cats = asRecord(lr.categories);
+  const audits = asRecord(lr.audits);
 
   const excludedAuditIds = new Set([
     "first-contentful-paint",
@@ -126,8 +201,13 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
     "server-response-time",
   ]);
   const opportunities = Object.entries(audits)
-    .map(([auditId, audit]: [string, any]) => ({ ...audit, id: auditId }))
-    .filter((a: any) => {
+    .map(
+      ([auditId, audit]): PageSpeedAudit => ({
+        ...asRecord(audit),
+        id: auditId,
+      }) as PageSpeedAudit,
+    )
+    .filter((a) => {
       const auditId = normalizePageSpeedAuditId(
         a.id,
         a.title,
@@ -168,7 +248,7 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
           priorityAuditFailed)
       );
     })
-    .sort((a: any, b: any) => {
+    .sort((a, b) => {
       const aImpact =
         (a.details?.overallSavingsBytes ?? 0) / 1000 +
         (a.details?.overallSavingsMs ?? 0) +
@@ -179,7 +259,7 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
         (1 - (b.score ?? 1)) * 100;
       return bImpact - aImpact;
     });
-  const priorityOpportunities = opportunities.filter((audit: any) =>
+  const priorityOpportunities = opportunities.filter((audit) =>
     isPageSpeedTranslationPriorityAudit(
       audit.id,
       audit.title,
@@ -190,7 +270,7 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
     ...priorityOpportunities,
     ...opportunities
       .filter(
-        (audit: any) =>
+        (audit) =>
           !isPageSpeedTranslationPriorityAudit(
             audit.id,
             audit.title,
@@ -199,7 +279,7 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
       )
       .slice(0, 8),
   ].filter(
-    (audit: any, index: number, list: any[]) =>
+    (audit, index, list) =>
       list.findIndex(
         (candidate) =>
           normalizePageSpeedAuditId(
@@ -215,7 +295,7 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
       ) === index,
   );
   const localizedOpportunities = selectedOpportunities
-    .map((a: any) => {
+    .map((a) => {
       const auditId = normalizePageSpeedAuditId(
         a.id,
         a.title,
@@ -253,7 +333,7 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop") {
     },
     screenshot: audits["final-screenshot"]?.details?.data ?? null,
     opportunities: localizedOpportunities,
-    finalUrl: lr.finalUrl,
+    finalUrl: typeof lr.finalUrl === "string" ? lr.finalUrl : undefined,
   };
 }
 
@@ -1337,7 +1417,8 @@ Retorne JSON com EXATAMENTE este formato:
     "recommendations": ["recomendação 1", "recomendação 2"]
   },
   "extras": [
-    { "title": "Sugestão extra (ex: WhatsApp flutuante)", "description": "explicação detalhada" }
+    { "title": "Campos ocultos de rastreamento no formulário de contato", "description": "explicação detalhada" },
+    { "title": "WhatsApp flutuante para atendimento", "description": "explicação detalhada" }
   ]
 }
 
@@ -1350,7 +1431,14 @@ Cada improvement deve preencher obrigatoriamente todos estes campos:
 - causes: de 2 a 4 causas comuns, preferencialmente relacionadas ao WordPress, Elementor, tema ou plugins quando os dados indicarem esse contexto.
 - recommendations: de 2 a 4 ações práticas e específicas.
 
-Não deixe arrays vazios, não repita o mesmo problema e não invente problemas que não estejam relacionados aos dados fornecidos. A resposta deve permitir montar um relatório com as seções: Descrição, Impacto, Causas comuns e Recomendações.`,
+Não deixe arrays vazios, não repita o mesmo problema e não invente problemas que não estejam relacionados aos dados fornecidos. A resposta deve permitir montar um relatório com as seções: Descrição, Impacto, Causas comuns e Recomendações.
+
+Para o campo "extras", gere EXATAMENTE 2 sugestões, na ordem abaixo, seguindo rigorosamente as regras:
+
+Sugestão 1 — Campos ocultos de rastreamento no formulário de contato (SEMPRE incluir):
+Verifique se o formulário de contato do site captura dados de rastreamento e atribuição de leads. Caso não haja evidência de campos ocultos, inclua esta sugestão com o título exato: "Campos ocultos de rastreamento no formulário de contato" e a descrição: "Adicionar campos ocultos para metadados de rastreio, como origem e localização, com o objetivo de melhorar a rastreabilidade e a captura de informações dos leads. Essa melhoria aumenta consideravelmente a precisão na análise geral das estratégias da marca.".
+Sugestão 2 — WhatsApp flutuante para atendimento (CONDICIONAL):
+Analise o screenshot (se disponível) e o HTML/conteúdo do site para identificar se já existe um botão flutuante de WhatsApp (ícone fixo do WhatsApp visível na interface). Se o botão JÁ EXISTIR no site, omita completamente esta sugestão do array "extras" (retorne apenas a Sugestão 1). Se o botão NÃO existir, inclua esta sugestão com o título: "WhatsApp flutuante para atendimento" e uma descrição recomendando a implementação de um botão flutuante fixo de WhatsApp (canto inferior direito, sempre visível), explicando que facilita o contato direto dos visitantes com a empresa e agiliza o atendimento. Não sugira chatbot de nenhum tipo; a sugestão é exclusivamente sobre o botão flutuante de WhatsApp.`,
     },
   ];
 
