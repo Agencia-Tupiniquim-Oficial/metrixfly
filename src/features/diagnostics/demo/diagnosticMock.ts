@@ -132,7 +132,7 @@ export const sampleDiagnosticResult: DiagnoseResult = {
   },
   extras: [
     {
-      title: "Campos ocultos de rastreamento nos formulário de contato",
+      title: "Campos ocultos de rastreamento no formulário de contato",
       description:
         "Adicionar campos ocultos para metadados de rastreio, como origem e localização, com o objetivo de melhorar a rastreabilidade e a captura de informações dos leads. Essa melhoria aumenta consideravelmente a precisão na análise geral das estratégias da marca.",
     },
