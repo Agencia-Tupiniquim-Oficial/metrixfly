@@ -83,7 +83,13 @@ describe("DiagnosticReportPreview", () => {
         mobile={{
           scores: { performance: 72, accessibility: 91, bestPractices: 88, seo: 96 },
           metrics: {},
-          opportunities: titles.map((title) => ({ title })),
+          opportunities: [
+            ...titles.map((title) => ({ title })),
+            {
+              title: "Evitar vários redirecionamentos de página",
+              displayValue: "Economia estimada de 380 ms",
+            },
+          ],
         }}
         desktop={{
           scores: { performance: 94, accessibility: 98, bestPractices: 95, seo: 99 },
@@ -96,6 +102,11 @@ describe("DiagnosticReportPreview", () => {
     for (const title of titles) {
       expect(screen.getByText(title)).toBeTruthy();
     }
+    expect(
+      screen.getByText(
+        "Evitar vários redirecionamentos de página — Economia estimada de 380 ms",
+      ),
+    ).toBeTruthy();
   });
 
   it("renders normalized Portuguese PageSpeed descriptions", () => {
