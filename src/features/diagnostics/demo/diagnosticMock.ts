@@ -17,11 +17,21 @@ export const sampleDiagnosticResult: DiagnoseResult = {
         cls: "0.28",
         si: "4.9s",
       },
-      screenshot: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=60",
+      screenshot:
+        "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=60",
       opportunities: [
-        { title: "Reduzir JavaScript não utilizado", displayValue: "Economia de 2.1s" },
-        { title: "Renderizar imagens em formatos modernos (WebP/AVIF)", displayValue: "Economia de 1.4s" },
-        { title: "Eliminar recursos que bloqueiam a renderização", displayValue: "Economia de 0.9s" },
+        {
+          title: "Reduzir JavaScript não utilizado",
+          displayValue: "Economia de 2.1s",
+        },
+        {
+          title: "Renderizar imagens em formatos modernos (WebP/AVIF)",
+          displayValue: "Economia de 1.4s",
+        },
+        {
+          title: "Eliminar recursos que bloqueiam a renderização",
+          displayValue: "Economia de 0.9s",
+        },
       ],
     },
     desktop: {
@@ -38,18 +48,27 @@ export const sampleDiagnosticResult: DiagnoseResult = {
         cls: "0.05",
         si: "2.1s",
       },
-      screenshot: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=60",
+      screenshot:
+        "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=60",
       opportunities: [
-        { title: "Comprimir imagens pesadas da home", displayValue: "Economia de 450ms" },
-        { title: "Ativar cache eficiente de arquivos estáticos", displayValue: "Economia de 320ms" },
+        {
+          title: "Comprimir imagens pesadas da home",
+          displayValue: "Economia de 450ms",
+        },
+        {
+          title: "Ativar cache eficiente de arquivos estáticos",
+          displayValue: "Economia de 320ms",
+        },
       ],
     },
-    screenshot: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=60",
+    screenshot:
+      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=60",
   },
   improvements: [
     {
       title: "Carregamento Mobile Crítico (LCP em 5.8s)",
-      problem: "O conteúdo principal leva 5.8 segundos para aparecer no mobile, conforme a métrica LCP do diagnóstico.",
+      problem:
+        "O conteúdo principal leva 5.8 segundos para aparecer no mobile, conforme a métrica LCP do diagnóstico.",
       impact: [
         "Demora maior para visualizar o conteúdo principal no mobile",
         "Oportunidade de melhorar os sinais técnicos de experiência da página",
@@ -67,7 +86,8 @@ export const sampleDiagnosticResult: DiagnoseResult = {
     },
     {
       title: "Deslocamento Visual da Página (CLS = 0.28)",
-      problem: "A página pula e se reposiciona enquanto carrega elementos visuais e fontes, frustrando cliques de clientes.",
+      problem:
+        "A página pula e se reposiciona enquanto carrega elementos visuais e fontes, frustrando cliques de clientes.",
       impact: [
         "Cliques acidentais em elementos errados",
         "Penalização nos Core Web Vitals do Google",
@@ -83,14 +103,13 @@ export const sampleDiagnosticResult: DiagnoseResult = {
     },
     {
       title: "Oportunidades de SEO Estruturado & Local",
-      problem: "O site não possui dados estruturados Schema.org completos para organização e presença geográfica.",
+      problem:
+        "O site não possui dados estruturados Schema.org completos para organização e presença geográfica.",
       impact: [
         "Ausência de rich snippets e estrelas nas páginas de resultados",
         "Menor visibilidade em buscas geolocalizadas da região",
       ],
-      causes: [
-        "Falta de marcação JSON-LD LocalBusiness ou Organization",
-      ],
+      causes: ["Falta de marcação JSON-LD LocalBusiness ou Organization"],
       recommendations: [
         "Injetar schema Organization com telefone, endereço e horário",
         "Integrar sitemap atualizado no Google Search Console",
@@ -98,7 +117,8 @@ export const sampleDiagnosticResult: DiagnoseResult = {
     },
   ],
   uiux: {
-    overview: "A proposta visual possui boa identidade gráfica, porém a hierarquia dos botões de ação (CTAs) compete entre si na primeira dobra e a navegação móvel apresenta espaçamentos reduzidos para toque.",
+    overview:
+      "A proposta visual possui boa identidade gráfica, porém a hierarquia dos botões de ação (CTAs) compete entre si na primeira dobra e a navegação móvel apresenta espaçamentos reduzidos para toque.",
     diagnosis: [
       "Primeira dobra com múltiplos botões de cores semelhantes dispersando a atenção do cliente",
       "Contraste insuficiente em textos secundários cinzas sobre fundo claro",
@@ -112,7 +132,7 @@ export const sampleDiagnosticResult: DiagnoseResult = {
   },
   extras: [
     {
-      title: "Campos ocultos de rastreamento no formulário de contato",
+      title: "Campos ocultos de rastreamento nos formulário de contato",
       description:
         "Adicionar campos ocultos para metadados de rastreio, como origem e localização, com o objetivo de melhorar a rastreabilidade e a captura de informações dos leads. Essa melhoria aumenta consideravelmente a precisão na análise geral das estratégias da marca.",
     },
@@ -139,22 +159,19 @@ export const sampleBusinessSummary: BusinessSummary = {
       titulo: "Resolução do Carregamento Mobile Lento",
       porQueImporta:
         "A nota mobile de 43/100 e o LCP de 5.8 segundos foram registrados neste diagnóstico.",
-      acao:
-        "Compressão das imagens chave para WebP e adiamento de scripts pesados.",
+      acao: "Compressão das imagens chave para WebP e adiamento de scripts pesados.",
     },
     {
       titulo: "Estabilização Visual (Core Web Vitals)",
       porQueImporta:
         "O CLS de 0.28 indica deslocamento visual durante o carregamento, conforme a medição do diagnóstico.",
-      acao:
-        "Fixar dimensões de mídias e ajustar carregamento instantâneo de fontes.",
+      acao: "Fixar dimensões de mídias e ajustar carregamento instantâneo de fontes.",
     },
     {
       titulo: "Revisão do formulário de contato",
       porQueImporta:
         "O formulário analisado apresenta seis campos obrigatórios, um aspecto que pode ser revisto na experiência de preenchimento.",
-      acao:
-        "Redesenhar o formulário de contato com CTA único para WhatsApp.",
+      acao: "Redesenhar o formulário de contato com CTA único para WhatsApp.",
     },
   ],
   proximoPasso:
