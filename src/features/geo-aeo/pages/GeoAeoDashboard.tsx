@@ -1020,13 +1020,13 @@ const GeoAeoDashboard = () => {
               </div>
             </Card>
             <div className="grid gap-3 md:grid-cols-2">
-              <Button
+              {/* <Button
                 onClick={() => runCrawlAndReport()}
                 className="bg-emerald-600 text-white"
                 disabled={loading}
               >
                 Gerar relatório técnico
-              </Button>
+              </Button> */}
               <Button onClick={exportReport} variant="outline">
                 Exportar CSV
               </Button>
