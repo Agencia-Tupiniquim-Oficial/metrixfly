@@ -33,6 +33,12 @@ const AUDIT_ID_ALIASES: Record<string, string> = {
   "autocomplete-insight": "autocomplete",
   "label-audit": "label",
   "label-insight": "label",
+  "font-display-audit": "font-display",
+  "font-display-insight": "font-display",
+  "lcp-request-discovery": "lcp-discovery-insight",
+  "lcp-request-discovery-insight": "lcp-discovery-insight",
+  "skip-links": "skip-link",
+  "image-low-resolution": "image-size-responsive",
   "definition-list-audit": "definition-list",
   "definition-list-insight": "definition-list",
   "dl-order": "definition-list",
@@ -75,6 +81,13 @@ const AUDIT_ID_VARIANTS: Record<string, string[]> = {
   "is-on-https": ["is-on-https-audit", "is_on_https"],
   autocomplete: ["autocomplete-audit", "autocomplete-insight"],
   label: ["label-audit", "label-insight"],
+  "font-display": ["font-display-audit", "font-display-insight"],
+  "lcp-discovery-insight": [
+    "lcp-request-discovery",
+    "lcp-request-discovery-insight",
+  ],
+  "skip-link": ["skip-links"],
+  "image-size-responsive": ["image-low-resolution"],
   "definition-list": [
     "definition-list-audit",
     "definition-list-insight",
@@ -142,6 +155,26 @@ const AUDIT_TRANSLATIONS: Record<
     title: "Reduzir JavaScript legado",
     description:
       "Parte do JavaScript entregue foi compilada para navegadores antigos e inclui código que navegadores modernos não precisam, aumentando o download e o processamento.",
+  },
+  "font-display": {
+    title: "Configurar a exibição das fontes",
+    description:
+      "O texto pode ficar invisível enquanto as fontes personalizadas são carregadas; configure a exibição das fontes para manter o conteúdo legível.",
+  },
+  "lcp-discovery-insight": {
+    title: "Melhorar a descoberta da solicitação do LCP",
+    description:
+      "O navegador pode descobrir tardiamente o recurso que compõe o maior elemento de conteúdo, atrasando sua solicitação prioritária.",
+  },
+  "skip-link": {
+    title: "Tornar os links de navegação focalizáveis",
+    description:
+      "Os links de salto não podem receber foco do teclado, impedindo a navegação rápida para o conteúdo principal.",
+  },
+  "image-size-responsive": {
+    title: "Servir imagens com resolução adequada",
+    description:
+      "A imagem fornecida tem resolução inferior ao tamanho em que é exibida, reduzindo sua nitidez.",
   },
   "link-name": {
     title: "Nomear os links de forma compreensível",
@@ -420,6 +453,16 @@ export function normalizePageSpeedAuditId(
   }
   if (/^legacy javascript$/i.test(normalizedTitle)) {
     return "legacy-javascript";
+  }
+  if (/^font display$/i.test(normalizedTitle)) return "font-display";
+  if (/^lcp request discovery$/i.test(normalizedTitle)) {
+    return "lcp-discovery-insight";
+  }
+  if (/^skip links are not focusable$/i.test(normalizedTitle)) {
+    return "skip-link";
+  }
+  if (/^serves images with low resolution$/i.test(normalizedTitle)) {
+    return "image-size-responsive";
   }
   if (/^avoid multiple page redirects$/i.test(normalizedTitle)) {
     return "redirects";

@@ -187,6 +187,52 @@ describe("PageSpeed translations", () => {
     );
   });
 
+  it("localizes the remaining PageSpeed summary titles without relying on OpenRouter", async () => {
+    const audits = [
+      {
+        audit_id: "font-display-insight",
+        title: "Font display — Estimated savings of 180 ms",
+        description: "Esta auditoria verifica a exibição das fontes.",
+        expected: "Configurar a exibição das fontes",
+      },
+      {
+        audit_id: "lcp-discovery-insight",
+        title: "LCP request discovery",
+        description: "Esta auditoria verifica a descoberta do LCP.",
+        expected: "Melhorar a descoberta da solicitação do LCP",
+      },
+      {
+        audit_id: "skip-link",
+        title: "Skip links are not focusable.",
+        description: "Esta auditoria verifica o foco dos links de navegação.",
+        expected: "Tornar os links de navegação focalizáveis",
+      },
+      {
+        audit_id: "image-size-responsive",
+        title: "Serves images with low resolution",
+        description: "Esta auditoria verifica a resolução das imagens.",
+        expected: "Servir imagens com resolução adequada",
+      },
+    ];
+    const translate = vi.fn(async () => ({}));
+    const result = await resolvePageSpeedAuditTranslations(
+      audits.map(({ audit_id, title, description }) => ({
+        audit_id,
+        title,
+        description,
+      })),
+      {},
+      translate,
+    );
+
+    expect(translate).not.toHaveBeenCalled();
+    for (const audit of audits) {
+      expect(
+        result.resolved[normalizePageSpeedAuditId(audit.audit_id)]?.title,
+      ).toBe(audit.expected);
+    }
+  });
+
   it("uses localized descriptions for missing or invalid cached translations", () => {
     const examples = [
       [
