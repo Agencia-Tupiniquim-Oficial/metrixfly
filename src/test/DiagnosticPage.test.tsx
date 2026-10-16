@@ -23,6 +23,7 @@ function renderWithProviders(initialEntries: string[] = ["/"]) {
   );
 }
 
+
 describe("Diagnostic experience", () => {
   it("renders the diagnostic landing page on the root route", () => {
     renderWithProviders(["/"]);
