@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Check, Circle, Loader2, Minus } from "lucide-react";
+import { AlertCircle, Check, Circle, Minus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   initialDiagnosticProgress,
@@ -8,11 +8,31 @@ import {
 } from "@/features/diagnostics/model/diagnostic-progress";
 
 const steps = [
-  { id: "starting", label: "Iniciando a análise do site" },
-  { id: "mobile", label: "Consultando o PageSpeed para dispositivos móveis" },
-  { id: "desktop", label: "Consultando o PageSpeed para desktop" },
-  { id: "ai", label: "Analisando oportunidades de melhoria" },
-  { id: "finalizing", label: "Preparando o diagnóstico final" },
+  {
+    id: "starting",
+    label: "Iniciando a análise do site",
+    activity: "Validando o endereço e iniciando as consultas.",
+  },
+  {
+    id: "mobile",
+    label: "PageSpeed para dispositivos móveis",
+    activity: "Executando a auditoria de performance para dispositivos móveis.",
+  },
+  {
+    id: "desktop",
+    label: "PageSpeed para desktop",
+    activity: "Executando a auditoria de performance para desktop.",
+  },
+  {
+    id: "ai",
+    label: "Análise das oportunidades",
+    activity: "Organizando as oportunidades e gerando recomendações.",
+  },
+  {
+    id: "finalizing",
+    label: "Preparação do diagnóstico",
+    activity: "Montando os resultados para exibir o diagnóstico.",
+  },
 ] as const;
 
 function getStepStatusMessage(status: DiagnosticProgressStatus): string {
@@ -20,15 +40,15 @@ function getStepStatusMessage(status: DiagnosticProgressStatus): string {
     case "running":
       return "Em andamento";
     case "completed":
-      return "Concluída";
+      return "Concluído";
     case "failed":
       return "Não concluída";
     case "fallback":
-      return "Análise alternativa";
+      return "Concluído com alternativa";
     case "skipped":
-      return "Indisponível";
+      return "Ignorado";
     default:
-      return "Aguardando";
+      return "Pendente";
   }
 }
 
@@ -42,10 +62,10 @@ function StepIcon({ status }: { status: DiagnosticProgressStatus }) {
   }
   if (status === "running") {
     return (
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Loader2
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-2 ring-primary/20">
+        <Circle
           aria-hidden="true"
-          className="h-4 w-4 animate-spin motion-reduce:animate-none"
+          className="h-2.5 w-2.5 animate-pulse fill-current motion-reduce:animate-none"
         />
       </span>
     );
@@ -87,6 +107,12 @@ export function DiagnosticProgress({
   }, []);
 
   const activeStep = steps.find(({ id }) => progress[id] === "running");
+  const resolvedStepCount = Object.values(progress).filter(
+    (status) => status !== "pending" && status !== "running",
+  ).length;
+  const hasProgressData = Object.values(progress).some(
+    (status) => status !== "pending",
+  );
   const hasFailedStep = Object.values(progress).some(
     (status) => status === "failed",
   );
@@ -108,51 +134,76 @@ export function DiagnosticProgress({
                 aria-live="polite"
                 className="mt-1 text-sm text-muted-foreground"
               >
-                {activeStep?.label ?? "Conectando ao serviço de diagnóstico"}
+                {activeStep?.activity ??
+                  "Aguardando a confirmação do serviço de diagnóstico."}
               </p>
             </div>
-            <span
-              aria-label={`Tempo decorrido: ${elapsedSeconds} segundos`}
-              className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-            >
-              {elapsedSeconds}s
-            </span>
           </div>
 
-          <div
-            aria-label="Progresso indeterminado"
-            className="mb-6 h-1.5 overflow-hidden rounded-full bg-primary/10"
-            role="progressbar"
-          >
-            <div className="h-full w-1/3 rounded-full bg-primary animate-diagnostic-progress" />
+          <div className="mb-6">
+            {hasProgressData && (
+              <p className="mb-1.5 text-right text-xs text-muted-foreground">
+                {resolvedStepCount} de {steps.length} etapas processadas
+              </p>
+            )}
+            <div
+              aria-label={
+                hasProgressData
+                  ? "Progresso das etapas do diagnóstico"
+                  : "Progresso indeterminado"
+              }
+              aria-valuemax={steps.length}
+              aria-valuemin={0}
+              aria-valuenow={hasProgressData ? resolvedStepCount : undefined}
+              aria-valuetext={
+                hasProgressData
+                  ? `${resolvedStepCount} de ${steps.length} etapas processadas`
+                  : undefined
+              }
+              className="h-1.5 overflow-hidden rounded-full bg-primary/10"
+              role="progressbar"
+            >
+              {hasProgressData ? (
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-500 motion-reduce:transition-none"
+                  style={{
+                    width: `${(resolvedStepCount / steps.length) * 100}%`,
+                  }}
+                />
+              ) : (
+                <div className="h-full w-1/3 rounded-full bg-primary animate-diagnostic-progress motion-reduce:animate-none" />
+              )}
+            </div>
           </div>
 
           <ol className="space-y-4">
             {steps.map(({ id, label }) => {
               const status = progress[id];
               return (
-                <li className="flex items-center gap-3" key={id}>
+                <li className="flex items-start gap-3 sm:items-center" key={id}>
                   <StepIcon status={status} />
-                  <span
-                    className={`min-w-0 flex-1 text-sm ${
-                      status === "running" || status === "completed"
-                        ? "font-medium text-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {label}
-                  </span>
-                  <span
-                    className={`hidden shrink-0 text-xs sm:inline ${
-                      status === "failed"
-                        ? "text-destructive"
-                        : status === "running"
-                          ? "text-primary"
+                  <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between sm:gap-4">
+                    <span
+                      className={`block text-sm ${
+                        status === "running" || status === "completed"
+                          ? "font-medium text-foreground"
                           : "text-muted-foreground"
-                    }`}
-                  >
-                    {getStepStatusMessage(status)}
-                  </span>
+                      }`}
+                    >
+                      {label}
+                    </span>
+                    <span
+                      className={`mt-0.5 block text-xs sm:mt-0 sm:shrink-0 ${
+                        status === "failed"
+                          ? "text-destructive"
+                          : status === "running"
+                            ? "font-medium text-primary"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {getStepStatusMessage(status)}
+                    </span>
+                  </div>
                 </li>
               );
             })}

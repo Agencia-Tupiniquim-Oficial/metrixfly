@@ -11,6 +11,12 @@
   }
 }
 
+@layer utilities {
+  .animate-diagnostic-progress {
+    animation: diagnostic-progress 1.5s ease-in-out infinite;
+  }
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -147,7 +153,7 @@ All colors MUST be HSL.
 
   @media (prefers-reduced-motion: reduce) {
     .animate-diagnostic-progress {
-      animation-duration: 4s;
+      animation: none;
     }
   }
 }

@@ -4,38 +4,76 @@ import { DiagnosticProgress } from "@/features/diagnostics/components/Diagnostic
 import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
 
 describe("DiagnosticProgress", () => {
-  it("shows real stage labels and an indeterminate progress indicator without a percentage", () => {
+  it("shows pending labels and indeterminate progress before receiving stage updates", () => {
     render(<DiagnosticProgress progress={initialDiagnosticProgress} />);
 
     expect(screen.getByText("Iniciando a análise do site")).toBeTruthy();
     expect(
-      screen.getByText(
-        "Consultando o PageSpeed para dispositivos móveis",
-      ),
+      screen.getByText("PageSpeed para dispositivos móveis"),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("progressbar", { name: "Progresso indeterminado" }),
-    ).not.toHaveAttribute("aria-valuenow");
+    expect(screen.getAllByText("Pendente")).toHaveLength(5);
+    expect(screen.queryByText(/Decorrido/)).toBeNull();
+    expect(screen.queryByLabelText(/Tempo decorrido/)).toBeNull();
+    const progressbar = screen.getByRole("progressbar", {
+      name: "Progresso indeterminado",
+    });
+    expect(progressbar).not.toHaveAttribute("aria-valuenow");
     expect(screen.queryByText(/%/)).toBeNull();
   });
 
-  it("shows confirmed completions and does not mark failed requests as complete", () => {
+  it("reflects confirmed stage progress and keeps in-flight and pending states distinct", () => {
     render(
       <DiagnosticProgress
         progress={{
           ...initialDiagnosticProgress,
           starting: "completed",
-          mobile: "completed",
-          desktop: "failed",
-          ai: "running",
+          mobile: "running",
         }}
       />,
     );
 
     const steps = screen.getAllByRole("listitem");
-    expect(steps[1]).toHaveTextContent("Concluída");
-    expect(steps[2]).toHaveTextContent("Não concluída");
-    expect(steps[2]).not.toHaveTextContent("Concluída");
+    expect(steps[0]).toHaveTextContent("Concluído");
+    expect(steps[1]).toHaveTextContent("Em andamento");
+    expect(steps[2]).toHaveTextContent("Pendente");
+    expect(
+      screen.getByText(
+        "Executando a auditoria de performance para dispositivos móveis.",
+      ),
+    ).toBeTruthy();
+
+    const progressbar = screen.getByRole("progressbar", {
+      name: "Progresso das etapas do diagnóstico",
+    });
+    expect(progressbar).toHaveAttribute("aria-valuenow", "1");
+    expect(progressbar).toHaveAttribute(
+      "aria-valuetext",
+      "1 de 5 etapas processadas",
+    );
+    expect(screen.getByText("1 de 5 etapas processadas")).toBeTruthy();
+    expect(progressbar.firstElementChild).toHaveStyle({ width: "20%" });
+  });
+
+  it("reports failed and fallback stages without labeling them as successful completions", () => {
+    render(
+      <DiagnosticProgress
+        progress={{
+          ...initialDiagnosticProgress,
+          starting: "completed",
+          mobile: "failed",
+          desktop: "completed",
+          ai: "fallback",
+          finalizing: "running",
+        }}
+      />,
+    );
+
+    const steps = screen.getAllByRole("listitem");
+    expect(steps[1]).toHaveTextContent("Não concluída");
+    expect(steps[2]).toHaveTextContent("Concluído");
+    expect(steps[3]).toHaveTextContent("Concluído com alternativa");
+    expect(steps[4]).toHaveTextContent("Em andamento");
+    expect(steps[1]).not.toHaveTextContent("Concluído");
     expect(
       screen.getByText(
         "Uma das consultas não foi concluída. O diagnóstico continuará com os dados disponíveis.",
