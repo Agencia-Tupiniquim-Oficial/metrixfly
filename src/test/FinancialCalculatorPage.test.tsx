@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import logoColored from "@/assets/logo-colored.png";
 import FinancialCalculator from "@/features/financial-calculator/pages/FinancialCalculator";
 
 function renderCalculator(path: string) {
@@ -32,6 +33,10 @@ describe("FinancialCalculator page", () => {
       "/calculadora-financeira?mobileScore=43&traffic=15000&ticket=250",
     );
 
+    expect(screen.getByRole("img", { name: "Tupiniquim" })).toHaveAttribute(
+      "src",
+      logoColored,
+    );
     expect(
       screen.getByRole("heading", {
         name: "Descubra oportunidades de melhoria para seu site",

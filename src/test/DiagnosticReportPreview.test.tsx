@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { tupiniquimLogo } from "@/assets/brand";
 import DiagnosticReportPreview from "@/features/diagnostics/components/DiagnosticReportPreview";
 import {
   getPageSpeedAuditTitle,
@@ -25,7 +26,7 @@ describe("DiagnosticReportPreview", () => {
       opportunities: titles.map((title) => ({ title })),
     };
 
-    render(
+    const { container } = render(
       <DiagnosticReportPreview
         url="https://site.test"
         mobile={mobile}
@@ -34,6 +35,10 @@ describe("DiagnosticReportPreview", () => {
       />,
     );
 
+    expect(container.querySelector('img[alt="Logo Tupiniquim"]')).toHaveAttribute(
+      "src",
+      tupiniquimLogo,
+    );
     for (const title of titles) {
       expect(screen.getByText(title)).toBeTruthy();
     }

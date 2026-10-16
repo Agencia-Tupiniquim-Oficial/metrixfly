@@ -10,7 +10,7 @@ import {
   pdf,
 } from "@react-pdf/renderer";
 import type { ReactElement } from "react";
-import logo from "@/assets/logo-colored.png";
+import { tupiniquimLogo } from "@/assets/brand";
 import type {
   DiagnoseResult,
   Improvement,
@@ -53,8 +53,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#DDE8DF",
     paddingBottom: 8,
   },
-  logo: { width: 38, height: 38, objectFit: "contain", marginRight: 10 },
-  brand: { color: DARK_GREEN, fontSize: 12, fontFamily: "Helvetica-Bold" },
+  logo: { width: 88, height: 48, objectFit: "contain", marginRight: 10 },
   brandCaption: { color: MUTED, fontSize: 8 },
   footer: {
     position: "absolute",
@@ -147,8 +146,8 @@ const diagnosticStyles = StyleSheet.create({
   coverPage: { paddingTop: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverTopPadding) },
   contentPage: { paddingTop: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.pagePaddingY) },
   coverLogo: {
-    width: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoSize),
-    height: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoSize),
+    width: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoWidth),
+    height: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoHeight),
     objectFit: "contain",
     alignSelf: "center",
     marginBottom: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoMarginBottom),
@@ -382,9 +381,8 @@ function numberedTitle(index: number, title: string): string {
 function Header() {
   return (
     <View style={styles.header}>
-      <Image src={logo} style={styles.logo} />
+      <Image src={tupiniquimLogo} style={styles.logo} />
       <View>
-        <Text style={styles.brand}>TUPINIQUIM</Text>
         <Text style={styles.brandCaption}>Diagnóstico e estratégia digital</Text>
       </View>
     </View>
@@ -427,7 +425,7 @@ function DiagnosticReportPage({
       ]}
       wrap
     >
-      {cover ? <Image src={logo} style={diagnosticStyles.coverLogo} /> : null}
+      {cover ? <Image src={tupiniquimLogo} style={diagnosticStyles.coverLogo} /> : null}
       {children}
       <Text
         fixed

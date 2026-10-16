@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { tupiniquimLogo } from "@/assets/brand";
 import BusinessReportPreview from "@/features/diagnostics/components/BusinessReportPreview";
 import DiagnosticPreview from "@/features/diagnostics/components/DiagnosticPreview";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
@@ -20,8 +21,14 @@ const mockSummary: BusinessSummary = {
 
 describe("BusinessReportPreview", () => {
   it("renders corporate summary sections correctly", () => {
-    render(<BusinessReportPreview url="https://exemplo.com.br" summary={mockSummary} />);
+    const { container } = render(
+      <BusinessReportPreview url="https://exemplo.com.br" summary={mockSummary} />,
+    );
 
+    expect(container.querySelector('img[alt="Logo Tupiniquim"]')).toHaveAttribute(
+      "src",
+      tupiniquimLogo,
+    );
     expect(screen.getByText("EXEMPLO.COM.BR - RELATÓRIO EXECUTIVO")).toBeDefined();
     expect(screen.getByText("Visão geral")).toBeDefined();
     expect(screen.getByText("Resumo executivo do site de teste.")).toBeDefined();

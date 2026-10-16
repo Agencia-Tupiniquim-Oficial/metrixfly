@@ -1,4 +1,4 @@
-import coverHeader from "@/assets/logo-colored.png";
+import { tupiniquimLogo } from "@/assets/brand";
 import type { BusinessSummary, Priority } from "@/features/diagnostics/model/business-report";
 import React, { useState, useEffect } from "react";
 
@@ -22,9 +22,9 @@ function Page({ children, withHeader = false }: { children: React.ReactNode; wit
       {withHeader && (
         <div className="flex justify-center px-[92px] pt-8">
           <img
-            src={coverHeader}
+            src={tupiniquimLogo}
             alt="Logo Tupiniquim"
-            className="h-24 w-24 object-contain"
+            className="h-24 w-auto max-w-[220px] object-contain"
           />
         </div>
       )}

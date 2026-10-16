@@ -1,4 +1,4 @@
-import coverHeader from "@/assets/logo-colored.png";
+import { tupiniquimLogo } from "@/assets/brand";
 import LighthouseCard from "@/features/diagnostics/components/LighthouseCard";
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -183,9 +183,9 @@ function Page({ children, withHeader = false }: { children: React.ReactNode; wit
           }}
         >
           <img
-            src={coverHeader}
+            src={tupiniquimLogo}
             alt="Logo Tupiniquim"
-            className="h-24 w-24 object-contain"
+            className="h-24 w-auto max-w-[220px] object-contain"
           />
         </div>
       )}

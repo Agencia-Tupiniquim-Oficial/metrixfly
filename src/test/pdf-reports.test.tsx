@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { getDocument, OPS } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it, vi } from "vitest";
 import {
   createBusinessReportPdf,
@@ -19,8 +19,8 @@ import {
   normalizePageSpeedDescription,
 } from "../../supabase/functions/_shared/pagespeed-translations.ts";
 
-vi.mock("@/assets/logo-colored.png", () => ({
-  default:
+vi.mock("@/assets/brand", () => ({
+  tupiniquimLogo:
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/vV8AAAAASUVORK5CYII=",
 }));
 
@@ -116,6 +116,20 @@ async function readPdfText(blob: Blob): Promise<string> {
     .replace(/\s+/g, " ")
     .trim()
     .toLocaleUpperCase("pt-BR");
+}
+
+async function firstPageHasLogo(blob: Blob): Promise<boolean> {
+  const document = await getDocument({
+    data: new Uint8Array(await blob.arrayBuffer()),
+  }).promise;
+  const page = await document.getPage(1);
+  const operators = await page.getOperatorList();
+
+  return operators.fnArray.some(
+    (operator) =>
+      operator === OPS.paintImageXObject ||
+      operator === OPS.paintImageMaskXObject,
+  );
 }
 
 describe("PDF reports", () => {
@@ -353,6 +367,7 @@ describe("PDF reports", () => {
       "https://kalashimarcas.com.br",
       longDiagnostic,
     );
+    expect(await firstPageHasLogo(blob)).toBe(true);
     const pages = await readPdfPageItems(blob);
     const firstPageItems = pages[0];
     const pageTexts = pages.map((page) =>
@@ -457,6 +472,7 @@ describe("PDF reports", () => {
     const blob = await createBusinessReportPdf("https://site.test", businessSummary);
 
     expect(blob.type).toBe("application/pdf");
+    expect(await firstPageHasLogo(blob)).toBe(true);
     const text = await readPdfText(blob);
     expect(text).toContain("SITE.TEST - RELATÓRIO EXECUTIVO");
     expect(text).toContain("RESUMO EXECUTIVO DE TESTE.");
@@ -468,6 +484,7 @@ describe("PDF reports", () => {
     const blob = await createGeoAeoReportPdf("https://exemplo.com.br", diagnostic, geo);
 
     expect(blob.type).toBe("application/pdf");
+    expect(await firstPageHasLogo(blob)).toBe(true);
     const text = await readPdfText(blob);
     expect(text).toContain("VISIBILIDADE EM BUSCA E IA");
     expect(text).toContain("ADICIONAR DADOS ESTRUTURADOS");

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import logoColored from "@/assets/logo-colored.png";
 import { DiagnosisProvider } from "@/features/diagnostics/state/DiagnosisContext";
 import DiagnosticPage from "@/features/diagnostics/pages/DiagnosticPage";
 
@@ -26,6 +27,10 @@ function renderWithProviders(initialEntries: string[] = ["/"]) {
 describe("Diagnostic experience", () => {
   it("renders the diagnostic landing page on the root route", () => {
     renderWithProviders(["/"]);
+    expect(screen.getByRole("img", { name: "Logo" })).toHaveAttribute(
+      "src",
+      logoColored,
+    );
     expect(
       screen.getByRole("heading", { name: "Diagnóstico & Desempenho" }),
     ).toBeDefined();
