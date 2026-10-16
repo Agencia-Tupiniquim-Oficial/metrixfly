@@ -1,14 +1,23 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { tupiniquimLogo } from "@/assets/brand";
+import { getClientLogoDataUrl } from "@/features/diagnostics/services/client-logo";
 import DiagnosticReportPreview from "@/features/diagnostics/components/DiagnosticReportPreview";
 import {
   getPageSpeedAuditTitle,
   normalizePageSpeedDescription,
 } from "../../supabase/functions/_shared/pagespeed-translations.ts";
 
+const { clientLogo } = vi.hoisted(() => ({
+  clientLogo: "data:image/png;base64,Y2xpZW50",
+}));
+vi.mock("@/features/diagnostics/services/client-logo", () => ({
+  getClientLogoDataUrl: vi.fn().mockResolvedValue(null),
+}));
+
 describe("DiagnosticReportPreview", () => {
-  it("renders normalized PageSpeed opportunity titles from the diagnostic result", () => {
+  it("renders normalized PageSpeed titles and the analyzed site's logo", async () => {
+    vi.mocked(getClientLogoDataUrl).mockResolvedValueOnce(clientLogo);
     const sourceTitles = [
       "Forced reflow",
       "Heading elements are not in a sequentially-descending order",
@@ -39,6 +48,12 @@ describe("DiagnosticReportPreview", () => {
       "src",
       tupiniquimLogo,
     );
+    await waitFor(() => {
+      expect(container.querySelector('img[alt="Logo do cliente"]')).toHaveAttribute(
+        "src",
+        clientLogo,
+      );
+    });
     for (const title of titles) {
       expect(screen.getByText(title)).toBeTruthy();
     }
@@ -68,7 +83,7 @@ describe("DiagnosticReportPreview", () => {
       description: normalizePageSpeedDescription(id, source, undefined),
     }));
 
-    render(
+    const { container } = render(
       <DiagnosticReportPreview
         url="https://site.test"
         mobile={{ scores: { performance: 72, accessibility: 91, bestPractices: 88, seo: 96 }, metrics: {} }}
@@ -77,6 +92,11 @@ describe("DiagnosticReportPreview", () => {
       />,
     );
 
+    expect(container.querySelector('img[alt="Logo Tupiniquim"]')).toHaveAttribute(
+      "src",
+      tupiniquimLogo,
+    );
+    expect(container.querySelector('img[alt="Logo do cliente"]')).toBeNull();
     expect(screen.getByText(improvements[0].description)).toBeTruthy();
     expect(screen.getByText(improvements[1].description)).toBeTruthy();
     expect(screen.getByText(improvements[2].description)).toBeTruthy();

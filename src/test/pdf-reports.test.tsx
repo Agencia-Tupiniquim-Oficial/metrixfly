@@ -24,6 +24,15 @@ vi.mock("@/assets/brand", () => ({
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/vV8AAAAASUVORK5CYII=",
 }));
 
+const { clientLogo, getClientLogoDataUrl } = vi.hoisted(() => ({
+  clientLogo:
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/vV8AAAAASUVORK5CYII=",
+  getClientLogoDataUrl: vi.fn().mockResolvedValue(null),
+}));
+vi.mock("@/features/diagnostics/services/client-logo", () => ({
+  getClientLogoDataUrl,
+}));
+
 const diagnostic: DiagnoseResult = {
   summary: {
     mobile: {
@@ -132,7 +141,42 @@ async function firstPageHasLogo(blob: Blob): Promise<boolean> {
   );
 }
 
+async function firstPageImageCount(blob: Blob): Promise<number> {
+  const document = await getDocument({
+    data: new Uint8Array(await blob.arrayBuffer()),
+  }).promise;
+  const page = await document.getPage(1);
+  const operators = await page.getOperatorList();
+
+  return operators.fnArray.filter(
+    (operator) =>
+      operator === OPS.paintImageXObject ||
+      operator === OPS.paintImageMaskXObject,
+  ).length;
+}
+
 describe("PDF reports", () => {
+  it("includes the analyzed site's logo beside Tupiniquim in all report PDFs", async () => {
+    getClientLogoDataUrl.mockResolvedValueOnce(clientLogo);
+    const blob = await createDiagnosticReportPdf("https://logo-client.test", diagnostic);
+    expect(await firstPageImageCount(blob)).toBeGreaterThanOrEqual(2);
+
+    getClientLogoDataUrl.mockResolvedValueOnce(clientLogo);
+    const businessBlob = await createBusinessReportPdf(
+      "https://logo-client.test",
+      businessSummary,
+    );
+    expect(await firstPageImageCount(businessBlob)).toBeGreaterThanOrEqual(2);
+
+    getClientLogoDataUrl.mockResolvedValueOnce(clientLogo);
+    const geoBlob = await createGeoAeoReportPdf(
+      "https://logo-client.test",
+      diagnostic,
+      geo,
+    );
+    expect(await firstPageImageCount(geoBlob)).toBeGreaterThanOrEqual(2);
+  });
+
   it("requires complete desktop and mobile scores strictly above 90", () => {
     const healthyDiagnostic: DiagnoseResult = {
       ...diagnostic,

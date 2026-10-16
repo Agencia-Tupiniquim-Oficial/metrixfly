@@ -11,6 +11,7 @@ import {
 } from "@react-pdf/renderer";
 import type { ReactElement } from "react";
 import { tupiniquimLogo } from "@/assets/brand";
+import { getClientLogoDataUrl } from "@/features/diagnostics/services/client-logo";
 import type {
   DiagnoseResult,
   Improvement,
@@ -54,6 +55,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   logo: { width: 88, height: 48, objectFit: "contain", marginRight: 10 },
+  clientLogo: { width: 88, height: 48, objectFit: "contain", marginLeft: 10 },
   brandCaption: { color: MUTED, fontSize: 8 },
   footer: {
     position: "absolute",
@@ -145,12 +147,22 @@ const diagnosticStyles = StyleSheet.create({
   },
   coverPage: { paddingTop: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverTopPadding) },
   contentPage: { paddingTop: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.pagePaddingY) },
+  coverLogoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoMarginBottom),
+  },
   coverLogo: {
     width: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoWidth),
     height: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoHeight),
     objectFit: "contain",
-    alignSelf: "center",
-    marginBottom: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoMarginBottom),
+  },
+  coverClientLogo: {
+    width: pxToPt(160),
+    height: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoHeight),
+    objectFit: "contain",
+    marginLeft: pxToPt(24),
   },
   title: {
     color: DIAGNOSTIC_REPORT_COLORS.green,
@@ -378,10 +390,11 @@ function numberedTitle(index: number, title: string): string {
   return `${index + 1}. ${unnumberedTitle}`;
 }
 
-function Header() {
+function Header({ clientLogo }: { clientLogo?: string | null }) {
   return (
     <View style={styles.header}>
       <Image src={tupiniquimLogo} style={styles.logo} />
+      {clientLogo ? <Image src={clientLogo} style={styles.clientLogo} /> : null}
       <View>
         <Text style={styles.brandCaption}>Diagnóstico e estratégia digital</Text>
       </View>
@@ -399,10 +412,16 @@ function Footer() {
   );
 }
 
-function ReportPage({ children }: { children: React.ReactNode }) {
+function ReportPage({
+  children,
+  clientLogo,
+}: {
+  children: React.ReactNode;
+  clientLogo?: string | null;
+}) {
   return (
     <Page size="A4" style={styles.page} wrap>
-      <Header />
+      <Header clientLogo={clientLogo} />
       {children}
       <Footer />
     </Page>
@@ -412,9 +431,11 @@ function ReportPage({ children }: { children: React.ReactNode }) {
 function DiagnosticReportPage({
   children,
   cover = false,
+  clientLogo,
 }: {
   children: React.ReactNode;
   cover?: boolean;
+  clientLogo?: string | null;
 }) {
   return (
     <Page
@@ -425,7 +446,14 @@ function DiagnosticReportPage({
       ]}
       wrap
     >
-      {cover ? <Image src={tupiniquimLogo} style={diagnosticStyles.coverLogo} /> : null}
+      {cover ? (
+        <View style={diagnosticStyles.coverLogoRow}>
+          <Image src={tupiniquimLogo} style={diagnosticStyles.coverLogo} />
+          {clientLogo ? (
+            <Image src={clientLogo} style={diagnosticStyles.coverClientLogo} />
+          ) : null}
+        </View>
+      ) : null}
       {children}
       <Text
         fixed
@@ -742,10 +770,12 @@ function TechnicalReport({
   url,
   result,
   geo,
+  clientLogo,
 }: {
   url: string;
   result: DiagnoseResult;
   geo?: GeoReportData;
+  clientLogo?: string | null;
 }) {
   const hostname = hostLabel(url);
   const optimized = isDiagnosticOptimized(result);
@@ -756,7 +786,7 @@ function TechnicalReport({
       subject="Diagnóstico técnico de performance e visibilidade digital"
       language="pt-BR"
     >
-      <DiagnosticReportPage cover>
+      <DiagnosticReportPage cover clientLogo={clientLogo}>
         <Text style={diagnosticStyles.title}>{hostname} - DIAGNÓSTICO DE SITE</Text>
         {optimized ? (
           <View style={diagnosticStyles.optimizedCallout}>
@@ -846,7 +876,15 @@ function TechnicalReport({
   );
 }
 
-function BusinessReport({ url, summary }: { url: string; summary: BusinessSummary }) {
+function BusinessReport({
+  url,
+  summary,
+  clientLogo,
+}: {
+  url: string;
+  summary: BusinessSummary;
+  clientLogo?: string | null;
+}) {
   const hostname = hostLabel(url);
   return (
     <Document
@@ -855,7 +893,7 @@ function BusinessReport({ url, summary }: { url: string; summary: BusinessSummar
       subject="Relatório executivo de oportunidades digitais"
       language="pt-BR"
     >
-      <ReportPage>
+      <ReportPage clientLogo={clientLogo}>
         <Text style={styles.title}>{hostname} - RELATÓRIO EXECUTIVO</Text>
         <Section>Visão geral</Section>
         <View style={styles.businessCallout}>
@@ -904,7 +942,9 @@ export function createDiagnosticReportPdf(
   url: string,
   result: DiagnoseResult,
 ): Promise<Blob> {
-  return renderPdf(<TechnicalReport url={url} result={result} />);
+  return getClientLogoDataUrl(url).then((clientLogo) =>
+    renderPdf(<TechnicalReport url={url} result={result} clientLogo={clientLogo} />),
+  );
 }
 
 export function createGeoAeoReportPdf(
@@ -912,14 +952,20 @@ export function createGeoAeoReportPdf(
   result: DiagnoseResult,
   geo: GeoReportData,
 ): Promise<Blob> {
-  return renderPdf(<TechnicalReport url={url} result={result} geo={geo} />);
+  return getClientLogoDataUrl(url).then((clientLogo) =>
+    renderPdf(
+      <TechnicalReport url={url} result={result} geo={geo} clientLogo={clientLogo} />,
+    ),
+  );
 }
 
 export function createBusinessReportPdf(
   url: string,
   summary: BusinessSummary,
 ): Promise<Blob> {
-  return renderPdf(<BusinessReport url={url} summary={summary} />);
+  return getClientLogoDataUrl(url).then((clientLogo) =>
+    renderPdf(<BusinessReport url={url} summary={summary} clientLogo={clientLogo} />),
+  );
 }
 
 export function reportPdfFilename(url: string, suffix: string): string {

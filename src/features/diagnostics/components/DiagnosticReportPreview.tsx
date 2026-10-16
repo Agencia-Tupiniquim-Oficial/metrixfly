@@ -1,4 +1,5 @@
 import { tupiniquimLogo } from "@/assets/brand";
+import { useClientLogo } from "@/features/diagnostics/hooks/useClientLogo";
 import LighthouseCard from "@/features/diagnostics/components/LighthouseCard";
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -160,7 +161,15 @@ function EditableText({ value, onChange, className = "" }: { value: string; onCh
   );
 }
 
-function Page({ children, withHeader = false }: { children: React.ReactNode; withHeader?: boolean }) {
+function Page({
+  children,
+  withHeader = false,
+  clientLogo,
+}: {
+  children: React.ReactNode;
+  withHeader?: boolean;
+  clientLogo?: string | null;
+}) {
   return (
     <div
       className="mx-auto shadow-lg overflow-hidden"
@@ -175,7 +184,7 @@ function Page({ children, withHeader = false }: { children: React.ReactNode; wit
     >
       {withHeader && (
         <div
-          className="flex justify-center"
+          className="flex items-center justify-center gap-6"
           style={{
             paddingLeft: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
             paddingRight: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
@@ -187,6 +196,13 @@ function Page({ children, withHeader = false }: { children: React.ReactNode; wit
             alt="Logo Tupiniquim"
             className="h-24 w-auto max-w-[220px] object-contain"
           />
+          {clientLogo ? (
+            <img
+              src={clientLogo}
+              alt="Logo do cliente"
+              className="h-20 w-auto max-w-[180px] object-contain"
+            />
+          ) : null}
         </div>
       )}
       <div
@@ -215,6 +231,7 @@ export default function DiagnosticReportPreview({
   onUiuxOverviewChange,
   onOpportunitiesChange,
 }: Props) {
+  const clientLogo = useClientLogo(url);
   const hostname = (() => {
     try {
       return new URL(url).hostname.replace("www.", "").toUpperCase();
@@ -226,7 +243,7 @@ export default function DiagnosticReportPreview({
   return (
     <div className="space-y-6">
       {/* Capa */}
-      <Page withHeader>
+      <Page withHeader clientLogo={clientLogo}>
         <div>
           <h1
             className="font-normal"

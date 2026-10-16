@@ -1,9 +1,17 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { tupiniquimLogo } from "@/assets/brand";
+import { getClientLogoDataUrl } from "@/features/diagnostics/services/client-logo";
 import BusinessReportPreview from "@/features/diagnostics/components/BusinessReportPreview";
 import DiagnosticPreview from "@/features/diagnostics/components/DiagnosticPreview";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
+
+const { clientLogo } = vi.hoisted(() => ({
+  clientLogo: "data:image/png;base64,Y2xpZW50",
+}));
+vi.mock("@/features/diagnostics/services/client-logo", () => ({
+  getClientLogoDataUrl: vi.fn().mockResolvedValue(null),
+}));
 
 const mockSummary: BusinessSummary = {
   resumo: "Resumo executivo do site de teste.",
@@ -20,7 +28,8 @@ const mockSummary: BusinessSummary = {
 };
 
 describe("BusinessReportPreview", () => {
-  it("renders corporate summary sections correctly", () => {
+  it("renders corporate summary sections and the analyzed site's logo", async () => {
+    vi.mocked(getClientLogoDataUrl).mockResolvedValueOnce(clientLogo);
     const { container } = render(
       <BusinessReportPreview url="https://exemplo.com.br" summary={mockSummary} />,
     );
@@ -29,6 +38,12 @@ describe("BusinessReportPreview", () => {
       "src",
       tupiniquimLogo,
     );
+    await waitFor(() => {
+      expect(container.querySelector('img[alt="Logo do cliente"]')).toHaveAttribute(
+        "src",
+        clientLogo,
+      );
+    });
     expect(screen.getByText("EXEMPLO.COM.BR - RELATÓRIO EXECUTIVO")).toBeDefined();
     expect(screen.getByText("Visão geral")).toBeDefined();
     expect(screen.getByText("Resumo executivo do site de teste.")).toBeDefined();

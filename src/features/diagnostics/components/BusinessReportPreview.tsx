@@ -1,4 +1,5 @@
 import { tupiniquimLogo } from "@/assets/brand";
+import { useClientLogo } from "@/features/diagnostics/hooks/useClientLogo";
 import type { BusinessSummary, Priority } from "@/features/diagnostics/model/business-report";
 import React, { useState, useEffect } from "react";
 
@@ -13,19 +14,34 @@ const sectionTitleStyle: React.CSSProperties = {
   fontFamily: "'Bree Serif', Georgia, serif",
 };
 
-function Page({ children, withHeader = false }: { children: React.ReactNode; withHeader?: boolean }) {
+function Page({
+  children,
+  withHeader = false,
+  clientLogo,
+}: {
+  children: React.ReactNode;
+  withHeader?: boolean;
+  clientLogo?: string | null;
+}) {
   return (
     <div
       className="bg-report-paper text-report-text mx-auto shadow-lg overflow-hidden"
       style={{ width: "100%", maxWidth: 780, minHeight: 1100, fontFamily: "Arial, Helvetica, sans-serif" }}
     >
       {withHeader && (
-        <div className="flex justify-center px-[92px] pt-8">
+        <div className="flex items-center justify-center gap-6 px-[92px] pt-8">
           <img
             src={tupiniquimLogo}
             alt="Logo Tupiniquim"
             className="h-24 w-auto max-w-[220px] object-contain"
           />
+          {clientLogo ? (
+            <img
+              src={clientLogo}
+              alt="Logo do cliente"
+              className="h-20 w-auto max-w-[180px] object-contain"
+            />
+          ) : null}
         </div>
       )}
       <div className={withHeader ? "px-[92px] pt-12 pb-16" : "px-[92px] py-16"}>{children}</div>
@@ -154,6 +170,7 @@ export default function BusinessReportPreview({
   editable = false,
   onSummaryChange,
 }: Props) {
+  const clientLogo = useClientLogo(url);
   const hostname = (() => {
     try {
       return new URL(url).hostname.replace(/^www\./i, "").toUpperCase();
@@ -184,7 +201,7 @@ export default function BusinessReportPreview({
   return (
     <div className="space-y-6">
       {/* Página 1 */}
-      <Page withHeader>
+      <Page withHeader clientLogo={clientLogo}>
         <div>
           <h1
             className="text-[28px] mb-8 text-[#008F4C]"
