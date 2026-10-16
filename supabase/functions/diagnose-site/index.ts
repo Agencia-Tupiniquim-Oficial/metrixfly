@@ -9,8 +9,12 @@ import {
   normalizePageSpeedAuditId,
   normalizePageSpeedDescription,
   normalizePageSpeedDisplayValue,
-  partitionPageSpeedTranslationRequests,
   pageSpeedAuditIdCandidates,
+  resolvePageSpeedAuditTranslations,
+  splitPageSpeedTitleSavings,
+  type PageSpeedAuditTranslation,
+  type PageSpeedTranslationField,
+  type PageSpeedTranslationRequest,
 } from "../_shared/pagespeed-translations.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -708,8 +712,8 @@ function translatePageSpeedDescription(
 // Busca em lote: uma única query pra todos os audit_ids, em vez de N chamadas sequenciais.
 async function getPagespeedTranslationsBatch(
   auditIds: string[],
-): Promise<Record<string, string>> {
-  const result: Record<string, string> = {};
+): Promise<Record<string, PageSpeedAuditTranslation>> {
+  const result: Record<string, PageSpeedAuditTranslation> = {};
   if (auditIds.length === 0) return result;
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.warn(
@@ -721,7 +725,7 @@ async function getPagespeedTranslationsBatch(
     const candidates = pageSpeedAuditIdCandidates(auditIds);
     const { data, error } = await supabase
       .from("pagespeed_translations")
-      .select("audit_id, translated_description")
+      .select("audit_id, translated_title, translated_description")
       .in("audit_id", candidates);
     if (error) {
       console.warn(
@@ -731,10 +735,18 @@ async function getPagespeedTranslationsBatch(
       return result;
     }
     for (const row of data ?? []) {
-      if (row?.audit_id && row?.translated_description) {
-        result[normalizePageSpeedAuditId(row.audit_id)] =
-          row.translated_description;
+      if (!row?.audit_id) continue;
+      const auditId = normalizePageSpeedAuditId(row.audit_id);
+      if (
+        result[auditId] &&
+        row.audit_id !== auditId
+      ) {
+        continue;
       }
+      result[auditId] = {
+        translated_title: row.translated_title,
+        translated_description: row.translated_description,
+      };
     }
     console.log(
       `Cache pagespeed_translations: ${Object.keys(result).length}/${new Set(auditIds.map(normalizePageSpeedAuditId)).size} audit_ids encontrados no cache.`,
@@ -748,14 +760,20 @@ async function getPagespeedTranslationsBatch(
 
 async function upsertPagespeedTranslation(
   audit_id: string,
-  translated: string,
+  translated: PageSpeedAuditTranslation,
 ) {
   if (!SUPABASE_URL || !SUPABASE_KEY) return;
   try {
     const { error } = await supabase.from("pagespeed_translations").upsert(
       {
         audit_id: normalizePageSpeedAuditId(audit_id),
-        translated_description: translated,
+        ...(typeof translated.translated_title === "string"
+          ? { translated_title: translated.translated_title }
+          : {}),
+        translated_description:
+          typeof translated.translated_description === "string"
+            ? translated.translated_description
+            : "",
         updated_at: new Date().toISOString(),
       },
       { onConflict: "audit_id" },
@@ -773,22 +791,21 @@ async function upsertPagespeedTranslation(
 
 // Batch-translate summary items using OpenRouter (single call)
 async function translateSummaryFields(
-  items: Array<{ audit_id: string; text: string }>,
-) {
+  items: PageSpeedTranslationRequest[],
+): Promise<Record<string, PageSpeedAuditTranslation>> {
   if (!OPENROUTER_API_KEY)
     throw new Error("OPENROUTER_API_KEY não configurada");
 
-  // Build the prompt instructing the model to return strict JSON
   const system =
-    "Você é um tradutor técnico para pt-BR. Preserve siglas (LCP, CLS, TBT, FCP, TTFB) e termos técnicos. Retorne apenas JSON válido. Não adicione prefixos como 'PT-BR:' ou similares — 'translated_text' deve conter apenas o texto em português brasileiro.";
-  const userPrompt = `Receba um array JSON com objetos { "audit_id", "text" } e retorne um objeto JSON { "translations": [ { "audit_id", "translated_text" }, ... ] } onde translated_text é a tradução/adaptação técnica em português brasileiro. Não misture inglês e português na mesma frase. Preserve siglas técnicas entre parênteses apenas se necessário.
+    "Você é um tradutor técnico para português brasileiro. Traduza cada campo separadamente, preserve números, unidades, siglas e marcação HTML. Retorne apenas JSON válido e não misture inglês e português.";
+  const userPrompt = `Traduza cada item para português brasileiro. Responda com { "translations": [ { "audit_id", "field", "translated_text" } ] }. O campo deve ser exatamente "title" ou "description" conforme a entrada. Não omita itens.
 
 Entrada:
 ${JSON.stringify(items, null, 2)}
 
 Resposta: retorne somente o objeto JSON, exemplo:
 { "translations": [
-  { "audit_id": "unused-javascript", "translated_text": "Texto em português..." }
+  { "audit_id": "unused-javascript", "field": "title", "translated_text": "Título em português..." }
 ] }`;
 
   const res = await fetch(`${OPENROUTER_API_BASE}/v1/chat/completions`, {
@@ -834,34 +851,84 @@ Resposta: retorne somente o objeto JSON, exemplo:
   if (!Array.isArray(list))
     throw new Error("Formato inesperado da tradução (esperado array)");
 
-  // Upsert no supabase e retornar mapa
   const requested = new Map(
     items.map((item) => [
-      normalizePageSpeedAuditId(item.audit_id),
-      item.text,
+      `${normalizePageSpeedAuditId(item.audit_id)}:${item.field}`,
+      item,
     ]),
   );
-  const map: Record<string, string> = {};
-  const translationsToPersist: Array<{ audit_id: string; text: string }> = [];
+  const map: Record<string, PageSpeedAuditTranslation> = {};
   for (const it of list) {
     const auditId = normalizePageSpeedAuditId(it?.audit_id);
-    const sourceText = requested.get(auditId);
+    const field = it?.field as PageSpeedTranslationField;
+    const request = requested.get(`${auditId}:${field}`);
+    const sourceText = request?.text;
     if (
       !auditId ||
+      !request ||
       !sourceText ||
       !isValidPageSpeedTranslation(auditId, sourceText, it?.translated_text)
     ) {
       continue;
     }
-    map[auditId] = it.translated_text.trim();
-    translationsToPersist.push({ audit_id: auditId, text: map[auditId] });
+    const fieldName =
+      field === "title" ? "translated_title" : "translated_description";
+    map[auditId] = {
+      ...map[auditId],
+      [fieldName]: it.translated_text.trim(),
+    };
   }
-  await Promise.all(
-    translationsToPersist.map(({ audit_id, text }) =>
-      upsertPagespeedTranslation(audit_id, text),
-    ),
-  );
   return map;
+}
+
+async function translatePageSpeedOpportunities(
+  mobile: PageSpeedResult,
+  desktop: PageSpeedResult,
+): Promise<Record<string, string>> {
+  const opportunities = [...mobile.opportunities, ...desktop.opportunities];
+  const cached = await getPagespeedTranslationsBatch(
+    opportunities.map((opportunity) => opportunity.id),
+  );
+  const { resolved, updates } = await resolvePageSpeedAuditTranslations(
+    opportunities.map((opportunity) => ({
+      audit_id: opportunity.id,
+      title: opportunity.title,
+      description: opportunity.rawDescription ?? opportunity.description ?? "",
+    })),
+    cached,
+    translateSummaryFields,
+  );
+
+  await Promise.all(
+    Object.entries(updates).map(([auditId, translation]) => {
+      const existing = cached[auditId] ?? {};
+      return upsertPagespeedTranslation(auditId, {
+        ...existing,
+        ...translation,
+      });
+    }),
+  );
+
+  for (const result of [mobile, desktop]) {
+    for (const opportunity of result.opportunities) {
+      const auditId = normalizePageSpeedAuditId(opportunity.id);
+      const localized = resolved[auditId];
+      if (!localized) continue;
+      const splitTitle = splitPageSpeedTitleSavings(opportunity.title);
+      opportunity.title = localized.title;
+      opportunity.description = localized.description;
+      opportunity.displayValue = normalizePageSpeedDisplayValue(
+        opportunity.displayValue ?? splitTitle.displayValue,
+      );
+    }
+  }
+
+  return Object.fromEntries(
+    Object.entries(resolved).map(([auditId, translation]) => [
+      auditId,
+      translation.description,
+    ]),
+  );
 }
 
 function localizedPageSpeedOpportunity(
@@ -1251,16 +1318,12 @@ async function aiAnalysis(
   if (!OPENROUTER_API_KEY)
     throw new Error("OPENROUTER_API_KEY não configurada");
 
-  // constrói summary básico, priorizando textos estáticos do dicionário
   const buildOpportunitiesWithPrecedence = (opps: any[]) =>
     opps.map((o: any) => ({
       id: normalizePageSpeedAuditId(o.id),
-      title:
-        PAGE_SPEED_LABELS[normalizePageSpeedAuditId(o.id)]?.title ??
-        translatePageSpeedTitle(o.title, o.id),
+      title: o.title,
       rawDescription: o.rawDescription,
-      // se houver descrição curta estática, use-a direto (NUNCA passar por translateReportText)
-      descriptionStatic: PAGE_SPEED_SHORT_DESCRIPTIONS[o.id] ?? null,
+      description: o.description,
       displayValue: o.displayValue,
     }));
 
@@ -1282,69 +1345,17 @@ async function aiAnalysis(
     },
   };
 
-  // Reunir todos audit_ids que precisam de tradução (aqueles que não têm `descriptionStatic`)
-  const collectMissing = (list: any[]) =>
-    list
-      .filter((it) => !it.descriptionStatic)
-      .map((it) => ({ audit_id: it.id, text: it.rawDescription ?? "" }));
-
-  const missingByAuditId = new Map<string, { audit_id: string; text: string }>();
-  for (const item of [
-    ...collectMissing(summary.mobile.top_opportunities),
-    ...collectMissing(summary.desktop.top_opportunities),
-  ]) {
-    const auditId = normalizePageSpeedAuditId(item.audit_id);
-    if (!missingByAuditId.has(auditId) && item.text) {
-      missingByAuditId.set(auditId, { audit_id: auditId, text: item.text });
-    }
-  }
-  const missing = [...missingByAuditId.values()];
-
-  // Consultar cache Supabase (uma única query em lote)
-  const cachedMap = await getPagespeedTranslationsBatch(
-    missing.map((it) => it.audit_id),
-  );
-  const {
-    translations: missingById,
-    missing: toTranslate,
-  } = partitionPageSpeedTranslationRequests(missing, cachedMap);
-
-  console.log(
-    `Tradução: ${Object.keys(cachedMap).length} do cache, ${toTranslate.length} vão pro OpenRouter.`,
-  );
-
-  // Se houver items para traduzir, chamar LLM em lote
-  if (toTranslate.length > 0) {
-    try {
-      const translatedMap = await translateSummaryFields(toTranslate);
-      Object.assign(missingById, translatedMap);
-    } catch (e) {
-      console.warn("Batch translation failed:", e?.message ?? e);
-      // Em caso de falha, como fallback leve, tenta-se usar translatePageSpeedDescription local para não quebrar
-      for (const it of toTranslate) {
-        missingById[it.audit_id] = normalizePageSpeedDescription(
-          it.audit_id,
-          it.text,
-          undefined,
-        );
-      }
-    }
-  }
-
-  // Montar os textos finais no summary (com prioridade: static dict -> cache/translated -> fallback local)
   const finalize = (opps: any[]) =>
     opps.map((o) => {
-      const desc =
-        o.descriptionStatic ??
-        missingById[o.id] ??
-        translatePageSpeedDescription(o.rawDescription, o.id);
       return {
         id: normalizePageSpeedAuditId(o.id),
         title: o.title,
         description: normalizePageSpeedDescription(
           o.id,
           o.rawDescription,
-          desc,
+          o.description ??
+            PAGE_SPEED_SHORT_DESCRIPTIONS[o.id] ??
+            translatePageSpeedDescription(o.rawDescription, o.id),
         ),
         displayValue: o.displayValue,
       };
@@ -1573,6 +1584,10 @@ serve(async (req: Request) => {
       "Skipped visual card generation and cleared screenshots to reduce latency.",
     );
 
+    const pageSpeedTranslations = await translatePageSpeedOpportunities(
+      mobile,
+      desktop,
+    );
     const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
 
     console.log("Gerando IA… (se configurada)");
@@ -1582,13 +1597,23 @@ serve(async (req: Request) => {
         console.log("IA ok via OpenRouter.");
       } catch (e) {
         console.warn("aiAnalysis (OpenRouter) falhou:", e?.message ?? e);
-        ai = { improvements: [], uiux: null, extras: [] };
+        ai = {
+          improvements: [],
+          uiux: null,
+          extras: [],
+          _pageSpeedTranslations: pageSpeedTranslations,
+        };
       }
     } else {
       console.warn(
         "Nenhuma chave de IA configurada (OPENROUTER_API_KEY) — pulando análise IA e usando fallback.",
       );
-      ai = { improvements: [], uiux: null, extras: [] };
+      ai = {
+        improvements: [],
+        uiux: null,
+        extras: [],
+        _pageSpeedTranslations: pageSpeedTranslations,
+      };
     }
     const summaryResponse = {
       ...buildSummaryResponse(mobile, desktop, ai),

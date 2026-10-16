@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   getPageSpeedAuditTitle,
   isValidPageSpeedTranslation,
@@ -7,6 +7,8 @@ import {
   normalizePageSpeedDescription,
   pageSpeedAuditIdCandidates,
   partitionPageSpeedTranslationRequests,
+  resolvePageSpeedAuditTranslations,
+  splitPageSpeedTitleSavings,
 } from "../../supabase/functions/_shared/pagespeed-translations.ts";
 
 describe("PageSpeed translations", () => {
@@ -50,6 +52,9 @@ describe("PageSpeed translations", () => {
     expect(pageSpeedAuditIdCandidates(["forced-reflow-insight"])).toContain(
       "forced-reflow",
     );
+    expect(pageSpeedAuditIdCandidates(["frame-title"])).toEqual(
+      expect.arrayContaining(["frame-title", "frame_title", "frame-title-insight"]),
+    );
     expect(pageSpeedAuditIdCandidates(["meta-viewport"])).toEqual(
       expect.arrayContaining(["meta-viewport", "maximum-scale", "user-scalable", "viewport"]),
     );
@@ -74,6 +79,45 @@ describe("PageSpeed translations", () => {
     expect(pageSpeedAuditIdCandidates(["sourcemaps"])).toEqual(
       expect.arrayContaining(["sourcemaps", "source-maps", "source-maps-insight"]),
     );
+    expect(
+      normalizePageSpeedAuditId(
+        "redirects_audit",
+        "Avoid multiple page redirects — Economia estimada de 1,150 ms",
+      ),
+    ).toBe("redirects");
+    expect(
+      normalizePageSpeedAuditId(
+        "frame-title-insight",
+        "<frame> or <iframe> elements do not have a title",
+      ),
+    ).toBe("frame-title");
+    expect(
+      normalizePageSpeedAuditId(
+        "list-audit",
+        "List items (<li>) are not contained within <ul>, <ol> or <menu> parent elements.",
+      ),
+    ).toBe("list");
+    expect(
+      normalizePageSpeedAuditId(
+        "aria-required-children-insight",
+        "[role]s are not contained by their required parent element",
+      ),
+    ).toBe("aria-required-children");
+    expect(
+      normalizePageSpeedAuditId("is-on-https-audit", "Does not use HTTPS"),
+    ).toBe("is-on-https");
+    expect(
+      normalizePageSpeedAuditId(
+        "autocomplete-audit",
+        "`autocomplete` attributes are not used correctly",
+      ),
+    ).toBe("autocomplete");
+    expect(
+      normalizePageSpeedAuditId(
+        "label-insight",
+        "Form elements do not have associated labels",
+      ),
+    ).toBe("label");
   });
 
   it("localizes the reported PageSpeed titles and savings display values", () => {
@@ -268,5 +312,181 @@ describe("PageSpeed translations", () => {
     expect(
       isValidPageSpeedTranslation("unknown-audit", "Source", "Fast layout fix"),
     ).toBe(false);
+  });
+
+  it("reuses translated title and description from the shared audit cache", async () => {
+    const translate = vi.fn();
+    const result = await resolvePageSpeedAuditTranslations(
+      [
+        {
+          audit_id: "redirects",
+          title: "Avoid multiple page redirects",
+          description: "Avoid multiple page redirects.",
+        },
+      ],
+      {
+        redirects: {
+          translated_title: "Evitar vários redirecionamentos de página",
+          translated_description:
+            "Redirecionamentos múltiplos aumentam o tempo até o carregamento da página.",
+        },
+        "redirects-audit": {
+          translated_title: "Evitar o título de tradução antigo",
+        },
+      },
+      translate,
+    );
+
+    expect(translate).not.toHaveBeenCalled();
+    expect(result.resolved.redirects).toEqual({
+      title: "Evitar vários redirecionamentos de página",
+      description:
+        "Redirecionamentos múltiplos aumentam o tempo até o carregamento da página.",
+    });
+  });
+
+  it("requests only missing audit fields and normalizes cache identifiers", async () => {
+    const translate = vi.fn(async (requests) => ({
+      "frame-title": {
+        translated_title: "Adicionar título aos quadros e iframes",
+      },
+      list: {
+        translated_title: "Organizar corretamente os itens de lista",
+        translated_description:
+          "Itens de lista precisam estar dentro de uma lista ordenada ou não ordenada.",
+      },
+    }));
+    const result = await resolvePageSpeedAuditTranslations(
+      [
+        {
+          audit_id: "frame_title",
+          title: "<frame> or <iframe> elements do not have a title",
+          description: "Frames must have a title.",
+        },
+        {
+          audit_id: "list",
+          title:
+            "List items (<li>) are not contained within <ul>, <ol> or <menu> parent elements.",
+          description: "List items must have a valid list parent.",
+        },
+      ],
+      {
+        "frame-title": {
+          translated_description:
+            "Quadros incorporados devem ter um título que descreva seu conteúdo.",
+        },
+      },
+      translate,
+    );
+
+    expect(translate).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        {
+          audit_id: "frame-title",
+          field: "title",
+          text: "<frame> or <iframe> elements do not have a title",
+        },
+        {
+          audit_id: "list",
+          field: "title",
+          text:
+            "List items (<li>) are not contained within <ul>, <ol> or <menu> parent elements.",
+        },
+        {
+          audit_id: "list",
+          field: "description",
+          text: "List items must have a valid list parent.",
+        },
+      ]),
+    );
+    expect(result.resolved["frame-title"]).toEqual({
+      title: "Adicionar título aos quadros e iframes",
+      description:
+        "Quadros incorporados devem ter um título que descreva seu conteúdo.",
+    });
+    expect(result.resolved.list).toEqual({
+      title: "Organizar corretamente os itens de lista",
+      description:
+        "Itens de lista precisam estar dentro de uma lista ordenada ou não ordenada.",
+    });
+  });
+
+  it("strips dynamic estimated savings before translating and preserves each value", async () => {
+    const first = splitPageSpeedTitleSavings(
+      "Avoid multiple page redirects — Economia estimada de 380 ms",
+    );
+    const second = splitPageSpeedTitleSavings(
+      "Avoid multiple page redirects — Economia estimada de 1,150 ms",
+    );
+    const translate = vi.fn(async () => ({
+      redirects: {
+        translated_title: "Evitar vários redirecionamentos de página",
+        translated_description:
+          "Redirecionamentos múltiplos aumentam o tempo de carregamento.",
+      },
+    }));
+    const result = await resolvePageSpeedAuditTranslations(
+      [
+        {
+          audit_id: "redirects",
+          title: "Avoid multiple page redirects — Economia estimada de 380 ms",
+          description: "Avoid multiple page redirects.",
+        },
+        {
+          audit_id: "redirects",
+          title: "Avoid multiple page redirects — Economia estimada de 1,150 ms",
+          description: "Avoid multiple page redirects.",
+        },
+      ],
+      {},
+      translate,
+    );
+
+    expect(first.displayValue).toBe("Economia estimada de 380 ms");
+    expect(second.displayValue).toBe("Economia estimada de 1,150 ms");
+    expect(translate).toHaveBeenCalledTimes(1);
+    expect(translate).toHaveBeenCalledWith([
+      {
+        audit_id: "redirects",
+        field: "title",
+        text: "Avoid multiple page redirects",
+      },
+      {
+        audit_id: "redirects",
+        field: "description",
+        text: "Avoid multiple page redirects.",
+      },
+    ]);
+    expect(result.resolved.redirects.title).toBe(
+      "Evitar vários redirecionamentos de página",
+    );
+  });
+
+  it("never returns the source English when OpenRouter fails or returns invalid text", async () => {
+    const onError = vi.fn();
+    const result = await resolvePageSpeedAuditTranslations(
+      [
+        {
+          audit_id: "autocomplete",
+          title: "`autocomplete` attributes are not used correctly",
+          description:
+            "Autocomplete attributes should be set correctly on form fields.",
+        },
+      ],
+      {},
+      async () => {
+        throw new Error("OpenRouter unavailable");
+      },
+      onError,
+    );
+
+    expect(onError).toHaveBeenCalledTimes(2);
+    expect(result.resolved.autocomplete.title).not.toContain("autocomplete");
+    expect(result.resolved.autocomplete.title).toBe(
+      "Auditoria do PageSpeed sem tradução disponível",
+    );
+    expect(result.resolved.autocomplete.description).toBe(
+      "A descrição desta auditoria não está disponível em português no momento. Consulte os detalhes técnicos do PageSpeed.",
+    );
   });
 });

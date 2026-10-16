@@ -176,7 +176,13 @@ describe("PDF reports", () => {
         ...diagnostic.summary,
         mobile: {
           ...diagnostic.summary.mobile,
-          opportunities: titles.map((title) => ({ title })),
+          opportunities: [
+            ...titles.map((title) => ({ title })),
+            {
+              title: "Evitar vários redirecionamentos de página",
+              displayValue: "Economia estimada de 380 ms",
+            },
+          ],
         },
       },
     };
@@ -188,6 +194,9 @@ describe("PDF reports", () => {
     for (const title of titles) {
       expect(text).toContain(title.toLocaleUpperCase("pt-BR"));
     }
+    expect(text).toContain(
+      "EVITAR VÁRIOS REDIRECIONAMENTOS DE PÁGINA — ECONOMIA ESTIMADA DE 380 MS",
+    );
   });
 
   it("includes the analyzed site's logo beside Tupiniquim in all report PDFs", async () => {

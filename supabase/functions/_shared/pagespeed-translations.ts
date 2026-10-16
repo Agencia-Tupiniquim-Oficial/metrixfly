@@ -21,6 +21,18 @@ const AUDIT_ID_ALIASES: Record<string, string> = {
   "source-maps-insight": "sourcemaps",
   "missing-source-maps-for-large-first-party-javascript": "sourcemaps",
   "legacy-javascript-insight": "legacy-javascript",
+  "redirects-audit": "redirects",
+  "redirects-insight": "redirects",
+  "frame-title-audit": "frame-title",
+  "frame-title-insight": "frame-title",
+  "list-audit": "list",
+  "list-insight": "list",
+  "aria-required-children-insight": "aria-required-children",
+  "is-on-https-audit": "is-on-https",
+  "autocomplete-audit": "autocomplete",
+  "autocomplete-insight": "autocomplete",
+  "label-audit": "label",
+  "label-insight": "label",
   "definition-list-audit": "definition-list",
   "definition-list-insight": "definition-list",
   "dl-order": "definition-list",
@@ -53,6 +65,16 @@ const AUDIT_ID_VARIANTS: Record<string, string[]> = {
     "missing-source-maps-for-large-first-party-javascript",
   ],
   "legacy-javascript": ["legacy-javascript-insight"],
+  redirects: ["redirects-audit", "redirects-insight"],
+  "frame-title": ["frame-title-audit", "frame-title-insight", "frame_title"],
+  list: ["list-audit", "list-insight"],
+  "aria-required-children": [
+    "aria-required-children-insight",
+    "aria_required_children",
+  ],
+  "is-on-https": ["is-on-https-audit", "is_on_https"],
+  autocomplete: ["autocomplete-audit", "autocomplete-insight"],
+  label: ["label-audit", "label-insight"],
   "definition-list": [
     "definition-list-audit",
     "definition-list-insight",
@@ -165,6 +187,195 @@ const AUDIT_TRANSLATIONS: Record<
 
 const SAFE_UNAVAILABLE_DESCRIPTION =
   "A descrição desta auditoria não está disponível em português no momento. Consulte os detalhes técnicos do PageSpeed.";
+const SAFE_UNAVAILABLE_TITLE = "Auditoria do PageSpeed sem tradução disponível";
+
+export type PageSpeedTranslationField = "title" | "description";
+
+export type PageSpeedTranslationRequest = {
+  audit_id: string;
+  field: PageSpeedTranslationField;
+  text: string;
+};
+
+export type PageSpeedAuditTranslation = {
+  translated_title?: unknown;
+  translated_description?: unknown;
+};
+
+export type ResolvedPageSpeedAuditTranslation = {
+  title: string;
+  description: string;
+};
+
+export function splitPageSpeedTitleSavings(title: string): {
+  title: string;
+  displayValue?: string;
+} {
+  const match = title.match(
+    /^(.*?)\s*[—–-]\s*((?:estimated|est\.?)\s+savings\s+of|economia\s+(?:estimada|potencial)\s+de)\s+(.+)$/i,
+  );
+  if (!match) return { title };
+
+  const [, baseTitle, savingsLabel, savingsValue] = match;
+  const label = /^economia/i.test(savingsLabel)
+    ? savingsLabel
+    : "Economia estimada de";
+  return {
+    title: baseTitle.trim(),
+    displayValue: `${label} ${savingsValue.trim()}`,
+  };
+}
+
+export async function resolvePageSpeedAuditTranslations(
+  audits: Array<{
+    audit_id: string;
+    title: string;
+    description: string;
+  }>,
+  cachedTranslations: Record<
+    string,
+    PageSpeedAuditTranslation | string | null | undefined
+  >,
+  translate: (
+    requests: PageSpeedTranslationRequest[],
+  ) => Promise<Record<string, PageSpeedAuditTranslation>>,
+  onError: (
+    auditId: string,
+    field: PageSpeedTranslationField,
+    error: unknown,
+  ) => void = (auditId, field, error) => {
+    console.warn(
+      `PageSpeed translation failed for ${auditId} (${field}):`,
+      error,
+    );
+  },
+): Promise<{
+  resolved: Record<string, ResolvedPageSpeedAuditTranslation>;
+  updates: Record<string, PageSpeedAuditTranslation>;
+}> {
+  const cache = new Map<string, PageSpeedAuditTranslation>();
+  for (const [auditId, entry] of Object.entries(cachedTranslations)) {
+    const normalizedId = normalizePageSpeedAuditId(auditId);
+    if (!normalizedId) continue;
+    if (cache.has(normalizedId) && auditId !== normalizedId) continue;
+    cache.set(
+      normalizedId,
+      typeof entry === "string" ? { translated_description: entry } : entry ?? {},
+    );
+  }
+
+  const auditSources = new Map<
+    string,
+    { title: string; description: string }
+  >();
+  for (const audit of audits) {
+    const auditId = normalizePageSpeedAuditId(audit.audit_id, audit.title, audit.description);
+    if (!auditId || auditSources.has(auditId)) continue;
+    const title = splitPageSpeedTitleSavings(audit.title).title;
+    auditSources.set(auditId, { title, description: audit.description });
+  }
+
+  const resolved: Record<string, ResolvedPageSpeedAuditTranslation> = {};
+  const updates: Record<string, PageSpeedAuditTranslation> = {};
+  const requests: PageSpeedTranslationRequest[] = [];
+
+  for (const [auditId, source] of auditSources) {
+    const cached = cache.get(auditId) ?? {};
+    const localTitle = getPageSpeedAuditTitle(auditId, source.title);
+    const cachedTitle =
+      typeof cached.translated_title === "string" ? cached.translated_title : "";
+    const cachedDescription =
+      typeof cached.translated_description === "string"
+        ? cached.translated_description
+        : "";
+    const sourceTitleIsPortuguese =
+      isValidPageSpeedTranslation(auditId, source.title, source.title);
+    const sourceDescriptionIsPortuguese =
+      isValidPageSpeedTranslation(auditId, source.description, source.description);
+    const title =
+      (cachedTitle &&
+      isValidPageSpeedTranslation(auditId, source.title, cachedTitle)
+        ? cachedTitle.trim()
+        : undefined) ??
+      localTitle ??
+      (sourceTitleIsPortuguese ? source.title.trim() : undefined);
+    const description =
+      (cachedDescription &&
+      isValidPageSpeedTranslation(auditId, source.description, cachedDescription)
+        ? cachedDescription.trim()
+        : undefined) ??
+      (sourceDescriptionIsPortuguese
+        ? source.description.trim()
+        : undefined) ??
+      (AUDIT_TRANSLATIONS[auditId]?.description
+        ? normalizePageSpeedDescription(auditId, source.description, undefined)
+        : undefined);
+
+    resolved[auditId] = {
+      title: title ?? SAFE_UNAVAILABLE_TITLE,
+      description:
+        description ?? SAFE_UNAVAILABLE_DESCRIPTION,
+    };
+
+    if (!title && source.title.trim()) {
+      requests.push({ audit_id: auditId, field: "title", text: source.title });
+    }
+    if (!description && source.description.trim()) {
+      requests.push({
+        audit_id: auditId,
+        field: "description",
+        text: source.description,
+      });
+    }
+  }
+
+  if (requests.length === 0) return { resolved, updates };
+
+  let translations: Record<string, PageSpeedAuditTranslation> = {};
+  try {
+    translations = await translate(requests);
+  } catch (error) {
+    for (const request of requests) {
+      onError(request.audit_id, request.field, error);
+    }
+    return { resolved, updates };
+  }
+
+  for (const request of requests) {
+    const translation = translations[request.audit_id];
+    const value =
+      request.field === "title"
+        ? translation?.translated_title
+        : translation?.translated_description;
+    if (
+      !isValidPageSpeedTranslation(request.audit_id, request.text, value)
+    ) {
+      onError(
+        request.audit_id,
+        request.field,
+        new Error("OpenRouter did not return a valid Portuguese translation"),
+      );
+      continue;
+    }
+
+    const normalizedTranslation = String(value).trim();
+    if (request.field === "title") {
+      resolved[request.audit_id].title = normalizedTranslation;
+      updates[request.audit_id] = {
+        ...updates[request.audit_id],
+        translated_title: normalizedTranslation,
+      };
+    } else {
+      resolved[request.audit_id].description = normalizedTranslation;
+      updates[request.audit_id] = {
+        ...updates[request.audit_id],
+        translated_description: normalizedTranslation,
+      };
+    }
+  }
+
+  return { resolved, updates };
+}
 
 export function normalizePageSpeedAuditId(
   auditId: unknown,
@@ -210,6 +421,39 @@ export function normalizePageSpeedAuditId(
   if (/^legacy javascript$/i.test(normalizedTitle)) {
     return "legacy-javascript";
   }
+  if (/^avoid multiple page redirects$/i.test(normalizedTitle)) {
+    return "redirects";
+  }
+  if (
+    /^frame or iframe elements do not have a title$/i.test(normalizedTitle)
+  ) {
+    return "frame-title";
+  }
+  if (
+    /^list items li are not contained within ul ol or menu parent elements$/i.test(
+      normalizedTitle,
+    )
+  ) {
+    return "list";
+  }
+  if (
+    /^role s are not contained by their required parent element$/i.test(
+      normalizedTitle,
+    )
+  ) {
+    return "aria-required-children";
+  }
+  if (/^does not use https$/i.test(normalizedTitle)) return "is-on-https";
+  if (
+    /^autocomplete attributes are not used correctly$/i.test(normalizedTitle)
+  ) {
+    return "autocomplete";
+  }
+  if (
+    /^form elements do not have associated labels$/i.test(normalizedTitle)
+  ) {
+    return "label";
+  }
   if (/buttons? do not have an accessible name/i.test(titleText)) {
     return "button-name";
   }
@@ -244,8 +488,8 @@ function normalizePageSpeedTitle(title: string): string {
   return title
     .split(/\s+[—–]\s+/)[0]
     .replace(/\s*-\s*Est(?:imated)?\.?\s+savings\b.*$/i, "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/<([^>]*)>/g, " $1 ")
+    .replace(/\[([^\]]*)\]/g, " $1 ")
     .replace(/[^a-z0-9]+/gi, " ")
     .trim()
     .toLowerCase();
@@ -258,6 +502,7 @@ export function pageSpeedAuditIdCandidates(auditIds: string[]): string[] {
       return [
         auditId.trim(),
         normalized,
+        normalized.replace(/-/g, "_"),
         ...(AUDIT_ID_VARIANTS[normalized] ?? []),
       ].filter(Boolean);
     }),
@@ -334,7 +579,7 @@ export function isLikelyEnglishPageSpeedText(
 function isLikelyPortuguesePageSpeedText(text: string): boolean {
   return (
     /[áàâãéêíóôõúç]/i.test(text) ||
-    /\b(para|com|dos|das|não|uma|está|são|página|botão|descrição|carregamento|conteúdo|recursos|navegador|reduzir|melhorar|evitar|remover|legado|acessível|dispositivos|usuários|tecnologias|permitir|ampliar)\b/i.test(
+    /\b(para|com|dos|das|não|uma|está|são|página|botão|descrição|carregamento|conteúdo|recursos|navegador|reduzir|melhorar|evitar|remover|legado|acessível|dispositivos|usuários|tecnologias|permitir|ampliar|organizar|corretamente|ordem|lista|listas|tamanho|rótulo|atributos|elementos|título|títulos|redirecionamentos|página|quadro|quadros|contraste|formulário|campos|seguro|segura)\b/i.test(
       text,
     )
   );
