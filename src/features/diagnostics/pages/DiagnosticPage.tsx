@@ -19,6 +19,13 @@ import {
   sampleBusinessSummary,
 } from "@/features/diagnostics/demo/diagnosticMock";
 import { importPdfReports } from "@/lib/dynamic-import";
+import { runDiagnosticWithProgress } from "@/features/diagnostics/services/diagnose-site";
+import {
+  applyDiagnosticProgress,
+  initialDiagnosticProgress,
+  type DiagnosticProgressEvent,
+  type DiagnosticProgressState,
+} from "@/features/diagnostics/model/diagnostic-progress";
 type Result = DiagnoseResult;
 
 const DiagnosticPage = () => {
@@ -26,6 +33,8 @@ const DiagnosticPage = () => {
 
   const [url, setUrl] = useState(diagnostic?.geo?.domain ?? "");
   const [loading, setLoading] = useState(false);
+  const [diagnosticProgress, setDiagnosticProgress] =
+    useState<DiagnosticProgressState>(initialDiagnosticProgress);
   const [geoLoading, setGeoLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(diagnostic ?? null);
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
@@ -43,15 +52,17 @@ const DiagnosticPage = () => {
     if (!/^https?:\/\//i.test(normalized)) normalized = "https://" + normalized;
 
     setLoading(true);
+    setDiagnosticProgress(initialDiagnosticProgress);
     setResult(null);
     setBusinessSummary(null);
     try {
-      const { data, error } = await supabase.functions.invoke("diagnose-site", {
-        body: { url: normalized },
-      });
-      if (data?.error) throw new Error(data.error);
-      if (error) throw error;
-      const diagnosis = data as DiagnoseResult;
+      const diagnosis = await runDiagnosticWithProgress(
+        normalized,
+        (event: DiagnosticProgressEvent) =>
+          setDiagnosticProgress((current) =>
+            applyDiagnosticProgress(current, event),
+          ),
+      );
       const diagnosticResult = {
         ...diagnosis,
         geo: { ...diagnosis.geo, domain: normalized },
@@ -352,6 +363,7 @@ const DiagnosticPage = () => {
     url={isDemo ? "speedlink-demo.com.br" : url}
     setUrl={setUrl}
     loading={loading}
+    diagnosticProgress={diagnosticProgress}
     runDiagnostic={runDiagnostic}
     result={activeResult}
     geoLoading={geoLoading}

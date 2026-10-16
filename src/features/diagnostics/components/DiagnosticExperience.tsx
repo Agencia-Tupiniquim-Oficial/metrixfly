@@ -4,7 +4,6 @@ import {
   Calculator,
   FileText,
   Gauge,
-  Loader2,
   Monitor,
   Smartphone,
 } from "lucide-react";
@@ -18,11 +17,14 @@ import { CleanScoresGrid } from "./CleanScoresGrid";
 import logoColored from "@/assets/logo-colored.png";
 import type { DiagnosticPageProps } from "@/features/diagnostics/model/page-props";
 import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
+import { DiagnosticProgress } from "./DiagnosticProgress";
+import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
 
 export function DiagnosticExperience({
   url,
   setUrl,
   loading,
+  diagnosticProgress = initialDiagnosticProgress,
   runDiagnostic,
   result,
   geoLoading,
@@ -126,13 +128,7 @@ export function DiagnosticExperience({
 
         {/* Loading State */}
         {loading && (
-          <div className="text-center py-12 space-y-3">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-            <p className="text-base text-muted-foreground animate-pulse font-medium">
-              Rodando PageSpeed mobile + desktop e gerando análise com IA. Isso
-              leva ~30-60s…
-            </p>
-          </div>
+          <DiagnosticProgress progress={diagnosticProgress} />
         )}
 
         {/* Empty State */}

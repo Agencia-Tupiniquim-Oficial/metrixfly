@@ -94,6 +94,7 @@ type AiAnalysisResult = {
   uiux?: unknown;
   extras?: unknown[];
   _pageSpeedTranslations?: Record<string, string>;
+  _analysisStatus?: "completed" | "fallback";
 };
 
 function asRecord(value: unknown): JsonRecord {
@@ -1392,6 +1393,7 @@ async function aiAnalysis(
     uiux: null,
     extras: [],
     _pageSpeedTranslations: pageSpeedTranslations,
+    _analysisStatus: "fallback" as const,
   });
 
   // Prepara prompt único para a análise (mesma estrutura que antes, mas usando OpenRouter)
@@ -1504,6 +1506,7 @@ Analise o screenshot (se disponível) e o HTML/conteúdo do site para identifica
     return {
       ...JSON.parse(content),
       _pageSpeedTranslations: pageSpeedTranslations,
+      _analysisStatus: "completed",
     };
   } catch (e) {
     console.warn("aiAnalysis: conteúdo bruto recebido:", content.slice(0, 500));
@@ -1514,99 +1517,115 @@ Analise o screenshot (se disponível) e o HTML/conteúdo do site para identifica
 
 // Handler HTTP
 // ===================================================================
-serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+type DiagnosticProgressStage =
+  | "starting"
+  | "mobile"
+  | "desktop"
+  | "ai"
+  | "finalizing";
+type DiagnosticProgressStatus =
+  | "running"
+  | "completed"
+  | "failed"
+  | "fallback"
+  | "skipped";
+type ReportProgress = (
+  stage: DiagnosticProgressStage,
+  status: DiagnosticProgressStatus,
+) => void;
+
+async function generateDiagnosis(url: string, reportProgress: ReportProgress) {
+  if (!url) throw new Error("Parâmetro 'url' é obrigatório.");
+
+  reportProgress("starting", "completed");
+  reportProgress("mobile", "running");
+  reportProgress("desktop", "running");
+
+  const pageSpeedResults = await Promise.all([
+    runPageSpeed(url, "mobile").then(
+      (result) => {
+        reportProgress("mobile", "completed");
+        return { status: "fulfilled" as const, value: result };
+      },
+      (reason: unknown) => {
+        reportProgress("mobile", "failed");
+        return { status: "rejected" as const, reason };
+      },
+    ),
+    runPageSpeed(url, "desktop").then(
+      (result) => {
+        reportProgress("desktop", "completed");
+        return { status: "fulfilled" as const, value: result };
+      },
+      (reason: unknown) => {
+        reportProgress("desktop", "failed");
+        return { status: "rejected" as const, reason };
+      },
+    ),
+  ]);
+  const scoreAvailability = {
+    mobile: pageSpeedResults[0].status === "fulfilled",
+    desktop: pageSpeedResults[1].status === "fulfilled",
+  };
+  const mobile =
+    pageSpeedResults[0].status === "fulfilled"
+      ? pageSpeedResults[0].value
+      : undefined;
+  const desktop =
+    pageSpeedResults[1].status === "fulfilled"
+      ? pageSpeedResults[1].value
+      : undefined;
+
+  if (!mobile && !desktop) {
+    const errors = pageSpeedResults
+      .filter(
+        (result): result is Extract<typeof result, { status: "rejected" }> =>
+          result.status === "rejected",
+      )
+      .map((result) => errorMessage(result.reason))
+      .join(" | ");
+    throw new Error(
+      `O PageSpeed Insights não respondeu em nenhuma estratégia. ${errors}`,
+    );
+  }
+  if (!mobile || !desktop) {
+    console.warn(
+      `PageSpeed ${mobile ? "desktop" : "mobile"} falhou; continuando com o resultado disponível.`,
+    );
   }
 
-  try {
-    const { url } = await req.json();
+  const fallback = mobile ?? desktop;
+  if (!fallback) throw new Error("O PageSpeed não retornou dados utilizáveis.");
+  const mobileResult = mobile ?? fallback;
+  const desktopResult = desktop ?? fallback;
+  console.log("PageSpeed ok. Skipping visual cards to reduce latency.");
 
-    if (!url) {
-      return new Response(
-        JSON.stringify({ error: "Parâmetro 'url' é obrigatório." }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
+  (mobileResult as any).pagespeedScreenshot = null;
+  (desktopResult as any).pagespeedScreenshot = null;
+  (mobileResult as any).screenshot = null;
+  (desktopResult as any).screenshot = null;
+  console.log(
+    "Skipped visual card generation and cleared screenshots to reduce latency.",
+  );
 
-    let mobile;
-    let desktop;
-    let ai;
-    const pageSpeedResults = await Promise.allSettled([
-      runPageSpeed(url, "mobile"),
-      runPageSpeed(url, "desktop"),
-    ]);
-    const scoreAvailability = {
-      mobile: pageSpeedResults[0].status === "fulfilled",
-      desktop: pageSpeedResults[1].status === "fulfilled",
-    };
-    const successfulResults = pageSpeedResults
-      .filter(
-        (result): result is PromiseFulfilledResult<any> =>
-          result.status === "fulfilled",
-      )
-      .map((result) => result.value);
+  reportProgress("ai", "running");
+  const pageSpeedTranslations = await translatePageSpeedOpportunities(
+    mobileResult,
+    desktopResult,
+  );
+  const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
+  let ai: AiAnalysisResult;
 
-    if (successfulResults.length === 0) {
-      const errors = pageSpeedResults
-        .filter((result) => result.status === "rejected")
-        .map((result) => result.reason?.message ?? String(result.reason))
-        .join(" | ");
-      throw new Error(
-        `O PageSpeed Insights não respondeu em nenhuma estratégia. ${errors}`,
-      );
-    }
-    [mobile, desktop] = [successfulResults[0], successfulResults[1]];
-    if (successfulResults.length === 1) {
-      const failedStrategy =
-        pageSpeedResults[0].status === "rejected" ? "mobile" : "desktop";
+  console.log("Gerando IA… (se configurada)");
+  if (openRouterApiKey) {
+    try {
+      ai = await aiAnalysis(url, mobileResult, desktopResult, mobileResult.screenshot);
+      console.log("IA ok via OpenRouter.");
+      reportProgress("ai", ai._analysisStatus ?? "completed");
+    } catch (error) {
       console.warn(
-        `PageSpeed ${failedStrategy} falhou; continuando com o resultado disponível.`,
-      );
-    }
-
-    // If only one strategy succeeded, use it for both to continue generating the report (best-effort)
-    const fallback = mobile ?? desktop;
-    mobile = mobile ?? fallback;
-    desktop = desktop ?? fallback;
-    console.log("PageSpeed ok. Skipping visual cards to reduce latency.");
-
-    // Skip generating visual cards to reduce latency — no screenshots included
-    (mobile as any).pagespeedScreenshot = null;
-    (desktop as any).pagespeedScreenshot = null;
-    // Also clear raw PageSpeed screenshots to avoid further processing
-    (mobile as any).screenshot = null;
-    (desktop as any).screenshot = null;
-    console.log(
-      "Skipped visual card generation and cleared screenshots to reduce latency.",
-    );
-
-    const pageSpeedTranslations = await translatePageSpeedOpportunities(
-      mobile,
-      desktop,
-    );
-    const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
-
-    console.log("Gerando IA… (se configurada)");
-    if (openRouterApiKey) {
-      try {
-        ai = await aiAnalysis(url, mobile, desktop, mobile.screenshot);
-        console.log("IA ok via OpenRouter.");
-      } catch (e) {
-        console.warn("aiAnalysis (OpenRouter) falhou:", e?.message ?? e);
-        ai = {
-          improvements: [],
-          uiux: null,
-          extras: [],
-          _pageSpeedTranslations: pageSpeedTranslations,
-        };
-      }
-    } else {
-      console.warn(
-        "Nenhuma chave de IA configurada (OPENROUTER_API_KEY) — pulando análise IA e usando fallback.",
+        "aiAnalysis (OpenRouter) falhou:",
+        errorMessage(error),
       );
       ai = {
         improvements: [],
@@ -1614,21 +1633,117 @@ serve(async (req: Request) => {
         extras: [],
         _pageSpeedTranslations: pageSpeedTranslations,
       };
+      reportProgress("ai", "fallback");
     }
-    const summaryResponse = {
-      ...buildSummaryResponse(mobile, desktop, ai),
-      scoreAvailability,
+  } else {
+    console.warn(
+      "Nenhuma chave de IA configurada (OPENROUTER_API_KEY) — pulando análise IA e usando fallback.",
+    );
+    ai = {
+      improvements: [],
+      uiux: null,
+      extras: [],
+      _pageSpeedTranslations: pageSpeedTranslations,
     };
+    reportProgress("ai", "skipped");
+  }
 
-    return new Response(JSON.stringify(summaryResponse), {
+  reportProgress("finalizing", "running");
+  const diagnosis = {
+    ...buildSummaryResponse(mobileResult, desktopResult, ai),
+    scoreAvailability,
+  };
+  reportProgress("finalizing", "completed");
+  return diagnosis;
+}
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  let requestBody: JsonRecord;
+  try {
+    requestBody = asRecord(await req.json());
+  } catch (error) {
+    console.error("diagnose request body is invalid", error);
+    return new Response(
+      JSON.stringify({ error: "Corpo da requisição inválido." }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  const url = typeof requestBody.url === "string" ? requestBody.url : "";
+  if (requestBody.progressStream === true && url) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const reportProgress: ReportProgress = (stage, status) => {
+          try {
+            controller.enqueue(
+              encoder.encode(
+                `${JSON.stringify({ type: "progress", stage, status })}\n`,
+              ),
+            );
+          } catch (error) {
+            console.warn("Unable to send diagnostic progress event.", error);
+          }
+        };
+
+        void generateDiagnosis(url, reportProgress)
+          .then((data) => {
+            controller.enqueue(
+              encoder.encode(`${JSON.stringify({ type: "result", data })}\n`),
+            );
+          })
+          .catch((error) => {
+            console.error("diagnose error", error);
+            try {
+              controller.enqueue(
+                encoder.encode(
+                  `${JSON.stringify({
+                    type: "error",
+                    message: errorMessage(error),
+                  })}\n`,
+                ),
+              );
+            } catch (streamError) {
+              console.warn("Unable to send diagnostic error event.", streamError);
+            }
+          })
+          .finally(() => {
+            try {
+              controller.close();
+            } catch (error) {
+              console.warn("Unable to close diagnostic progress stream.", error);
+            }
+          });
+      },
+    });
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        "Cache-Control": "no-cache, no-transform",
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "X-Accel-Buffering": "no",
+      },
+    });
+  }
+
+  try {
+    const result = await generateDiagnosis(url, () => {});
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e: any) {
-    console.error("diagnose error", e);
+  } catch (error) {
+    console.error("diagnose error", error);
     return new Response(
-      JSON.stringify({ error: e.message ?? "Erro desconhecido" }),
+      JSON.stringify({ error: errorMessage(error) }),
       {
-        status: 500,
+        status: url ? 500 : 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );

@@ -1,12 +1,14 @@
 import type { FormEvent } from "react";
 import type { BusinessSummary } from "./business-report";
 import type { DiagnoseResult, Improvement } from "./diagnose";
+import type { DiagnosticProgressState } from "./diagnostic-progress";
 import type { QuoteRequest } from "./quote-request";
 
 export type DiagnosticPageProps = {
   url: string;
   setUrl: (url: string) => void;
   loading: boolean;
+  diagnosticProgress?: DiagnosticProgressState;
   runDiagnostic: (event: FormEvent) => void;
   result: DiagnoseResult | null;
   geoLoading: boolean;
