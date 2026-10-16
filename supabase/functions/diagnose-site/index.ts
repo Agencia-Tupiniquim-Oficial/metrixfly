@@ -8,6 +8,8 @@ import {
   isValidPageSpeedTranslation,
   normalizePageSpeedAuditId,
   normalizePageSpeedDescription,
+  normalizePageSpeedDisplayValue,
+  partitionPageSpeedTranslationRequests,
   pageSpeedAuditIdCandidates,
 } from "../_shared/pagespeed-translations.ts";
 
@@ -569,7 +571,7 @@ function translatePageSpeedTitle(
 function translatePageSpeedDisplayValue(
   displayValue: string | undefined,
 ): string | undefined {
-  return displayValue?.replace(/\bEst savings of\b/gi, "Economia estimada de");
+  return normalizePageSpeedDisplayValue(displayValue);
 }
 
 function translateReportText(value: unknown): string {
@@ -1302,19 +1304,10 @@ async function aiAnalysis(
   const cachedMap = await getPagespeedTranslationsBatch(
     missing.map((it) => it.audit_id),
   );
-  const missingById: Record<string, string> = { ...cachedMap };
-  const toTranslate = missing.filter((item) => {
-    const auditId = normalizePageSpeedAuditId(item.audit_id);
-    const cachedTranslation = cachedMap[auditId];
-    if (
-      cachedTranslation &&
-      isValidPageSpeedTranslation(auditId, item.text, cachedTranslation)
-    ) {
-      return false;
-    }
-    delete missingById[auditId];
-    return true;
-  });
+  const {
+    translations: missingById,
+    missing: toTranslate,
+  } = partitionPageSpeedTranslationRequests(missing, cachedMap);
 
   console.log(
     `Tradução: ${Object.keys(cachedMap).length} do cache, ${toTranslate.length} vão pro OpenRouter.`,

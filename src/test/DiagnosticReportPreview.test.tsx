@@ -62,6 +62,42 @@ describe("DiagnosticReportPreview", () => {
     }
   });
 
+  it("displays localized PageSpeed opportunity titles in the report", () => {
+    const titles = [
+      "Exibir imagens com a proporção correta",
+      "Melhorar o contraste entre o texto e o fundo",
+      "Aumentar o tamanho ou o espaçamento dos alvos de toque",
+      "Corrigir erros registrados no console do navegador",
+      "Adicionar mapas de origem ao JavaScript próprio",
+      "Reduzir JavaScript legado",
+      "Permitir a ampliação da página em dispositivos móveis",
+      "Reduzir recálculos forçados do layout",
+      "Nomear os links de forma compreensível",
+      "Organizar os títulos em ordem hierárquica",
+      "Organizar corretamente as listas de definições",
+    ];
+
+    render(
+      <DiagnosticReportPreview
+        url="https://site.test"
+        mobile={{
+          scores: { performance: 72, accessibility: 91, bestPractices: 88, seo: 96 },
+          metrics: {},
+          opportunities: titles.map((title) => ({ title })),
+        }}
+        desktop={{
+          scores: { performance: 94, accessibility: 98, bestPractices: 95, seo: 99 },
+          metrics: {},
+        }}
+        improvements={[]}
+      />,
+    );
+
+    for (const title of titles) {
+      expect(screen.getByText(title)).toBeTruthy();
+    }
+  });
+
   it("renders normalized Portuguese PageSpeed descriptions", () => {
     const findings = [
       {

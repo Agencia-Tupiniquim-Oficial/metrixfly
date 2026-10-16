@@ -156,6 +156,40 @@ async function firstPageImageCount(blob: Blob): Promise<number> {
 }
 
 describe("PDF reports", () => {
+  it("renders localized PageSpeed opportunity titles in the PDF", async () => {
+    const titles = [
+      "Exibir imagens com a proporção correta",
+      "Melhorar o contraste entre o texto e o fundo",
+      "Aumentar o tamanho ou o espaçamento dos alvos de toque",
+      "Corrigir erros registrados no console do navegador",
+      "Adicionar mapas de origem ao JavaScript próprio",
+      "Reduzir JavaScript legado",
+      "Permitir a ampliação da página em dispositivos móveis",
+      "Reduzir recálculos forçados do layout",
+      "Nomear os links de forma compreensível",
+      "Organizar os títulos em ordem hierárquica",
+      "Organizar corretamente as listas de definições",
+    ];
+    const report: DiagnoseResult = {
+      ...diagnostic,
+      summary: {
+        ...diagnostic.summary,
+        mobile: {
+          ...diagnostic.summary.mobile,
+          opportunities: titles.map((title) => ({ title })),
+        },
+      },
+    };
+
+    const text = await readPdfText(
+      await createDiagnosticReportPdf("https://site.test", report),
+    );
+
+    for (const title of titles) {
+      expect(text).toContain(title.toLocaleUpperCase("pt-BR"));
+    }
+  });
+
   it("includes the analyzed site's logo beside Tupiniquim in all report PDFs", async () => {
     getClientLogoDataUrl.mockResolvedValueOnce(clientLogo);
     const blob = await createDiagnosticReportPdf("https://logo-client.test", diagnostic);
