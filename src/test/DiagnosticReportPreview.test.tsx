@@ -75,6 +75,10 @@ describe("DiagnosticReportPreview", () => {
       "Nomear os links de forma compreensível",
       "Organizar os títulos em ordem hierárquica",
       "Organizar corretamente as listas de definições",
+      "Configurar a exibição das fontes",
+      "Melhorar a descoberta da solicitação do LCP",
+      "Tornar os links de navegação focalizáveis",
+      "Servir imagens com resolução adequada",
     ];
 
     render(
