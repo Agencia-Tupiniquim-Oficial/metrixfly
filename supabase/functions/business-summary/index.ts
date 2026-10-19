@@ -1,4 +1,8 @@
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
+import {
+  formatErrorForLog,
+  sanitizeErrorLogDetails,
+} from "../_shared/sanitize-error-log.ts";
 
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 const OPENROUTER_API_BASE =
@@ -36,6 +40,7 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "Método não permitido." }, 405);
   if (!OPENROUTER_API_KEY) {
+    console.error("business-summary configuration error: OPENROUTER_API_KEY is missing");
     return jsonResponse({ error: "OPENROUTER_API_KEY não configurada." }, 500);
   }
 
@@ -100,13 +105,21 @@ ${JSON.stringify({
 
     if (!response.ok) {
       const details = await response.text();
-      console.error("OpenRouter business summary failed", response.status, details);
+      console.error(
+        "OpenRouter business summary failed",
+        response.status,
+        sanitizeErrorLogDetails(
+          details,
+          OPENROUTER_API_KEY ? [OPENROUTER_API_KEY] : [],
+        ),
+      );
       return jsonResponse({ error: "Não foi possível gerar o resumo executivo agora." }, 502);
     }
 
     const payload = await response.json();
     const content = payload?.choices?.[0]?.message?.content;
     if (typeof content !== "string") {
+      console.error("business-summary error: AI response did not contain summary content");
       return jsonResponse({ error: "A IA não retornou um resumo válido." }, 502);
     }
 
@@ -141,6 +154,7 @@ ${JSON.stringify({
       prioridades.length === 0 ||
       !proximoPasso
     ) {
+      console.error("business-summary error: AI response contained an incomplete summary");
       return jsonResponse({ error: "A IA retornou um resumo incompleto." }, 502);
     }
 
@@ -152,7 +166,10 @@ ${JSON.stringify({
       proximoPasso,
     });
   } catch (error) {
-    console.error("business-summary error", error);
+    console.error(
+      "business-summary error",
+      formatErrorForLog(error, [OPENROUTER_API_KEY]),
+    );
     return jsonResponse({ error: "Erro ao gerar o resumo executivo." }, 500);
   }
 });

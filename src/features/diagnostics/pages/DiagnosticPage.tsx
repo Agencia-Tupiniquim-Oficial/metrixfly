@@ -269,11 +269,9 @@ const DiagnosticPage = () => {
     } catch (error) {
       console.error(error);
       toast({
-        title: "Erro ao gerar versão corporativa",
+        title: "Não foi possível gerar o relatório",
         description:
-          error instanceof Error
-            ? error.message
-            : "Não foi possível gerar a versão corporativa.",
+          "Ocorreu um erro interno no servidor ao gerar a versão corporativa do relatório. Tente novamente em alguns instantes.",
         variant: "destructive",
       });
       return null;
