@@ -35,6 +35,9 @@ describe("DiagnosticProgress", () => {
     const steps = screen.getAllByRole("listitem");
     expect(steps[0]).toHaveTextContent("Concluído");
     expect(steps[1]).toHaveTextContent("Em andamento");
+    expect(steps[1]).toHaveAttribute("aria-current", "step");
+    expect(steps[1]).toHaveClass("bg-primary/[0.06]");
+    expect(steps[0]).not.toHaveAttribute("aria-current");
     expect(steps[2]).toHaveTextContent("Pendente");
     expect(
       screen.getByText(

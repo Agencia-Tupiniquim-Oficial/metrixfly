@@ -28,7 +28,7 @@ export function CleanScoresGrid({
   ];
 
   return (
-    <Card className="p-6 bg-card border-border shadow-sm">
+    <Card className="motion-card p-6 bg-card border-border shadow-sm">
       <h3 className="text-xl font-semibold mb-6 text-foreground flex items-center gap-2">
         {title}
       </h3>

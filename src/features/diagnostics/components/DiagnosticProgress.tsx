@@ -120,7 +120,7 @@ export function DiagnosticProgress({
 
   return (
     <section aria-labelledby="diagnostic-progress-title">
-      <Card className="mx-auto mt-8 max-w-2xl overflow-hidden border-border bg-card text-left shadow-md">
+      <Card className="motion-enter mx-auto mt-8 max-w-2xl overflow-hidden border-border bg-card text-left shadow-md">
         <div className="p-5 sm:p-7">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
@@ -180,7 +180,13 @@ export function DiagnosticProgress({
             {steps.map(({ id, label }) => {
               const status = progress[id];
               return (
-                <li className="flex items-start gap-3 sm:items-center" key={id}>
+                <li
+                  aria-current={status === "running" ? "step" : undefined}
+                  className={`-mx-3 flex items-start gap-3 rounded-lg p-3 transition-colors duration-300 motion-reduce:transition-none sm:items-center ${
+                    status === "running" ? "bg-primary/[0.06]" : ""
+                  }`}
+                  key={id}
+                >
                   <StepIcon status={status} />
                   <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between sm:gap-4">
                     <span

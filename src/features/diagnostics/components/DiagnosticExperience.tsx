@@ -95,7 +95,7 @@ export function DiagnosticExperience({
     >
       <div className="container max-w-5xl py-12 md:py-20">
         {/* Header */}
-        <header className="text-center mb-10 flex flex-col items-center">
+        <header className="motion-enter text-center mb-10 flex flex-col items-center">
           <img
             src={logoColored}
             alt="Logo"
@@ -133,7 +133,7 @@ export function DiagnosticExperience({
 
         {/* Empty State */}
         {!result && !loading && (
-          <div className="grid sm:grid-cols-3 gap-6 mt-16">
+          <div className="motion-stagger grid sm:grid-cols-3 gap-6 mt-16">
             {[
               {
                 icon: Gauge,
@@ -151,7 +151,10 @@ export function DiagnosticExperience({
                 desc: "Gere versões técnicas e comerciais prontas para apresentação.",
               },
             ].map(({ icon: Icon, title, desc }) => (
-              <Card key={title} className="p-6 bg-card border-border shadow-sm">
+              <Card
+                key={title}
+                className="motion-card p-6 bg-card border-border shadow-sm"
+              >
                 <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4">
                   <Icon className="w-5 h-5" />
                 </div>
@@ -168,7 +171,7 @@ export function DiagnosticExperience({
 
         {/* Populated Results in Clean Narrative Storyline */}
         {result && (
-          <section className="mt-12 space-y-12">
+          <section className="motion-stagger mt-12 space-y-12">
             {/* Act 1: Executive Grade Banner */}
             <Card className="p-8 bg-card border-border shadow-md">
               <div className="flex items-center gap-2 mb-4">
@@ -293,7 +296,7 @@ export function DiagnosticExperience({
                 </span>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="motion-stagger grid md:grid-cols-2 gap-6">
                 <CleanScoresGrid
                   title="📱 Desempenho Mobile"
                   scores={result.summary.mobile.scores}

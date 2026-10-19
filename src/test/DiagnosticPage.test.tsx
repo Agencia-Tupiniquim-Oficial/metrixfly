@@ -38,6 +38,9 @@ describe("Diagnostic experience", () => {
       screen.getByText(/Analise as notas e métricas do PageSpeed Insights/),
     ).toBeDefined();
     expect(screen.getByText("Cenários de otimização")).toBeDefined();
+    expect(
+      screen.getByText("Cenários de otimização").closest(".motion-card"),
+    ).not.toBeNull();
     expect(screen.getByText("Diagnosticar")).toBeDefined();
     expect(screen.getByText("Geo/AEO")).toBeDefined();
   });
@@ -47,6 +50,9 @@ describe("Diagnostic experience", () => {
     expect(screen.getByText("Boletim de Saúde Digital")).toBeDefined();
     expect(screen.getByText("Pontuação Mobile (Celular)")).toBeDefined();
     expect(screen.getByText("Versão corporativa")).toBeDefined();
+    expect(
+      screen.getByText("📱 Desempenho Mobile").closest(".motion-card"),
+    ).not.toBeNull();
   });
 
   it("exposes the optimization estimate as a link with its diagnostic parameters", () => {

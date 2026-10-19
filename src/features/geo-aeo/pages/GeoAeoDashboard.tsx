@@ -151,7 +151,7 @@ function Metric({
   icon: typeof Bot;
 }) {
   return (
-    <Card className="p-5">
+    <Card className="motion-card p-5">
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">{label}</span>
         <Icon className="h-4 w-4 text-primary" />
@@ -569,7 +569,7 @@ const GeoAeoDashboard = () => {
         </div>
       </header>
       <div className="container py-8 md:py-12">
-        <div className="max-w-3xl">
+        <div className="motion-enter max-w-3xl">
           <img
             src={logoColored}
             alt="Logo"
@@ -587,7 +587,7 @@ const GeoAeoDashboard = () => {
             pode executar.
           </p>
         </div>
-        <Card className="mt-8 p-2 shadow-sm">
+        <Card className="motion-card mt-8 p-2 shadow-sm">
           <form onSubmit={runCrawl} className="flex flex-col gap-2 sm:flex-row">
             <div className="flex flex-1 items-center gap-2 px-3">
               <Globe2 className="h-4 w-4 text-muted-foreground" />
@@ -639,7 +639,7 @@ const GeoAeoDashboard = () => {
           </Card>
         )}
         {loading && (
-          <Card className="mt-4 border-primary/20 bg-primary/5 p-4">
+          <Card className="motion-enter mt-4 border-primary/20 bg-primary/5 p-4">
             <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span>{crawlStage}</span>
@@ -661,7 +661,7 @@ const GeoAeoDashboard = () => {
           </Card>
         )}
         {!result && !loading && (
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="motion-stagger mt-10 grid gap-4 md:grid-cols-3">
             {[
               [
                 Bot,
@@ -679,7 +679,7 @@ const GeoAeoDashboard = () => {
                 "Prioriza melhorias por impacto e esforço estimado.",
               ],
             ].map(([Icon, title, text]) => (
-              <Card key={title as string} className="p-5">
+              <Card key={title as string} className="motion-card p-5">
                 <Icon className="mb-3 h-5 w-5 text-primary" />
                 <h3 className="font-semibold">{title as string}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -690,7 +690,7 @@ const GeoAeoDashboard = () => {
           </div>
         )}
         {result && (
-          <section className="mt-10 space-y-6">
+          <section className="motion-stagger mt-10 space-y-6">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
               <div>
                 <p className="text-sm text-muted-foreground">
@@ -705,7 +705,7 @@ const GeoAeoDashboard = () => {
                 </Badge>
               </div>
             </div>
-            <Card className="overflow-hidden border-slate-200 shadow-sm">
+            <Card className="motion-card overflow-hidden border-slate-200 shadow-sm">
               <div className="flex flex-col justify-between gap-6 p-6 sm:flex-row sm:items-center">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
@@ -733,7 +733,7 @@ const GeoAeoDashboard = () => {
                 </div>
               </div>
             </Card>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="motion-stagger grid gap-4 md:grid-cols-3">
               {[
                 [
                   "GEO",
@@ -749,7 +749,7 @@ const GeoAeoDashboard = () => {
               ].map(([label, value, description]) => (
                 <Card
                   key={label as string}
-                  className="border-slate-200 p-5 shadow-sm"
+                  className="motion-card border-slate-200 p-5 shadow-sm"
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -770,7 +770,7 @@ const GeoAeoDashboard = () => {
                 </Card>
               ))}
             </div>
-            <Card className="border-slate-200 p-6 shadow-sm">
+            <Card className="motion-card border-slate-200 p-6 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold">
@@ -784,11 +784,11 @@ const GeoAeoDashboard = () => {
                   {prioritizedFindings.length + 1} itens
                 </Badge>
               </div>
-              <div className="mt-5 grid gap-3 lg:grid-cols-2">
+              <div className="motion-stagger mt-5 grid gap-3 lg:grid-cols-2">
                 {prioritizedFindings.map((finding, index) => (
                   <div
                     key={`${finding.title}-${index}`}
-                    className="rounded-lg border border-slate-200 p-4"
+                    className="motion-card rounded-lg border border-slate-200 p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex gap-3">
@@ -857,7 +857,7 @@ const GeoAeoDashboard = () => {
                 </div>
               </div>
             </Card>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="motion-stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Metric label="GEO Score" value={result.scores.geo} icon={Bot} />
               <Metric
                 label="AEO Score"
@@ -876,7 +876,7 @@ const GeoAeoDashboard = () => {
               />
             </div>
             <div>
-              <Card className="p-6">
+              <Card className="motion-card p-6">
                 <div className="flex items-center gap-3">
                   <div
                     className={`flex h-20 w-20 items-center justify-center rounded-full border-8 border-primary/20 text-3xl font-bold ${scoreColor(overall)}`}
@@ -916,7 +916,7 @@ const GeoAeoDashboard = () => {
               </Card>
             </div>
             {result.scoreBreakdown?.technical && (
-              <Card className="p-6">
+              <Card className="motion-card p-6">
                 <h3 className="font-semibold">
                   Como a pontuação foi calculada
                 </h3>
@@ -961,7 +961,7 @@ const GeoAeoDashboard = () => {
                 )}
               </Card>
             )}
-            <Card className="p-6">
+            <Card className="motion-card p-6">
               <h3 className="mb-4 flex items-center gap-2 font-semibold">
                 <Network className="h-4 w-4 text-primary" /> Entidades e tópicos
               </h3>
@@ -986,7 +986,7 @@ const GeoAeoDashboard = () => {
                 </p>
               )}
             </Card>
-            <Card className="p-6">
+            <Card className="motion-card p-6">
               <h3 className="mb-4 font-semibold">Score por página</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
