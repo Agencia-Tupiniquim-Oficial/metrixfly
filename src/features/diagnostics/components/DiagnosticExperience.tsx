@@ -2,7 +2,6 @@ import React from "react";
 import {
   CheckCircle2,
   Calculator,
-  ExternalLink,
   FileText,
   Gauge,
   Monitor,
@@ -20,6 +19,7 @@ import type { DiagnosticPageProps } from "@/features/diagnostics/model/page-prop
 import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
 import { DiagnosticProgress } from "./DiagnosticProgress";
 import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
+import { DiagnosticReportShareCard } from "./DiagnosticReportShareCard";
 
 export function DiagnosticExperience({
   url,
@@ -368,33 +368,7 @@ export function DiagnosticExperience({
                 businessLoading={businessLoading}
                 onLoadBusinessSummary={fetchBusinessSummary}
               />
-              {reportUrl && (
-                <Card className="flex flex-col gap-3 border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0 space-y-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      Link permanente do relatório
-                    </p>
-                    <a
-                      href={reportUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block break-all text-sm text-primary hover:underline"
-                    >
-                      {reportUrl}
-                    </a>
-                  </div>
-                  <Button asChild variant="outline" className="shrink-0">
-                    <a
-                      href={reportUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink aria-hidden="true" className="mr-2 h-4 w-4" />
-                      Abrir relatório salvo
-                    </a>
-                  </Button>
-                </Card>
-              )}
+              {reportUrl && <DiagnosticReportShareCard reportUrl={reportUrl} />}
             </div>
           </section>
         )}
