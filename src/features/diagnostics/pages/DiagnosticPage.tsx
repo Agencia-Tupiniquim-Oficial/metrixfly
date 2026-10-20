@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -18,6 +18,7 @@ import {
   buildCampaignTrackingForSubmission,
   clearCampaignTracking,
 } from "@/features/diagnostics/model/campaign-tracking";
+import { isPublicDiagnosticReportId } from "@/features/diagnostics/services/diagnostic-reports";
 import {
   sampleDiagnosticResult,
   sampleBusinessSummary,
@@ -33,7 +34,12 @@ import {
 type Result = DiagnoseResult;
 
 const DiagnosticPage = () => {
-  const { diagnostic, setDiagnostic } = useDiagnosis();
+  const {
+    diagnostic,
+    setDiagnostic,
+    diagnosticReportId,
+    setDiagnosticReportId,
+  } = useDiagnosis();
 
   const [url, setUrl] = useState(diagnostic?.geo?.domain ?? "");
   const [loading, setLoading] = useState(false);
@@ -41,6 +47,11 @@ const DiagnosticPage = () => {
     useState<DiagnosticProgressState>(initialDiagnosticProgress);
   const [geoLoading, setGeoLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(diagnostic ?? null);
+  const [reportUrl, setReportUrl] = useState<string | null>(() =>
+    diagnosticReportId && isPublicDiagnosticReportId(diagnosticReportId)
+      ? `${window.location.origin}/diagnostico/${diagnosticReportId}`
+      : null,
+  );
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   const [downloading, setDownloading] = useState(false);
   const [quoteSending, setQuoteSending] = useState(false);
@@ -50,6 +61,20 @@ const DiagnosticPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!diagnostic) return;
+    setResult(diagnostic);
+    if (diagnostic.geo?.domain) setUrl(diagnostic.geo.domain);
+  }, [diagnostic]);
+
+  useEffect(() => {
+    setReportUrl(
+      diagnosticReportId && isPublicDiagnosticReportId(diagnosticReportId)
+        ? `${window.location.origin}/diagnostico/${diagnosticReportId}`
+        : null,
+    );
+  }, [diagnosticReportId]);
+
   const runDiagnostic = async (e: FormEvent) => {
     e.preventDefault();
     let normalized = url.trim();
@@ -58,9 +83,11 @@ const DiagnosticPage = () => {
     setLoading(true);
     setDiagnosticProgress(initialDiagnosticProgress);
     setResult(null);
+    setReportUrl(null);
+    setDiagnosticReportId(null);
     setBusinessSummary(null);
     try {
-      const diagnosis = await runDiagnosticWithProgress(
+      const completed = await runDiagnosticWithProgress(
         normalized,
         (event: DiagnosticProgressEvent) =>
           setDiagnosticProgress((current) =>
@@ -68,15 +95,30 @@ const DiagnosticPage = () => {
           ),
       );
       const diagnosticResult = {
-        ...diagnosis,
-        geo: { ...diagnosis.geo, domain: normalized },
+        ...completed.diagnosis,
+        geo: { ...completed.diagnosis.geo, domain: normalized },
       } satisfies DiagnoseResult;
       setResult(diagnosticResult);
       setDiagnostic(diagnosticResult);
-      toast({
-        title: "Diagnóstico pronto!",
-        description: "Seu relatório foi gerado com sucesso.",
-      });
+      if (
+        completed.reportId &&
+        isPublicDiagnosticReportId(completed.reportId)
+      ) {
+        setDiagnosticReportId(completed.reportId);
+        toast({
+          title: "Diagnóstico pronto!",
+          description: "Relatório salvo e pronto para compartilhar.",
+        });
+      } else {
+        setDiagnosticReportId(null);
+        toast({
+          title: "Diagnóstico pronto, mas sem link permanente",
+          description:
+            completed.persistenceError ??
+            "O relatório continua disponível nesta sessão, mas não foi possível confirmar o salvamento.",
+          variant: "destructive",
+        });
+      }
     } catch (err: unknown) {
       console.error(err);
       toast({
@@ -395,6 +437,7 @@ const DiagnosticPage = () => {
     updateUiuxOverview={updateUiuxOverview}
     sendQuoteRequest={isDemo ? undefined : sendQuoteRequest}
     quoteSending={quoteSending}
+    reportUrl={isDemo ? null : reportUrl}
     openGeoDashboard={openGeoDashboard}
   />;
 };

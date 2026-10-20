@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DiagnosticPage from "@/features/diagnostics/pages/DiagnosticPage";
+import SharedDiagnosticReportPage from "@/features/diagnostics/pages/SharedDiagnosticReportPage";
 import { DiagnosisProvider } from "@/features/diagnostics/state/DiagnosisContext";
 import GeoAeoDashboard from "@/features/geo-aeo/pages/GeoAeoDashboard";
 import GeoAdmin from "@/features/geo-aeo/pages/GeoAdmin";
@@ -40,6 +41,10 @@ const App = () => (
           <BrowserRouter>
             <CampaignTrackingCapture />
             <Routes>
+              <Route
+                path="/diagnostico/:reportId"
+                element={<SharedDiagnosticReportPage />}
+              />
               <Route path="/" element={<DiagnosticPage />} />
               <Route path="/diagnostico" element={<DiagnosticPage />} />
               <Route path="/geo-aeo" element={<GeoAeoDashboard />} />

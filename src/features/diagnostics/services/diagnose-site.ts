@@ -6,8 +6,48 @@ import { supabase } from "@/integrations/supabase/client";
 
 type StreamMessage =
   | DiagnosticProgressEvent
-  | { type: "result"; data: DiagnoseResult }
+  | {
+      type: "result";
+      data: {
+        diagnosis: DiagnoseResult;
+        reportId: string | null;
+        persistenceError: string | null;
+      };
+    }
   | { type: "error"; message: string };
+
+export type DiagnosticRunResult = {
+  diagnosis: DiagnoseResult;
+  reportId: string | null;
+  persistenceError: string | null;
+};
+
+function parseDiagnosticRunResult(value: unknown): DiagnosticRunResult {
+  if (
+    value &&
+    typeof value === "object" &&
+    "diagnosis" in value &&
+    value.diagnosis &&
+    typeof value.diagnosis === "object"
+  ) {
+    const result = value as Partial<DiagnosticRunResult>;
+    return {
+      diagnosis: result.diagnosis as DiagnoseResult,
+      reportId: typeof result.reportId === "string" ? result.reportId : null,
+      persistenceError:
+        typeof result.persistenceError === "string"
+          ? result.persistenceError
+          : null,
+    };
+  }
+
+  return {
+    diagnosis: value as DiagnoseResult,
+    reportId: null,
+    persistenceError:
+      "O servidor não retornou um link permanente. Atualize a função de diagnóstico para habilitar o salvamento.",
+  };
+}
 
 function parseStreamMessage(line: string): StreamMessage | null {
   if (!line.trim()) return null;
@@ -17,7 +57,7 @@ function parseStreamMessage(line: string): StreamMessage | null {
 export async function runDiagnosticWithProgress(
   url: string,
   onProgress: (event: DiagnosticProgressEvent) => void,
-): Promise<DiagnoseResult> {
+): Promise<DiagnosticRunResult> {
   const { data, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
 
@@ -51,17 +91,19 @@ export async function runDiagnosticWithProgress(
 
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    const result = (await response.json()) as DiagnoseResult & { error?: string };
+    const result = (await response.json()) as
+      | (DiagnoseResult & { error?: string })
+      | (DiagnosticRunResult & { error?: string });
     if (result.error) throw new Error(result.error);
     onProgress({ type: "progress", stage: "finalizing", status: "completed" });
-    return result;
+    return parseDiagnosticRunResult(result);
   }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffered = "";
 
-  const handleLine = (line: string): DiagnoseResult | null => {
+  const handleLine = (line: string): DiagnosticRunResult | null => {
     const message = parseStreamMessage(line);
     if (!message) return null;
     if (message.type === "progress") {
@@ -69,7 +111,7 @@ export async function runDiagnosticWithProgress(
       return null;
     }
     if (message.type === "error") throw new Error(message.message);
-    return message.data;
+    return parseDiagnosticRunResult(message.data);
   };
 
   while (true) {

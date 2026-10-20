@@ -30,6 +30,7 @@ export type PageSummary = {
 
 export type Opportunities = {
   title: string;
+  description?: string;
   displayValue?: string;
   score?: number;
   impact?: string[];

@@ -18,11 +18,14 @@ import {
 } from "../_shared/pagespeed-translations.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY =
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const SUPABASE_KEY =
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
-  Deno.env.get("SUPABASE_ANON_KEY") ??
+  SUPABASE_SERVICE_ROLE_KEY ||
+  Deno.env.get("SUPABASE_ANON_KEY") ||
   "";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const hasServiceRoleKey = Boolean(SUPABASE_SERVICE_ROLE_KEY);
 
 // OpenRouter defaults
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
@@ -37,6 +40,7 @@ const corsHeaders = {
 };
 
 const PAGESPEED = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
+const MAX_PUBLIC_REPORT_BYTES = 1_000_000;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -1189,11 +1193,14 @@ function sanitizeAiImprovement(
 }
 
 function publicPageSpeedOpportunities(opportunities: any[] = []) {
-  return opportunities.map(({ title, displayValue, score }: any) => ({
-    title,
-    displayValue,
-    score,
-  }));
+  return opportunities.map(
+    ({ title, description, displayValue, score }: any) => ({
+      title,
+      description,
+      displayValue,
+      score,
+    }),
+  );
 }
 
 // buildSummaryResponse: monta o JSON que antes era retornado inline.
@@ -1657,6 +1664,128 @@ async function generateDiagnosis(url: string, reportProgress: ReportProgress) {
   return diagnosis;
 }
 
+type CompletedDiagnostic = {
+  diagnosis: Record<string, unknown>;
+  reportId: string | null;
+  persistenceError: string | null;
+};
+
+function publicReportSiteUrl(value: string): string | null {
+  try {
+    const parsed = new URL(value);
+    if (
+      !["http:", "https:"].includes(parsed.protocol) ||
+      !parsed.hostname ||
+      parsed.username ||
+      parsed.password
+    ) {
+      return null;
+    }
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+async function generateAndPersistDiagnosis(
+  url: string,
+  reportProgress: ReportProgress,
+): Promise<CompletedDiagnostic> {
+  const result = await generateDiagnosis(url, reportProgress);
+  const siteUrl = publicReportSiteUrl(url);
+
+  if (!siteUrl || !hasServiceRoleKey) {
+    const persistenceError = !siteUrl
+      ? "A URL analisada não pôde ser salva com segurança."
+      : "O salvamento de relatórios não está configurado no servidor.";
+    console.error(
+      "Diagnostic report persistence unavailable.",
+      persistenceError,
+    );
+    return { diagnosis: result, reportId: null, persistenceError };
+  }
+
+  const report = {
+    ...result,
+    geo: { domain: siteUrl },
+  };
+  const requestBody = JSON.stringify({ report });
+  if (
+    new TextEncoder().encode(requestBody).byteLength > MAX_PUBLIC_REPORT_BYTES
+  ) {
+    return {
+      diagnosis: result,
+      reportId: null,
+      persistenceError:
+        "O relatório excede o tamanho permitido para compartilhamento. Os dados continuam disponíveis nesta sessão.",
+    };
+  }
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/diagnostic_reports?select=id`,
+      {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+        },
+        body: requestBody,
+      },
+    );
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(
+        "Unable to persist completed diagnostic report.",
+        response.status,
+        errorBody,
+      );
+      return {
+        diagnosis: result,
+        reportId: null,
+        persistenceError:
+          "Não foi possível salvar o relatório para compartilhamento. Os dados continuam disponíveis nesta sessão.",
+      };
+    }
+
+    const savedReports: unknown = await response.json();
+    if (
+      !Array.isArray(savedReports) ||
+      !savedReports[0] ||
+      typeof savedReports[0].id !== "string"
+    ) {
+      console.error(
+        "Diagnostic report persistence returned an invalid response.",
+        savedReports,
+      );
+      return {
+        diagnosis: result,
+        reportId: null,
+        persistenceError:
+          "Não foi possível confirmar o salvamento do relatório. Os dados continuam disponíveis nesta sessão.",
+      };
+    }
+
+    return {
+      diagnosis: report,
+      reportId: savedReports[0].id,
+      persistenceError: null,
+    };
+  } catch (error) {
+    console.error("Unable to persist completed diagnostic report.", error);
+    return {
+      diagnosis: result,
+      reportId: null,
+      persistenceError:
+        "Não foi possível salvar o relatório para compartilhamento. Os dados continuam disponíveis nesta sessão.",
+    };
+  }
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -1693,7 +1822,7 @@ serve(async (req: Request) => {
           }
         };
 
-        void generateDiagnosis(url, reportProgress)
+        void generateAndPersistDiagnosis(url, reportProgress)
           .then((data) => {
             controller.enqueue(
               encoder.encode(`${JSON.stringify({ type: "result", data })}\n`),
@@ -1734,7 +1863,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const result = await generateDiagnosis(url, () => {});
+    const result = await generateAndPersistDiagnosis(url, () => {});
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

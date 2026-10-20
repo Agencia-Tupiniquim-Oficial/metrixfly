@@ -6,14 +6,19 @@ type VercelConfig = {
 };
 
 describe("Vercel SPA routing", () => {
-  it("rewrites direct route requests to the app entry without changing the URL", () => {
+  it("rewrites direct shared-report requests to the app entry", () => {
     const config = JSON.parse(
       readFileSync("vercel.json", "utf8"),
     ) as VercelConfig;
 
-    expect(config.rewrites).toContainEqual({
-      source: "/calculadora-financeira",
-      destination: "/index.html",
-    });
+    const rewrite = config.rewrites?.find(
+      ({ source, destination }) =>
+        source === "/((?!assets/).*)" && destination === "/index.html",
+    );
+
+    expect(rewrite).toBeDefined();
+    expect(new RegExp(`^${rewrite?.source}$`).test(
+      "/diagnostico/d158558e-15b8-43f8-96d7-b45b40ac3d80",
+    )).toBe(true);
   });
 });

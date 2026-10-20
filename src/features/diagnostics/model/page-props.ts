@@ -31,5 +31,6 @@ export type DiagnosticPageProps = {
   updateUiuxOverview: (value: string) => void;
   sendQuoteRequest?: (request: QuoteRequest) => Promise<void>;
   quoteSending: boolean;
+  reportUrl?: string | null;
   openGeoDashboard?: (crawl?: unknown) => void;
 };

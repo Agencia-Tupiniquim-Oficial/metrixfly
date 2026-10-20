@@ -35,10 +35,15 @@ describe("runDiagnosticWithProgress", () => {
       summary: { mobile: {}, desktop: {} },
       improvements: [],
     };
+    const completedResult = {
+      diagnosis: result,
+      reportId: "d158558e-15b8-43f8-96d7-b45b40ac3d80",
+      persistenceError: null,
+    };
     const chunks = [
       '{"type":"progress","stage":"starting","status":"completed"}\n{"type":"progress","stage":"mobile","status":"running"}\n',
       '{"type":"progress","stage":"mobile","status":"completed"}\n{"type":"progress","stage":"finalizing","status":"completed"}\n{"type":"result","data":',
-      `${JSON.stringify(result)}}\n`,
+      `${JSON.stringify(completedResult)}}\n`,
     ];
     fetchMock.mockResolvedValueOnce(
       new Response(
@@ -59,7 +64,7 @@ describe("runDiagnosticWithProgress", () => {
       onProgress,
     );
 
-    expect(diagnosis).toEqual(result);
+    expect(diagnosis).toEqual(completedResult);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/functions/v1/diagnose-site"),
       expect.objectContaining({
@@ -108,7 +113,10 @@ describe("runDiagnosticWithProgress", () => {
 
     await expect(
       runDiagnosticWithProgress("https://site.test", onProgress),
-    ).resolves.toEqual(result);
+    ).resolves.toMatchObject({
+      diagnosis: result,
+      reportId: null,
+    });
     expect(onProgress).toHaveBeenCalledWith({
       type: "progress",
       stage: "finalizing",

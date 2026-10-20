@@ -2,6 +2,7 @@ import React from "react";
 import {
   CheckCircle2,
   Calculator,
+  ExternalLink,
   FileText,
   Gauge,
   Monitor,
@@ -43,6 +44,7 @@ export function DiagnosticExperience({
   updateUiuxOverview,
   sendQuoteRequest,
   quoteSending,
+  reportUrl,
 }: DiagnosticPageProps) {
   const getGrade = (score: number) => {
     if (score >= 90)
@@ -366,6 +368,33 @@ export function DiagnosticExperience({
                 businessLoading={businessLoading}
                 onLoadBusinessSummary={fetchBusinessSummary}
               />
+              {reportUrl && (
+                <Card className="flex flex-col gap-3 border-primary/20 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      Link permanente do relatório
+                    </p>
+                    <a
+                      href={reportUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block break-all text-sm text-primary hover:underline"
+                    >
+                      {reportUrl}
+                    </a>
+                  </div>
+                  <Button asChild variant="outline" className="shrink-0">
+                    <a
+                      href={reportUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink aria-hidden="true" className="mr-2 h-4 w-4" />
+                      Abrir relatório salvo
+                    </a>
+                  </Button>
+                </Card>
+              )}
             </div>
           </section>
         )}
