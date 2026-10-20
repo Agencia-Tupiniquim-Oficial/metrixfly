@@ -1,4 +1,5 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,8 +13,22 @@ import Reports from "@/features/reports/pages/Reports";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { captureCampaignTracking } from "@/features/diagnostics/model/campaign-tracking";
 
 const queryClient = new QueryClient();
+
+const CampaignTrackingCapture = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    captureCampaignTracking({
+      search: location.search,
+      href: window.location.href,
+    });
+  }, [location.pathname, location.search]);
+
+  return null;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -23,6 +38,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <CampaignTrackingCapture />
             <Routes>
               <Route path="/" element={<DiagnosticPage />} />
               <Route path="/diagnostico" element={<DiagnosticPage />} />

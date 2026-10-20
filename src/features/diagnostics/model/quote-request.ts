@@ -1,4 +1,5 @@
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
+import type { CampaignTracking } from "@/features/diagnostics/model/campaign-tracking";
 
 export type QuoteRequest = {
   "form-name": "form-contato";
@@ -11,6 +12,7 @@ export type QuoteRequest = {
 export type QuoteEmailRequest = QuoteRequest & {
   domain: string;
   diagnosticSummary: string;
+  campaignTracking: CampaignTracking;
 };
 
 const MAX_DIAGNOSTIC_PDF_BYTES = 4 * 1024 * 1024;

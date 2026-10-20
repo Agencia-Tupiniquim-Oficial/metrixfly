@@ -10,6 +10,56 @@ const corsHeaders = {
 const MAX_PDF_BYTES = 4 * 1024 * 1024;
 const RESEND_API_URL = "https://api.resend.com/emails";
 const quoteRecipient = "suporte@agenciatupiniquim.com.br";
+const campaignParameterNames = [
+  "matchtype",
+  "device",
+  "adposition",
+  "placement",
+  "targetid",
+  "feeditemid",
+  "adgroupid",
+  "target",
+  "gclid",
+  "devicemodel",
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+  "utm_id",
+  "utm_source_platform",
+] as const;
+
+type CampaignParameter = (typeof campaignParameterNames)[number];
+type CampaignTracking = {
+  parameters: Record<CampaignParameter, string>;
+  entryUrl: string;
+  formUrl: string;
+  convertedAt: string;
+};
+
+const googleAdsParameters: { key: CampaignParameter; label: string }[] = [
+  { key: "gclid", label: "Identificador do clique (gclid)" },
+  { key: "device", label: "Dispositivo (device)" },
+  { key: "devicemodel", label: "Modelo do dispositivo (devicemodel)" },
+  { key: "matchtype", label: "Tipo de correspondência (matchtype)" },
+  { key: "adposition", label: "Posição do anúncio (adposition)" },
+  { key: "placement", label: "Posicionamento (placement)" },
+  { key: "targetid", label: "ID do alvo (targetid)" },
+  { key: "feeditemid", label: "ID do item do feed (feeditemid)" },
+  { key: "adgroupid", label: "ID do grupo de anúncios (adgroupid)" },
+  { key: "target", label: "Alvo (target)" },
+];
+
+const utmParameters: { key: CampaignParameter; label: string }[] = [
+  { key: "utm_source", label: "Origem (utm_source)" },
+  { key: "utm_medium", label: "Mídia (utm_medium)" },
+  { key: "utm_campaign", label: "Campanha (utm_campaign)" },
+  { key: "utm_term", label: "Termo (utm_term)" },
+  { key: "utm_content", label: "Conteúdo (utm_content)" },
+  { key: "utm_id", label: "ID da campanha (utm_id)" },
+  { key: "utm_source_platform", label: "Plataforma de origem (utm_source_platform)" },
+];
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -43,6 +93,146 @@ function escapeHtml(value: string): string {
     };
     return entities[character];
   });
+}
+
+function validatedUrl(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > 4096) return null;
+  if (!value) return "";
+  try {
+    const parsed = new URL(value);
+    if (
+      !["http:", "https:"].includes(parsed.protocol) ||
+      parsed.username ||
+      parsed.password
+    ) {
+      return null;
+    }
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+function isIsoTimestamp(value: string): boolean {
+  const milliseconds = Date.parse(value);
+  if (Number.isNaN(milliseconds)) return false;
+  try {
+    return new Date(milliseconds).toISOString() === value;
+  } catch {
+    return false;
+  }
+}
+
+function parseCampaignTracking(
+  value: FormDataEntryValue | null,
+): CampaignTracking | null {
+  const emptyParameters = Object.fromEntries(
+    campaignParameterNames.map((name) => [name, ""]),
+  ) as Record<CampaignParameter, string>;
+
+  if (value === null) {
+    return {
+      parameters: emptyParameters,
+      entryUrl: "",
+      formUrl: "",
+      convertedAt: "",
+    };
+  }
+  if (typeof value !== "string" || value.length > 20000) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object") return null;
+
+  const tracking = parsed as Record<string, unknown>;
+  if (
+    !tracking.parameters ||
+    typeof tracking.parameters !== "object" ||
+    Array.isArray(tracking.parameters)
+  ) {
+    return null;
+  }
+  const providedParameters = tracking.parameters as Record<string, unknown>;
+  const parameters = { ...emptyParameters };
+  for (const name of campaignParameterNames) {
+    const parameter = providedParameters[name];
+    if (parameter === undefined) continue;
+    if (typeof parameter !== "string" || parameter.length > 500) return null;
+    parameters[name] = parameter.trim();
+  }
+
+  const entryUrl = validatedUrl(tracking.entryUrl);
+  const formUrl = validatedUrl(tracking.formUrl);
+  const convertedAt = tracking.convertedAt;
+  if (
+    entryUrl === null ||
+    formUrl === null ||
+    typeof convertedAt !== "string" ||
+    convertedAt.length > 40 ||
+    (convertedAt !== "" && !isIsoTimestamp(convertedAt))
+  ) {
+    return null;
+  }
+
+  return { parameters, entryUrl, formUrl, convertedAt };
+}
+
+function campaignTrackingText(tracking: CampaignTracking): string {
+  const valueFor = (key: CampaignParameter) =>
+    tracking.parameters[key] || "Não informado";
+  const rows = (items: { key: CampaignParameter; label: string }[]) =>
+    items.map(({ key, label }) => `${label}: ${valueFor(key)}`);
+
+  return [
+    "Rastreamento de campanha",
+    "",
+    "Parâmetros do Google Ads:",
+    ...rows(googleAdsParameters),
+    "",
+    "Parâmetros UTM:",
+    ...rows(utmParameters),
+    "",
+    "Origem e conversão:",
+    `URL de entrada: ${tracking.entryUrl || "Não informado"}`,
+    `URL da página do formulário: ${tracking.formUrl || "Não informado"}`,
+    `Data e hora da conversão: ${tracking.convertedAt || "Não informado"}`,
+  ].join("\n");
+}
+
+function campaignTrackingHtml(tracking: CampaignTracking): string {
+  const valueFor = (key: CampaignParameter) =>
+    tracking.parameters[key] || "Não informado";
+  const table = (items: { key: CampaignParameter; label: string }[]) =>
+    `<table style="width:100%;border-collapse:collapse">${items
+      .map(
+        ({ key, label }) =>
+          `<tr><th style="padding:8px;text-align:left;border-bottom:1px solid #eee">${escapeHtml(label)}</th><td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(valueFor(key))}</td></tr>`,
+      )
+      .join("")}</table>`;
+  const metadata = [
+    ["URL de entrada", tracking.entryUrl],
+    ["URL da página do formulário", tracking.formUrl],
+    ["Data e hora da conversão", tracking.convertedAt],
+  ];
+
+  return `
+    <h2>Rastreamento de campanha</h2>
+    <h3>Parâmetros do Google Ads</h3>
+    ${table(googleAdsParameters)}
+    <h3>Parâmetros UTM</h3>
+    ${table(utmParameters)}
+    <h3>Origem e conversão</h3>
+    <table style="width:100%;border-collapse:collapse">${metadata
+      .map(
+        ([label, value]) =>
+          `<tr><th style="padding:8px;text-align:left;border-bottom:1px solid #eee">${label}</th><td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(value || "Não informado")}</td></tr>`,
+      )
+      .join("")}</table>
+  `;
 }
 
 function makePdfFilename(domain: string): string {
@@ -108,6 +298,9 @@ serve(async (req: Request) => {
       formData.get("diagnosticSummary"),
       12000,
     );
+    const campaignTracking = parseCampaignTracking(
+      formData.get("campaignTracking"),
+    );
     const report = formData.get("report");
 
     if (
@@ -119,6 +312,7 @@ serve(async (req: Request) => {
       !phone ||
       !domain ||
       !diagnosticSummary ||
+      !campaignTracking ||
       !validatePdf(report)
     ) {
       return jsonResponse(
@@ -162,6 +356,8 @@ serve(async (req: Request) => {
       "",
       "Resumo do diagnóstico:",
       diagnosticSummary,
+      "",
+      campaignTrackingText(campaignTracking),
     ].join("\n");
     const html = `
       <h1>Nova solicitação de orçamento - Metrixfly</h1>
@@ -173,6 +369,7 @@ serve(async (req: Request) => {
       <strong>Site analisado:</strong> <a href="${escapeHtml(parsedDomain.href)}">${escapeHtml(parsedDomain.href)}</a></p>
       <h2>Resumo do diagnóstico</h2>
       <pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(diagnosticSummary)}</pre>
+      ${campaignTrackingHtml(campaignTracking)}
     `;
 
     const response = await fetch(RESEND_API_URL, {

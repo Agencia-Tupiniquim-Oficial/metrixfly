@@ -15,6 +15,10 @@ import {
   type QuoteRequest,
 } from "@/features/diagnostics/model/quote-request";
 import {
+  buildCampaignTrackingForSubmission,
+  clearCampaignTracking,
+} from "@/features/diagnostics/model/campaign-tracking";
+import {
   sampleDiagnosticResult,
   sampleBusinessSummary,
 } from "@/features/diagnostics/demo/diagnosticMock";
@@ -193,6 +197,10 @@ const DiagnosticPage = () => {
         ...request,
         domain: normalizedUrl,
         diagnosticSummary: buildDiagnosticSummary(result),
+        campaignTracking: buildCampaignTrackingForSubmission({
+          search: window.location.search,
+          href: window.location.href,
+        }),
       };
       const formData = new FormData();
       formData.append("form-name", payload["form-name"]);
@@ -202,6 +210,10 @@ const DiagnosticPage = () => {
       formData.append("phone", payload.phone);
       formData.append("domain", payload.domain);
       formData.append("diagnosticSummary", payload.diagnosticSummary);
+      formData.append(
+        "campaignTracking",
+        JSON.stringify(payload.campaignTracking),
+      );
       formData.append("report", pdf, "diagnostico.pdf");
       const { data, error } = await supabase.functions.invoke("quote-request", {
         body: formData,
@@ -228,6 +240,7 @@ const DiagnosticPage = () => {
       if (data?.success !== true) {
         throw new Error("O serviço não confirmou o envio da solicitação.");
       }
+      clearCampaignTracking();
     } finally {
       setQuoteSending(false);
     }
