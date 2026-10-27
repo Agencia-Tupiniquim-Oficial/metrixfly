@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
 import { importPdfReports } from "@/lib/dynamic-import";
@@ -15,16 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { AppHeader } from "@/components/app-header";
-import { ScoreRing } from "@/components/score-ring";
+import { useDiagnosis } from "@/features/diagnostics/state/DiagnosisContext";
 import {
-  Bot,
-  Download,
-  Globe2,
-  Loader2,
-  Network,
-  Search,
-  Target,
-} from "lucide-react";
+  lastGeoCrawlKey,
+  lookupGeoCrawl,
+  rememberGeoCrawl,
+} from "@/lib/geo-crawl-cache";
+import { ScoreRing } from "@/components/score-ring";
+import { Download, Globe2, Loader2, Network, Search } from "lucide-react";
 
 type Page = { url: string; title: string; score: number; issues: string[] };
 type Finding = {
@@ -143,6 +141,9 @@ const GeoAeoDashboard = () => {
   const location = useLocation();
   const initialUrl =
     typeof location.state?.url === "string" ? location.state.url : "";
+  // The site diagnosed on the diagnostic page: its crawl is reused, not repeated.
+  const { diagnostic, isHydrated } = useDiagnosis();
+  const diagnosedSite = diagnostic?.geo?.domain ?? "";
   const [url, setUrl] = useState(initialUrl);
   const [loading, setLoading] = useState(false);
   const [crawlStage, setCrawlStage] = useState("Preparando o rastreamento...");
@@ -177,9 +178,9 @@ const GeoAeoDashboard = () => {
       );
   }, [result, responseRecords]);
 
-  const runCrawl = async (event?: FormEvent) => {
+  const runCrawl = async (event?: FormEvent, override?: string) => {
     event?.preventDefault();
-    let normalized = url.trim();
+    let normalized = (override ?? url).trim();
     if (!/^https?:\/\//i.test(normalized)) normalized = `https://${normalized}`;
     try {
       new URL(normalized);
@@ -207,6 +208,7 @@ const GeoAeoDashboard = () => {
       setCrawlStage("Consolidando recomendações...");
       const crawl = data as CrawlResult;
       setResult(crawl);
+      rememberGeoCrawl(normalized, crawl);
       if (userId) {
         const { data: project, error: projectError } = await supabase
           .from("geo_projects")
@@ -248,10 +250,36 @@ const GeoAeoDashboard = () => {
   };
 
   useEffect(() => {
-    if (initialUrl && !result && !loading) {
-      void runCrawl();
+    if (result || loading) return;
+    const site = initialUrl || diagnosedSite;
+    if (!site) return;
+    const cached = lookupGeoCrawl(site);
+    if (cached.status === "done") {
+      setUrl(site);
+      setResult(cached.result as CrawlResult);
+      return;
     }
-  }, [initialUrl]);
+    if (cached.status === "pending") {
+      // The crawl started with the diagnostic is still running: wait for it.
+      setUrl(site);
+      setLoading(true);
+      setCrawlStage("Rastreando o site...");
+      cached.promise.then(
+        (crawl) => {
+          setResult(crawl as CrawlResult);
+          setLoading(false);
+        },
+        () => {
+          void runCrawl(undefined, site);
+        },
+      );
+      return;
+    }
+    // Nothing saved for this site (e.g. after a reload): crawl it now.
+    if (!url) setUrl(site);
+    void runCrawl(undefined, site);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUrl, diagnosedSite]);
 
   const runCrawlAndReport = async (event?: FormEvent) => {
     if (event) event.preventDefault();
@@ -511,6 +539,18 @@ const GeoAeoDashboard = () => {
       });
   };
 
+  // The home page is the only entry point: with nothing to show, go there.
+  if (
+    isHydrated &&
+    !result &&
+    !loading &&
+    !initialUrl &&
+    !diagnosedSite &&
+    !lastGeoCrawlKey()
+  ) {
+    return <Navigate to="/" replace />;
+  }
+
   const subscores: [string, number, string][] = result
     ? [
         ["GEO", result.scores.geo, "Presença em mecanismos generativos"],
@@ -623,36 +663,6 @@ const GeoAeoDashboard = () => {
               isoladas.
             </p>
           </Card>
-        )}
-
-        {!result && !loading && (
-          <div className="motion-stagger grid gap-4 md:grid-cols-3">
-            {[
-              [
-                Bot,
-                "Visibility Score",
-                "Mede presença e prontidão para mecanismos generativos.",
-              ],
-              [
-                Network,
-                "Entity & Topic Graph",
-                "Encontra entidades, tópicos e cobertura semântica.",
-              ],
-              [
-                Target,
-                "Plano de ação",
-                "Prioriza melhorias por impacto e esforço estimado.",
-              ],
-            ].map(([Icon, title, text]) => (
-              <Card key={title as string} className="motion-card p-5">
-                <Icon className="mb-3 h-5 w-5 text-primary" />
-                <h3 className="font-semibold">{title as string}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {text as string}
-                </p>
-              </Card>
-            ))}
-          </div>
         )}
 
         {result && (

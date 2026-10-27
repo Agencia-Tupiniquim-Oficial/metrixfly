@@ -1,22 +1,25 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { sampleDiagnosticResult } from "@/features/diagnostics/demo/diagnosticMock";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import logoColored from "@/assets/logo-colored.png";
 import { DiagnosisProvider } from "@/features/diagnostics/state/DiagnosisContext";
 import DiagnosticPage from "@/features/diagnostics/pages/DiagnosticPage";
 
-const { runDiagnosticWithProgress } = vi.hoisted(() => ({
+const { runDiagnosticWithProgress, startGeoCrawl } = vi.hoisted(() => ({
   runDiagnosticWithProgress: vi.fn((..._args: unknown[]) => new Promise(() => {})),
+  startGeoCrawl: vi.fn((..._args: unknown[]) => Promise.resolve(null)),
 }));
+
+vi.mock("@/lib/geo-crawl-cache", () => ({ startGeoCrawl }));
 
 vi.mock("@/features/diagnostics/services/diagnose-site", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/diagnostics/services/diagnose-site")>()),
   runDiagnosticWithProgress,
 }));
 
-function renderWithProviders(initialEntries: string[] = ["/"]) {
+function renderWithProviders(initialEntries: string[] = ["/diagnostico"]) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -27,7 +30,10 @@ function renderWithProviders(initialEntries: string[] = ["/"]) {
     <QueryClientProvider client={queryClient}>
       <DiagnosisProvider>
         <MemoryRouter initialEntries={initialEntries}>
-          <DiagnosticPage />
+          <Routes>
+            <Route path="/diagnostico" element={<DiagnosticPage />} />
+            <Route path="/" element={<p>pagina inicial</p>} />
+          </Routes>
         </MemoryRouter>
       </DiagnosisProvider>
     </QueryClientProvider>
@@ -35,8 +41,28 @@ function renderWithProviders(initialEntries: string[] = ["/"]) {
 }
 
 describe("Diagnostic experience", () => {
-  it("renders the diagnostic landing page on the root route", () => {
-    renderWithProviders(["/"]);
+  it("sends a visit with no site and no saved diagnostic to the home page", async () => {
+    runDiagnosticWithProgress.mockClear();
+    renderWithProviders(["/diagnostico"]);
+
+    expect(await screen.findByText("pagina inicial")).toBeInTheDocument();
+    expect(runDiagnosticWithProgress).not.toHaveBeenCalled();
+  });
+
+  it("starts the GEO crawl together with the diagnostic, but not in demo mode", () => {
+    startGeoCrawl.mockClear();
+    renderWithProviders(["/diagnostico?url=exemplo.com.br%2Floja"]);
+    expect(startGeoCrawl).toHaveBeenCalledTimes(1);
+    expect(startGeoCrawl).toHaveBeenCalledWith("https://exemplo.com.br/loja");
+
+    startGeoCrawl.mockClear();
+    renderWithProviders(["/diagnostico?demo=1"]);
+    expect(startGeoCrawl).not.toHaveBeenCalled();
+  });
+
+  it("shows the shared header on the diagnostic page", () => {
+    renderWithProviders(["/diagnostico?url=exemplo.com.br"]);
+
     expect(
       screen.getByRole("link", { name: "Metricfly, página inicial" }).querySelector("img"),
     ).toHaveAttribute("src", logoColored);
@@ -44,18 +70,6 @@ describe("Diagnostic experience", () => {
       "href",
       "/geo-aeo",
     );
-    expect(
-      screen.getByRole("heading", { name: "Diagnóstico & Desempenho" }),
-    ).toBeDefined();
-    expect(
-      screen.getByText(/Analise as notas e métricas do PageSpeed Insights/),
-    ).toBeDefined();
-    expect(screen.getByText("Cenários de otimização")).toBeDefined();
-    expect(
-      screen.getByText("Cenários de otimização").closest(".motion-card"),
-    ).not.toBeNull();
-    expect(screen.getByText("Diagnosticar")).toBeDefined();
-    expect(screen.getByText("Geo/AEO")).toBeDefined();
   });
 
   it("prefills the address and starts the diagnostic received from the home page", () => {
@@ -107,7 +121,7 @@ describe("Diagnostic experience", () => {
   });
 
   it("renders a populated diagnostic when demo mode is enabled", () => {
-    renderWithProviders(["/?demo=1"]);
+    renderWithProviders(["/diagnostico?demo=1"]);
     expect(screen.getByText("Boletim de Saúde Digital")).toBeDefined();
     expect(screen.getByRole("heading", { name: "Auditoria técnica" })).toBeDefined();
     expect(screen.getByText("Versão corporativa")).toBeDefined();
@@ -117,7 +131,7 @@ describe("Diagnostic experience", () => {
   });
 
   it("exposes the optimization estimate as a link with its diagnostic parameters", () => {
-    renderWithProviders(["/?demo=1"]);
+    renderWithProviders(["/diagnostico?demo=1"]);
     const estimateLink = screen.getByRole("link", {
       name: "Abrir estimativa de otimização",
     });

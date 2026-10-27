@@ -9,6 +9,8 @@ export type DiagnosisContextType = {
   setDiagnosticReportId: React.Dispatch<React.SetStateAction<string | null>>;
   geo: unknown;
   setGeo: React.Dispatch<React.SetStateAction<unknown>>;
+  /** False until the saved session data was read, so pages can tell "empty" from "not loaded yet". */
+  isHydrated: boolean;
 };
 
 const DiagnosisContext = createContext<DiagnosisContextType | undefined>(undefined);
@@ -90,6 +92,7 @@ export const DiagnosisProvider = ({ children }: { children: React.ReactNode }) =
         setDiagnosticReportId,
         geo,
         setGeo,
+        isHydrated,
       }}
     >
       {children}

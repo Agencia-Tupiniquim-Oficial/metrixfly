@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  CheckCircle2,
-  Calculator,
-  FileText,
-  Gauge,
-} from "lucide-react";
+import { CheckCircle2, Calculator } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -108,41 +103,6 @@ export function DiagnosticExperience({
             </header>
 
             {form}
-
-            <div className="motion-stagger mt-16 grid gap-6 sm:grid-cols-3">
-              {[
-                {
-                  icon: Gauge,
-                  title: "Boletim de Notas",
-                  desc: "Avaliação clara de desempenho para tomadores de decisão.",
-                },
-                {
-                  icon: Calculator,
-                  title: "Cenários de otimização",
-                  desc: "Estime o impacto da lentidão na experiência dos visitantes do seu site",
-                },
-                {
-                  icon: FileText,
-                  title: "Relatórios em PDF",
-                  desc: "Gere versões técnicas e comerciais prontas para apresentação.",
-                },
-              ].map(({ icon: Icon, title, desc }) => (
-                <Card
-                  key={title}
-                  className="motion-card border-border bg-card p-6 shadow-sm"
-                >
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="mb-2 text-lg font-semibold text-foreground">
-                    {title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {desc}
-                  </p>
-                </Card>
-              ))}
-            </div>
           </div>
         ) : (
           <div className="motion-stagger space-y-8">

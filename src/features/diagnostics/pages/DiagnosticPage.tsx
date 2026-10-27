@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ import {
   sampleBusinessSummary,
 } from "@/features/diagnostics/demo/diagnosticMock";
 import { importPdfReports } from "@/lib/dynamic-import";
+import { startGeoCrawl } from "@/lib/geo-crawl-cache";
 import { runDiagnosticWithProgress } from "@/features/diagnostics/services/diagnose-site";
 import { trackQuoteRequestLead } from "@/features/diagnostics/services/quote-analytics";
 import { recordQuoteInterest } from "@/features/diagnostics/services/quote-interest";
@@ -42,6 +43,7 @@ const DiagnosticPage = () => {
     setDiagnostic,
     diagnosticReportId,
     setDiagnosticReportId,
+    isHydrated,
   } = useDiagnosis();
 
   const [searchParams] = useSearchParams();
@@ -57,6 +59,8 @@ const DiagnosticPage = () => {
     requestedUrl || (diagnostic?.geo?.domain ?? ""),
   );
   const [loading, setLoading] = useState(false);
+  // Set once a diagnostic was started here, so a failed run keeps the form on screen.
+  const [attempted, setAttempted] = useState(false);
   const [diagnosticProgress, setDiagnosticProgress] =
     useState<DiagnosticProgressState>(initialDiagnosticProgress);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -110,6 +114,10 @@ const DiagnosticPage = () => {
     if (!/^https?:\/\//i.test(normalized)) normalized = "https://" + normalized;
 
     setLoading(true);
+    setAttempted(true);
+    // The GEO/AEO crawl runs alongside, so opening GEO/AEO later does not repeat it.
+    // A failure here is silent: the GEO/AEO page crawls on demand instead.
+    if (searchParams.get("demo") !== "1") void startGeoCrawl(normalized).catch(() => undefined);
     setDiagnosticProgress(initialDiagnosticProgress);
     setResult(null);
     setReportUrl(null);
@@ -463,6 +471,11 @@ const DiagnosticPage = () => {
   };
 
   const isDemo = searchParams.get("demo") === "1";
+
+  // The home page is the only entry point: with nothing to show, go there.
+  if (isHydrated && !isDemo && !loading && !attempted && !requestedUrl && !result && !diagnostic) {
+    return <Navigate to="/" replace />;
+  }
 
   const activeResult = result ?? (isDemo ? sampleDiagnosticResult : null);
   const activeBusinessSummary = businessSummary ?? (isDemo ? sampleBusinessSummary : null);

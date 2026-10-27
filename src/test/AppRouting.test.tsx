@@ -50,13 +50,17 @@ describe("application route fallback", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps the diagnostic experience on /diagnostico", () => {
-    window.history.replaceState({}, "", "/diagnostico");
-    render(<App />);
+  it("sends /diagnostico and /geo-aeo without a site to the home page", async () => {
+    for (const path of ["/diagnostico", "/geo-aeo"]) {
+      window.history.replaceState({}, "", path);
+      const { unmount } = render(<App />);
 
-    expect(
-      screen.getByRole("heading", { name: "Diagnóstico & Desempenho" }),
-    ).toBeInTheDocument();
+      expect(
+        await screen.findByRole("heading", { name: /Do endereço ao relatório em três passos/ }),
+      ).toBeInTheDocument();
+      expect(window.location.pathname).toBe("/");
+      unmount();
+    }
   });
 
   it("redirects old demo links on the root to the diagnostic page", () => {
