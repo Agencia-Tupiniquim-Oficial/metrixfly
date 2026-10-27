@@ -9,9 +9,7 @@ import SharedDiagnosticReportPage from "@/features/diagnostics/pages/SharedDiagn
 import { DiagnosisProvider } from "@/features/diagnostics/state/DiagnosisContext";
 import { HomePage } from "@/features/home";
 import GeoAeoDashboard from "@/features/geo-aeo/pages/GeoAeoDashboard";
-import GeoAdmin from "@/features/geo-aeo/pages/GeoAdmin";
 import FinancialCalculator from "@/features/financial-calculator/pages/FinancialCalculator";
-import Reports from "@/features/reports/pages/Reports";
 import AdminPage from "@/features/admin/pages/AdminPage";
 import AdminLoginPage from "@/features/admin/pages/AdminLoginPage";
 import NotFound from "./pages/NotFound";
@@ -70,8 +68,9 @@ const App = () => (
               <Route path="/geo-aeo" element={<GeoAeoDashboard />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/login" element={<AdminLoginPage />} />
-              <Route path="/geo-admin" element={<GeoAdmin />} />
-              <Route path="/reports" element={<Reports />} />
+              {/* The old public reports and GEO admin pages now live behind the agency login. */}
+              <Route path="/geo-admin" element={<Navigate to="/admin" replace />} />
+              <Route path="/reports" element={<Navigate to="/admin" replace />} />
               <Route path="/calculadora-financeira" element={<FinancialCalculator />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

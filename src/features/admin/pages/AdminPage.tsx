@@ -74,9 +74,10 @@ export default function AdminPage() {
       console.error("Unable to load the analyses", error);
       setState({
         status: "error",
+        // Postgrest errors carry a message but are not always Error instances.
         message:
-          error instanceof Error
-            ? error.message
+          typeof (error as { message?: unknown })?.message === "string"
+            ? (error as { message: string }).message
             : "Não foi possível carregar as análises.",
       });
     }
