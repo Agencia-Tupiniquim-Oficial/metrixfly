@@ -181,18 +181,6 @@ export default function HomePage() {
                   </Button>
                 </form>
               </Card>
-
-              <p className="text-sm text-muted-foreground">
-                Medição com o PageSpeed Insights do Google, no celular e no computador.
-                Quer só a análise de IA?{" "}
-                <Link
-                  to="/geo-aeo"
-                  state={crawlState}
-                  className="font-semibold text-primary underline-offset-4 hover:underline"
-                >
-                  Rodar o Agent Crawl GEO/AEO
-                </Link>
-              </p>
             </div>
 
             <ReportPreview />
