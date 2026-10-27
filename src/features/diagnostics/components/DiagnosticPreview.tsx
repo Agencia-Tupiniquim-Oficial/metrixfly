@@ -8,7 +8,7 @@ import type {
   QuoteRequest,
   ServiceInterest,
 } from "@/features/diagnostics/model/quote-request";
-import { Building2, CheckCircle2, Download, Eye, FileText, Loader2, Pencil, UserRound } from "lucide-react";
+import { Building2, CheckCircle2, Download, Eye, Loader2 } from "lucide-react";
 import { useState } from "react";
 import {
   isDiagnosticOptimized,
@@ -108,148 +108,159 @@ export default function DiagnosticPreview({
     }
   };
 
+  const suggestionCount = result.improvements.length;
+  const modeButton = (mode: "view" | "edit", label: string) => (
+    <button
+      type="button"
+      aria-pressed={previewMode === mode}
+      onClick={() => setPreviewMode(mode)}
+      className={`min-h-10 rounded-lg px-3.5 text-sm transition-colors ${
+        previewMode === mode
+          ? "bg-card font-bold text-foreground shadow-sm"
+          : "font-semibold text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <div>
-      <Card className="border-border bg-card overflow-hidden">
-        {/* Row 1: report type selector */}
-        <div className="flex border-b border-border">
-          <button
-            type="button"
-            onClick={() => setReportType("full")}
-            className={`flex flex-1 items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition-colors
-              ${reportType === "full"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground"}`}
-          >
-            <FileText className="h-4 w-4 shrink-0" />
-            Relatório técnico 
-          </button>
-          <div className="w-px bg-border" />
-          <button
-            type="button"
-            onClick={handleSelectCorporate}
-            className={`flex flex-1 items-center justify-center gap-2 px-6 py-4 text-sm font-semibold transition-colors
-              ${reportType === "corporate"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground"}`}
-          >
-            <Building2 className="h-4 w-4 shrink-0" />
-            Versão corporativa
-          </button>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-extrabold tracking-tight text-foreground">
+            {reportType === "corporate"
+              ? "Versão corporativa"
+              : "Relatório do diagnóstico"}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {reportType === "corporate"
+              ? "Resumo para quem decide, sem jargão técnico."
+              : `${suggestionCount} ${suggestionCount === 1 ? "sugestão" : "sugestões"} de melhoria · revise e edite os textos antes de baixar`}
+          </p>
         </div>
-
-        {/* Row 2: preview area with view/edit toggle anchored top-right */}
-        <div className="relative -mx-0 overflow-x-auto rounded-b-lg bg-muted/40 px-4 py-8">
-          <div className="absolute right-4 top-4 inline-flex rounded-md border border-border bg-card shadow-sm">
-            <Button
-              type="button"
-              size="sm"
-              variant={previewMode === "view" ? "default" : "ghost"}
-              onClick={() => setPreviewMode("view")}
-              className="rounded-r-none"
-            >
-              <Eye className="mr-1.5 h-4 w-4" />
-              Visualizar
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={previewMode === "edit" ? "default" : "ghost"}
-              onClick={() => setPreviewMode("edit")}
-              className="rounded-l-none border-l border-border"
-            >
-              <Pencil className="mr-1.5 h-4 w-4" />
-              Editar
-            </Button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div
+            role="group"
+            aria-label="Modo do relatório"
+            className="inline-flex rounded-xl bg-muted p-1"
+          >
+            {modeButton("view", "Visualizar")}
+            {modeButton("edit", "Editar")}
           </div>
-
-          {reportType === "corporate" ? (
-            businessLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <div className="space-y-1">
-                  <p className="text-base font-semibold text-foreground">
-                    Gerando versão corporativa...
-                  </p>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Sintetizando os dados do diagnóstico em formato executivo para negócios.
-                  </p>
-                </div>
-              </div>
-            ) : businessSummary ? (
-              <BusinessReportPreview
-                url={url}
-                summary={businessSummary}
-                editable={previewMode === "edit"}
-                onSummaryChange={setBusinessSummary}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                <Building2 className="h-10 w-10 text-muted-foreground" />
-                <div className="space-y-1">
-                  <p className="text-base font-semibold text-foreground">
-                    Versão corporativa pronta para gerar
-                  </p>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Gere o resumo executivo para visualizar e personalizar antes de baixar.
-                  </p>
-                </div>
-                <Button
-                  onClick={onLoadBusinessSummary}
-                  variant="hero"
-                  disabled={businessLoading}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Gerar e visualizar versão corporativa
-                </Button>
-              </div>
-            )
+          {reportType === "full" ? (
+            <>
+              <Button
+                onClick={downloadTechnicalPdf}
+                disabled={downloading}
+                size="lg"
+                variant="hero"
+                className="font-bold"
+              >
+                {downloading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Baixar PDF técnico
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSelectCorporate}
+                size="lg"
+                variant="outline"
+                className="font-bold"
+              >
+                Versão corporativa
+              </Button>
+            </>
           ) : (
-            <DiagnosticReportPreview
-              url={url}
-              mobile={result.summary.mobile}
-              desktop={result.summary.desktop}
-              improvements={result.improvements}
-              uiux={result.uiux}
-              extras={result.extras}
-              editable={previewMode === "edit"}
-              onImprovementChange={updateImprovement}
-              onUiuxOverviewChange={updateUiuxOverview}
-            />
+            <>
+              <Button
+                type="button"
+                onClick={() => setReportType("full")}
+                size="lg"
+                variant="outline"
+                className="font-bold"
+              >
+                Voltar ao relatório técnico
+              </Button>
+              <Button
+                onClick={downloadBusinessPdf}
+                disabled={businessDownloading || businessLoading}
+                size="lg"
+                variant="hero"
+                className="font-bold"
+              >
+                {businessDownloading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                {businessDownloading
+                  ? "Preparando relatório..."
+                  : "Baixar PDF corporativo"}
+              </Button>
+            </>
           )}
         </div>
-      </Card>
+      </div>
 
-
-      <div className="sticky bottom-4 z-10 mt-4 grid gap-3 sm:grid-cols-2">
-        <Button
-          onClick={downloadTechnicalPdf}
-          disabled={downloading}
-          size="lg"
-          variant={reportType === "full" ? "hero" : "outline"}
-          className="w-full font-semibold"
-          style={reportType === "full" ? { boxShadow: "var(--shadow-glow)" } : undefined}
-        >
-          <Download className="mr-2 h-5 w-5" />
-          Baixar relatório técnico em PDF
-        </Button>
-        <Button
-          onClick={downloadBusinessPdf}
-          disabled={businessDownloading || businessLoading}
-          size="lg"
-          variant={reportType === "corporate" ? "hero" : "outline"}
-          className="w-full font-semibold"
-          style={reportType === "corporate" ? { boxShadow: "var(--shadow-glow)" } : undefined}
-        >
-          {businessDownloading ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+      <div className="overflow-x-auto rounded-2xl bg-secondary p-4 md:p-10">
+        {reportType === "corporate" ? (
+          businessLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-foreground">
+                  Gerando versão corporativa...
+                </p>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Sintetizando os dados do diagnóstico em formato executivo para negócios.
+                </p>
+              </div>
+            </div>
+          ) : businessSummary ? (
+            <BusinessReportPreview
+              url={url}
+              summary={businessSummary}
+              editable={previewMode === "edit"}
+              onSummaryChange={setBusinessSummary}
+            />
           ) : (
-            <UserRound className="mr-2 h-5 w-5" />
-          )}
-          {businessDownloading
-            ? "Preparando relatório..."
-            : "Baixar versão corporativa em PDF"}
-        </Button>
+            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+              <Building2 className="h-10 w-10 text-muted-foreground" />
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-foreground">
+                  Versão corporativa pronta para gerar
+                </p>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Gere o resumo executivo para visualizar e personalizar antes de baixar.
+                </p>
+              </div>
+              <Button
+                onClick={onLoadBusinessSummary}
+                variant="hero"
+                disabled={businessLoading}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Gerar e visualizar versão corporativa
+              </Button>
+            </div>
+          )
+        ) : (
+          <DiagnosticReportPreview
+            url={url}
+            mobile={result.summary.mobile}
+            desktop={result.summary.desktop}
+            improvements={result.improvements}
+            uiux={result.uiux}
+            extras={result.extras}
+            editable={previewMode === "edit"}
+            onImprovementChange={updateImprovement}
+            onUiuxOverviewChange={updateUiuxOverview}
+          />
+        )}
       </div>
 
       {onSubmitQuoteRequest && (

@@ -128,3 +128,27 @@ describe("Diagnostic experience", () => {
     );
   });
 });
+
+describe("Diagnostic result address bar", () => {
+  it("shows the analyzed address without the protocol and the trailing slash", async () => {
+    sessionStorage.setItem(
+      "diagnosis:result",
+      JSON.stringify({
+        ...sampleDiagnosticResult,
+        geo: { domain: "https://safetyrentalsplataformas.com.br/" },
+      }),
+    );
+    try {
+      renderWithProviders(["/diagnostico"]);
+
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "safetyrentalsplataformas.com.br" }),
+      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("exemplo.com.br")).toHaveValue(
+        "safetyrentalsplataformas.com.br",
+      );
+    } finally {
+      sessionStorage.clear();
+    }
+  });
+});

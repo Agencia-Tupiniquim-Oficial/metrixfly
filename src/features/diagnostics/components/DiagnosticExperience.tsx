@@ -67,11 +67,11 @@ export function DiagnosticExperience({
   const desktopScore = result?.summary.desktop.scores.performance ?? 71;
   const optimized = isDiagnosticOptimized(result);
   const financialCalculatorUrl = `/calculadora-financeira?mobileScore=${mobileScore}&traffic=15000&ticket=250`;
-  const domain = url.trim().replace(/^https?:\/\//i, "");
+  const domain = url.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
 
   const form = (
     <DiagnosticForm
-      url={url}
+      url={result ? domain : url}
       setUrl={setUrl}
       onSubmit={runDiagnostic}
       loading={loading}
@@ -147,13 +147,13 @@ export function DiagnosticExperience({
         ) : (
           <div className="motion-stagger space-y-8">
             <div className="flex flex-wrap items-end justify-between gap-5">
-              <div className="min-w-0 space-y-1">
+              <div className="min-w-0 flex-1 basis-80 space-y-1">
                 <p className={eyebrow}>Diagnóstico de desempenho</p>
                 <h1 className="break-all text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
                   {domain}
                 </h1>
               </div>
-              <div className="w-full md:max-w-lg md:flex-1">{form}</div>
+              <div className="w-full lg:w-[40rem]">{form}</div>
             </div>
 
             <Card className="space-y-7 border-border bg-card p-6 shadow-md md:p-8">
@@ -294,16 +294,11 @@ export function DiagnosticExperience({
             </Card>
 
             <section className="space-y-4">
-              <div className="space-y-1">
+              {optimized && (
                 <h2 className="text-2xl font-extrabold tracking-tight text-foreground">
-                  {optimized ? "Resultado do diagnóstico" : "Relatório do diagnóstico"}
+                  Resultado do diagnóstico
                 </h2>
-                {!optimized && (
-                  <p className="text-sm text-muted-foreground">
-                    Revise e edite os textos antes de baixar os documentos em PDF.
-                  </p>
-                )}
-              </div>
+              )}
 
               <DiagnosticPreview
                 url={url.startsWith("http") ? url : "https://" + url}
