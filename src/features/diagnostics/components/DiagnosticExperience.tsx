@@ -109,7 +109,7 @@ export function DiagnosticExperience({
             <div className="flex flex-wrap items-end justify-between gap-5">
               <div className="min-w-0 flex-1 basis-80 space-y-1">
                 <p className={eyebrow}>Diagnóstico de desempenho</p>
-                <h1 className="break-all text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
+                <h1 className="break-words text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
                   {domain}
                 </h1>
               </div>

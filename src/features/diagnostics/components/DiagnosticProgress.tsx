@@ -130,7 +130,7 @@ export function DiagnosticProgress({
           Diagnóstico de desempenho
         </p>
         <h2
-          className="break-all text-3xl font-extrabold leading-tight tracking-tight md:text-4xl"
+          className="break-words text-3xl font-extrabold leading-tight tracking-tight md:text-4xl"
           id="diagnostic-progress-title"
         >
           {domain ? `Analisando ${domain}` : "Estamos analisando seu site"}

@@ -141,7 +141,7 @@ export default function SharedDiagnosticReportPage() {
               <p className="text-xs font-bold uppercase tracking-widest text-primary">
                 Relatório de diagnóstico
               </p>
-              <h1 className="break-all text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
+              <h1 className="break-words text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
                 {domain || "Relatório de diagnóstico"}
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -150,7 +150,7 @@ export default function SharedDiagnosticReportPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl bg-secondary p-4 md:p-10">
+            <div className="rounded-2xl bg-secondary p-2 sm:p-4 md:p-10">
               <DiagnosticReportPreview
                 url={domain}
                 mobile={report.report.summary.mobile}

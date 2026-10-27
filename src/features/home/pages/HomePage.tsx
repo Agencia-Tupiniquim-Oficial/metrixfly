@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/theme-toggle";
 import logoColored from "@/assets/logo-colored.png";
 import { pushDataLayerEvent } from "@/lib/analytics";
 import PdfMockup from "../components/PdfMockup";
@@ -131,9 +132,15 @@ export default function HomePage() {
                 {label}
               </a>
             ))}
-            <Button type="button" variant="hero" onClick={focusAddress}>
+            <Button
+              type="button"
+              variant="hero"
+              onClick={focusAddress}
+              className="hidden sm:inline-flex"
+            >
               Diagnosticar meu site
             </Button>
+            <ThemeToggle inline />
           </div>
         </nav>
       </header>

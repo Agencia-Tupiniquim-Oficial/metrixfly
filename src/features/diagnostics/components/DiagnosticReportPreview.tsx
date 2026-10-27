@@ -28,6 +28,9 @@ type Props = {
   onOpportunitiesChange?: (device: "desktop" | "mobile", items: string[]) => void;
 };
 
+/** Page side margins: narrow on phones, the document margin from 1000px up (the PDF keeps its own). */
+const PAGE_PADDING_X = `clamp(20px, calc(11vw - 20px), ${DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX}px)`;
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2
@@ -72,7 +75,7 @@ function Bullets({
   if (!editable) {
     return (
       <ul
-        className="list-disc pl-10 space-y-0.5"
+        className="list-disc space-y-0.5 pl-6 sm:pl-10"
         style={{
           color: DIAGNOSTIC_REPORT_COLORS.text,
           fontSize: DIAGNOSTIC_REPORT_TYPOGRAPHY.bullet.fontSize,
@@ -105,7 +108,7 @@ function Bullets({
   return (
     <div>
       <ul
-        className="list-disc pl-10 space-y-0.5"
+        className="list-disc space-y-0.5 pl-6 sm:pl-10"
         style={{
           color: DIAGNOSTIC_REPORT_COLORS.text,
           fontSize: DIAGNOSTIC_REPORT_TYPOGRAPHY.bullet.fontSize,
@@ -184,33 +187,33 @@ function Page({
     >
       {withHeader && (
         <div
-          className="flex items-center justify-center gap-6"
+          className="flex flex-wrap items-center justify-center gap-4 sm:gap-6"
           style={{
-            paddingLeft: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
-            paddingRight: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
+            paddingLeft: PAGE_PADDING_X,
+            paddingRight: PAGE_PADDING_X,
             paddingTop: DIAGNOSTIC_REPORT_LAYOUT.coverTopPadding,
           }}
         >
           <img
             src={tupiniquimLogo}
             alt="Logo Tupiniquim"
-            className="h-24 w-auto max-w-[220px] object-contain"
+            className="h-16 w-auto max-w-[180px] object-contain sm:h-24 sm:max-w-[220px]"
           />
           {clientLogo ? (
             <img
               src={clientLogo}
               alt="Logo do cliente"
-              className="h-20 w-auto max-w-[180px] object-contain"
+              className="h-14 w-auto max-w-[140px] object-contain sm:h-20 sm:max-w-[180px]"
             />
           ) : null}
         </div>
       )}
       <div
         style={{
-          paddingLeft: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
-          paddingRight: DIAGNOSTIC_REPORT_LAYOUT.pagePaddingX,
-          paddingTop: withHeader ? 48 : DIAGNOSTIC_REPORT_LAYOUT.pagePaddingY,
-          paddingBottom: withHeader ? 64 : DIAGNOSTIC_REPORT_LAYOUT.pagePaddingY,
+          paddingLeft: PAGE_PADDING_X,
+          paddingRight: PAGE_PADDING_X,
+          paddingTop: withHeader ? 32 : DIAGNOSTIC_REPORT_LAYOUT.pagePaddingY,
+          paddingBottom: withHeader ? 48 : DIAGNOSTIC_REPORT_LAYOUT.pagePaddingY,
         }}
       >
         {children}

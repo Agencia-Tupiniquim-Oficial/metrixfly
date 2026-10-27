@@ -668,11 +668,11 @@ const GeoAeoDashboard = () => {
         {result && (
           <div className="motion-stagger space-y-8">
             <Card className="motion-card flex flex-wrap items-center gap-9 border-border bg-card p-6 shadow-sm md:p-8">
-              <div className="flex min-w-0 flex-1 basis-96 items-center gap-6">
+              <div className="flex min-w-0 flex-1 basis-96 flex-col items-center gap-4 text-center sm:flex-row sm:gap-6 sm:text-left">
                 <ScoreRing label="Score geral de prontidão" score={overall} size={132} />
                 <div className="min-w-0 space-y-1">
                   <span className={eyebrow}>Prontidão digital</span>
-                  <h2 className="break-all text-2xl font-extrabold tracking-tight">
+                  <h2 className="break-words text-2xl font-extrabold tracking-tight">
                     {result.domain}
                   </h2>
                   <p className="text-sm text-muted-foreground">

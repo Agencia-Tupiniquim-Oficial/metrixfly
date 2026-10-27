@@ -117,7 +117,7 @@ export default function DiagnosticPreview({
       type="button"
       aria-pressed={previewMode === mode}
       onClick={() => setPreviewMode(mode)}
-      className={`min-h-10 rounded-lg px-3.5 text-sm transition-colors ${
+      className={`min-h-10 flex-1 rounded-lg px-3.5 text-sm transition-colors sm:flex-none ${
         previewMode === mode
           ? "bg-card font-bold text-foreground shadow-sm"
           : "font-semibold text-muted-foreground hover:text-foreground"
@@ -142,11 +142,11 @@ export default function DiagnosticPreview({
               : `${suggestionCount} ${suggestionCount === 1 ? "sugestão" : "sugestões"} de melhoria · revise e edite os textos antes de baixar`}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
           <div
             role="group"
             aria-label="Modo do relatório"
-            className="inline-flex rounded-xl bg-muted p-1"
+            className="flex w-full rounded-xl bg-muted p-1 sm:inline-flex sm:w-auto"
           >
             {modeButton("view", "Visualizar")}
             {modeButton("edit", "Editar")}
@@ -158,7 +158,7 @@ export default function DiagnosticPreview({
                 disabled={downloading}
                 size="lg"
                 variant="hero"
-                className="font-bold"
+                className="w-full font-bold sm:w-auto"
               >
                 {downloading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -172,7 +172,7 @@ export default function DiagnosticPreview({
                 onClick={handleSelectCorporate}
                 size="lg"
                 variant="outline"
-                className="font-bold"
+                className="w-full font-bold sm:w-auto"
               >
                 Versão corporativa
               </Button>
@@ -184,7 +184,7 @@ export default function DiagnosticPreview({
                 onClick={() => setReportType("full")}
                 size="lg"
                 variant="outline"
-                className="font-bold"
+                className="w-full font-bold sm:w-auto"
               >
                 Voltar ao relatório técnico
               </Button>
@@ -193,7 +193,7 @@ export default function DiagnosticPreview({
                 disabled={businessDownloading || businessLoading}
                 size="lg"
                 variant="hero"
-                className="font-bold"
+                className="w-full font-bold sm:w-auto"
               >
                 {businessDownloading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -209,7 +209,7 @@ export default function DiagnosticPreview({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl bg-secondary p-4 md:p-10">
+      <div className="overflow-x-auto rounded-2xl bg-secondary p-2 sm:p-4 md:p-10">
         {reportType === "corporate" ? (
           businessLoading ? (
             <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">

@@ -40,8 +40,14 @@ export default function DiagnosticForm({
           />
         </div>
 
-        <div className="flex gap-2">
-          <Button type="submit" size="lg" disabled={loading} variant="hero">
+        <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={loading}
+            variant="hero"
+            className="flex-1 sm:flex-none"
+          >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analisando…
@@ -60,6 +66,7 @@ export default function DiagnosticForm({
               variant="outline"
               onClick={runGeoCrawl}
               disabled={geoLoading}
+              className="flex-1 sm:flex-none"
             >
               {geoLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -68,7 +75,7 @@ export default function DiagnosticForm({
               )}
             </Button>
           ) : (
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="flex-1 sm:flex-none">
               <Link to="/geo-aeo">Geo/AEO</Link>
             </Button>
           )}

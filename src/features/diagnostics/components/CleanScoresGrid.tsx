@@ -51,7 +51,7 @@ export function CleanScoresGrid({
         {title}
       </h3>
 
-      <div className="grid grid-cols-4 gap-2 mb-5">
+      <div className="mb-5 grid grid-cols-2 gap-x-2 gap-y-4 min-[460px]:grid-cols-4">
         <ScoreRing label="Desempenho" score={scores.performance} size={60} />
         <ScoreRing label="Acessibilidade" score={scores.accessibility} size={60} />
         <ScoreRing label="Práticas" score={scores.bestPractices} size={60} />

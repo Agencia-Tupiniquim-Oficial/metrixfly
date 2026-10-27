@@ -101,7 +101,7 @@ export default function ReportPreview() {
             Exemplo ilustrativo
           </span>
         </div>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-4 min-[460px]:grid-cols-4">
           {performanceScores.map((item) => (
             <ScoreRing key={item.label} {...item} />
           ))}
