@@ -1,5 +1,7 @@
 import { useState, type FormEvent, type ChangeEvent } from "react";
 import { Loader2, Mail } from "lucide-react";
+import { useInRouterContext } from "react-router-dom";
+import QuoteExitGuard from "@/features/diagnostics/components/QuoteExitGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +25,7 @@ type Props = {
   serviceInterest?: ServiceInterest;
   /** Called when the visitor opens the dialog (interest signal, not a submission). */
   onOpened?: (interest: ServiceInterest) => void;
+  triggerLabel?: string;
 };
 
 export default function QuoteRequestDialog({
@@ -30,6 +33,7 @@ export default function QuoteRequestDialog({
   sending = false,
   serviceInterest,
   onOpened,
+  triggerLabel = "Solicitar orçamento",
 }: Props) {
   const [open, setOpen] = useState(false);
   const [request, setRequest] = useState<QuoteRequest>({
@@ -41,6 +45,7 @@ export default function QuoteRequestDialog({
   });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
+  const insideRouter = useInRouterContext();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setErrorMessage(null);
@@ -91,6 +96,13 @@ export default function QuoteRequestDialog({
     }
   };
 
+  const hasUnsentData = [
+    request.name,
+    request.company,
+    request.email,
+    request.phone,
+  ].some((value) => value.trim() !== "");
+
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen && !open) onOpened?.(serviceInterest ?? "general");
     setOpen(nextOpen);
@@ -98,6 +110,7 @@ export default function QuoteRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
+      {insideRouter && <QuoteExitGuard active={hasUnsentData} />}
       <DialogTrigger asChild>
         <Button
           type="button"
@@ -106,7 +119,7 @@ export default function QuoteRequestDialog({
           className="w-full font-semibold"
         >
           <Mail className="mr-2 h-5 w-5" />
-          Solicitar orçamento
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent>
