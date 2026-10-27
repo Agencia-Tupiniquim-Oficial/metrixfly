@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import logoColored from "@/assets/logo-colored.png";
 import DiagnosticReportPreview from "@/features/diagnostics/components/DiagnosticReportPreview";
 import {
@@ -83,28 +84,33 @@ export default function SharedDiagnosticReportPage() {
     }
   };
 
-  return (
-    <main className="min-h-screen pb-16" style={{ background: "var(--gradient-hero)" }}>
-      <div className="container max-w-5xl space-y-8 py-12 md:py-16">
-        <header className="flex flex-col items-center gap-5 text-center">
-          <Link to="/" aria-label="Ir para o início">
-            <img src={logoColored} alt="Metricfly" className="h-16 object-contain" />
-          </Link>
-          <h1 className="text-3xl font-bold text-foreground">
-            Relatório de diagnóstico
-          </h1>
-          {report && (
-            <Button onClick={downloadPdf} disabled={downloading}>
-              {downloading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              Baixar relatório em PDF
-            </Button>
-          )}
-        </header>
+  const domain = report?.report.geo?.domain ?? "";
 
+  return (
+    <div className="min-h-screen bg-secondary/40">
+      <header className="border-b border-border bg-background">
+        <div className="container flex max-w-4xl flex-wrap items-center justify-between gap-4 py-3">
+          <Link to="/" aria-label="Ir para o início" className="flex items-center gap-2.5">
+            <img src={logoColored} alt="" className="h-9 w-9 object-contain" />
+            <span className="text-lg font-extrabold tracking-tight">Metricfly</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            {report && (
+              <Button onClick={downloadPdf} disabled={downloading} variant="hero">
+                {downloading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Baixar relatório em PDF
+              </Button>
+            )}
+            <ThemeToggle inline />
+          </div>
+        </div>
+      </header>
+
+      <main className="container max-w-4xl space-y-7 py-10 md:py-12">
         {loading && (
           <div role="status" className="flex items-center justify-center gap-3 py-20">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -115,9 +121,10 @@ export default function SharedDiagnosticReportPage() {
         {!loading && errorMessage && (
           <section
             role="alert"
-            className="mx-auto max-w-xl space-y-4 rounded-lg border border-border bg-card p-8 text-center"
+            className="mx-auto max-w-xl space-y-4 rounded-2xl border border-border bg-card p-8 text-center"
+            style={{ boxShadow: "var(--shadow-card)" }}
           >
-            <h2 className="text-xl font-semibold">Relatório indisponível</h2>
+            <h1 className="text-xl font-semibold">Relatório indisponível</h1>
             <p className="text-muted-foreground">{errorMessage}</p>
             <Button asChild variant="outline">
               <Link to="/diagnostico">
@@ -130,21 +137,44 @@ export default function SharedDiagnosticReportPage() {
 
         {!loading && report && (
           <>
-            <p className="text-center text-sm text-muted-foreground">
-              Relatório criado em{" "}
-              {new Date(report.createdAt).toLocaleString("pt-BR")}
-            </p>
-            <DiagnosticReportPreview
-              url={report.report.geo?.domain ?? ""}
-              mobile={report.report.summary.mobile}
-              desktop={report.report.summary.desktop}
-              improvements={report.report.improvements}
-              uiux={report.report.uiux}
-              extras={report.report.extras}
-            />
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">
+                Relatório de diagnóstico
+              </p>
+              <h1 className="break-all text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
+                {domain || "Relatório de diagnóstico"}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Relatório criado em{" "}
+                {new Date(report.createdAt).toLocaleString("pt-BR")}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-secondary p-4 md:p-10">
+              <DiagnosticReportPreview
+                url={domain}
+                mobile={report.report.summary.mobile}
+                desktop={report.report.summary.desktop}
+                improvements={report.report.improvements}
+                uiux={report.report.uiux}
+                extras={report.report.extras}
+              />
+            </div>
+
+            <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card px-6 py-5">
+              <div className="flex flex-col">
+                <span className="font-bold">Gerado com Metricfly</span>
+                <span className="text-sm text-muted-foreground">
+                  Diagnostique o seu site também.
+                </span>
+              </div>
+              <Button asChild variant="outline" size="lg" className="border-primary text-primary">
+                <Link to="/">Diagnosticar meu site</Link>
+              </Button>
+            </section>
           </>
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

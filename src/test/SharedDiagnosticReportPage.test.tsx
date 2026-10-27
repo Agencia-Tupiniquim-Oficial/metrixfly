@@ -69,6 +69,19 @@ describe("SharedDiagnosticReportPage", () => {
     expect(getPublicDiagnosticReport).toHaveBeenCalledWith(reportId);
   });
 
+  it("shows the domain, the creation date and a closing call to action to the home page", async () => {
+    renderSharedReport();
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "https://example.com/" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Relatório criado em/)).toBeInTheDocument();
+    expect(screen.getByText("Gerado com Metricfly")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Diagnosticar meu site" }),
+    ).toHaveAttribute("href", "/");
+  });
+
   it("generates a PDF from the saved report data", async () => {
     renderSharedReport();
     fireEvent.click(
