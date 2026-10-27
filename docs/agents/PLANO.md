@@ -18,7 +18,19 @@ Este arquivo acompanha somente iniciativas de agentes e skills que tenham varias
 
 As referencias conceituais selecionadas foram `codebase-design`, `tdd`, `diagnosing-bugs`, `code-review` e `domain-modeling`. Seus principios foram adaptados ao Metrixfly; as copias originais e o arquivo de lock do pacote foram removidos, sem dependencia de runtime do repositorio externo.
 
-## Iniciativa feat/metrixfly-functionalities (em andamento)
+## Iniciativa feat/metrixfly-functionalities (publicada em 2026-10-27; pendencias abaixo)
+
+Estado em 2026-10-27: tudo abaixo esta na `main` (`1ebee98`) e no Supabase `ocrjjlblxfgrvsnfalhp` (migration aplicada; funcoes `quote-interest` e `quote-request` publicadas; deploy do front pela Vercel a partir da `main`). Rollback: Instant Rollback na Vercel ou `git revert`; a tabela se desfaz com `drop table public.quote_interest_events` e `drop function public.purge_quote_interest_events`.
+
+Alteracoes posteriores ao plano original (pedidos do usuario):
+- Removidos o link "Ver um exemplo de diagnostico" e o card `ServiceInterestCard` (T5). O campo `serviceInterest` segue aceito no e-mail e na tabela, mas o front nao o envia mais.
+- `/diagnostico?url=` agora roda o diagnostico sozinho uma vez (nao em `?demo=1`) e vence um diagnostico antigo salvo no `sessionStorage` (a reidratacao ocorre depois da montagem; so o resultado da propria execucao e exibido). Teste de regressao em `DiagnosticPage.test.tsx`, verificado por mutacao. Consequencia: cada abertura de link com `?url=` consome uma analise da API.
+
+Pendente (usuario): criar conta GTM e definir `VITE_GTM_ID` na Vercel (Production e Preview), validar `generate_lead` no GTM Preview; testar e-mail real e linhas em `quote_interest_events`; conferir PDF e landing em celular.
+
+Decisoes abertas: retencao dos registros (12 meses proposto, limpeza nao agendada); manter ou remover o modo demo `?demo=1`; modal de exit-intent; direcao visual e orcamento da Places API.
+
+Proximo: melhorar o layout da home (parece vazia) em branch nova `feat/home-layout`, a partir da `main`.
 
 Worktree `C:\Users\opera\worktrees\metrixfly`, branch `feat/metrixfly-functionalities`, base `002b6ea`. Linha de base: tsc sem erros; lint 0 erros e 9 warnings; build ok; `npm test` 25 arquivos e 94 testes ok com `VITE_SUPABASE_*` ficticias (ver `LEARNINGS.md`).
 
@@ -31,8 +43,8 @@ Decisoes registradas:
 - [x] T1 marca nos e-mails e textos visiveis (`_shared/brand.ts`, `brand.test.ts`; `deno check` ok; envio real de e-mail pendente de validacao manual)
 - [x] T3 cabecalho white-label dos PDFs (`model/report-branding.ts`, opcao `branding` em `create*Pdf`; aparencia visual do PDF pendente de validacao manual; a previa HTML do relatorio nao foi alterada)
 - [x] T2 evento dataLayer apos envio confirmado (`lib/analytics.ts`, `services/quote-analytics.ts`, evento `generate_lead`; GTM so carrega com `VITE_GTM_ID`; validacao no GTM Preview pendente ate a conta existir)
-- [x] T6 registro do clique em "Solicitar orcamento" por empresa (migration `20261027120000_create_quote_interest_events.sql` NAO aplicada; Edge Function `quote-interest` NAO publicada; retencao de 12 meses e proposta, a funcao `purge_quote_interest_events` nao esta agendada; sem limite de taxa no endpoint publico, risco registrado)
-- [x] T5 pontos de conversao Search Console e Analytics (`ServiceInterestCard`, campo `serviceInterest` ate o e-mail; copy sem prometer integracao, a revisar pelo usuario)
+- [x] T6 registro do clique em "Solicitar orcamento" por empresa (migration `20261027120000_create_quote_interest_events.sql` aplicada e Edge Function `quote-interest` publicada em 2026-10-27; retencao de 12 meses e proposta, a funcao `purge_quote_interest_events` nao esta agendada; sem limite de taxa no endpoint publico, risco registrado)
+- [x] T5 pontos de conversao Search Console e Analytics (card `ServiceInterestCard` implementado e depois REMOVIDO a pedido do usuario; o campo `serviceInterest` permanece no backend sem uso no front)
 - [x] T7 aviso de saida (`use-exit-guard`, `QuoteExitGuard`). Limites: texto ao fechar/recarregar e do navegador; botao Voltar do navegador nao e interceptavel com `BrowserRouter`; modal de exit-intent NAO implementado (decisao de produto pendente)
 - [x] T4 landing explicativa em `/` (`src/features/home`); diagnostico segue em `/diagnostico`; `/?demo=1` redireciona; links "voltar ao diagnostico" agora apontam para `/diagnostico` (teste de `SharedDiagnosticReportPage` atualizado de proposito); copy a revisar pelo usuario; validacao visual mobile/desktop pendente
 
@@ -40,7 +52,7 @@ Divida preexistente encontrada (nao corrigida, fora do escopo): `deno check supa
 
 Incidente de processo (corrigido): uma edicao com `[IO.File]::WriteAllText` e caminho relativo gravou na arvore original em vez da worktree. Foi revertida byte a byte e `git status` da arvore original voltou a vazio. Efeito colateral: faltava a ligacao `onOpened` em `DiagnosticPreview` na worktree, que os testes nao detectavam por mockarem essa camada; corrigido e coberto por `DiagnosticPreviewQuoteInterest.test.tsx` (verificado por mutacao). Regra pratica: nunca usar caminho relativo em .NET dentro de `cd`; usar Edit ou caminho absoluto.
 
-Decisoes de nivel B: evento `cta_click` (`cta_id`, `location`) na landing; `?url=` pre-preenche o endereco no diagnostico (sem rodar a analise automaticamente).
+Decisoes de nivel B: evento `cta_click` (`cta_id`, `location`) na landing; `?url=` pre-preenche o endereco no diagnostico (substituido: agora roda a analise, ver "Alteracoes posteriores").
 - [x] T8 e T9 pesquisas em `docs/research/` (2026-10-27). Lacunas: precos do RapidAPI/OpenWeb Ninja nao confirmados; campos por SKU e regras de cache do Places nao verificados; demos do ThemeForest nao avaliadas visualmente
 
 Mantenha este plano atualizado somente enquanto uma iniciativa semelhante estiver em andamento; ao conclui-la, registre o resultado sem transformar o arquivo em historico de cada tarefa cotidiana.
