@@ -20,11 +20,17 @@ As referencias conceituais selecionadas foram `codebase-design`, `tdd`, `diagnos
 
 ## Iniciativa feat/metrixfly-functionalities (publicada em 2026-10-27; pendencias abaixo)
 
-Estado em 2026-10-27: tudo abaixo esta na `main` (`1ebee98`) e no Supabase `ocrjjlblxfgrvsnfalhp` (migration aplicada; funcoes `quote-interest` e `quote-request` publicadas; deploy do front pela Vercel a partir da `main`). Rollback: Instant Rollback na Vercel ou `git revert`; a tabela se desfaz com `drop table public.quote_interest_events` e `drop function public.purge_quote_interest_events`.
+Estado em 2026-10-27 (atualizado apos o redesign): a `main` esta em `8077e34`. Tudo abaixo entrou na `main` em `1ebee98` e no Supabase `ocrjjlblxfgrvsnfalhp` (migration aplicada; funcoes `quote-interest` e `quote-request` publicadas; deploy do front pela Vercel a partir da `main`). Rollback: Instant Rollback na Vercel ou `git revert`; a tabela se desfaz com `drop table public.quote_interest_events` e `drop function public.purge_quote_interest_events`.
 
 Alteracoes posteriores ao plano original (pedidos do usuario):
 - Removidos o link "Ver um exemplo de diagnostico" e o card `ServiceInterestCard` (T5). O campo `serviceInterest` segue aceito no e-mail e na tabela, mas o front nao o envia mais.
 - `/diagnostico?url=` agora roda o diagnostico sozinho uma vez (nao em `?demo=1`) e vence um diagnostico antigo salvo no `sessionStorage` (a reidratacao ocorre depois da montagem; so o resultado da propria execucao e exibido). Teste de regressao em `DiagnosticPage.test.tsx`, verificado por mutacao. Consequencia: cada abertura de link com `?url=` consome uma analise da API.
+
+Redesign e GEO (publicados na `main`, `a497c03` e `8077e34`):
+- 5 telas novas do Claude Design (home, diagnostico em analise e resultado, GEO/AEO, relatorio compartilhado, calculadora), header compartilhado `components/app-header.tsx` (rotas em `app-header-routes.ts`), `components/score-ring.tsx`, tokens `surface-dark`, moldura do relatorio com Visualizar/Editar e botoes de PDF no cabecalho, card "Relatorio salvo" antes da faixa de orcamento. So apresentacao: `model/`, `services/`, Edge Functions e eventos nao mudaram.
+- O GEO/AEO roda em paralelo com o diagnostico (`lib/geo-crawl-cache.ts`) e fica no `sessionStorage`; a pagina de GEO reaproveita ou espera esse crawl. `/diagnostico` e `/geo-aeo` sem site nem resultado salvo redirecionam para a home; os estados vazios com 3 cards foram removidos. Custo: cada diagnostico dispara tambem um crawl GEO (ate 12 paginas).
+- Fluxo de entrega das telas: branches empilhadas, preview na Vercel por push da branch, merge fast-forward na `main` so com OK explicito.
+- Pendente do redesign: destino do botao "Falar com a equipe" da calculadora; campo "Analisar outro site" vazio como no design; data "Analisado em" (nao e guardada); fonte Plus Jakarta Sans; anel duplicado em `features/home/components/ReportPreview.tsx`; textos "PageSpeed" mantidos ate o usuario conferir os termos da API do Google.
 
 Pendente (usuario): criar conta GTM e definir `VITE_GTM_ID` na Vercel (Production e Preview), validar `generate_lead` no GTM Preview; testar e-mail real e linhas em `quote_interest_events`; conferir PDF e landing em celular.
 
@@ -55,4 +61,15 @@ Incidente de processo (corrigido): uma edicao com `[IO.File]::WriteAllText` e ca
 Decisoes de nivel B: evento `cta_click` (`cta_id`, `location`) na landing; `?url=` pre-preenche o endereco no diagnostico (substituido: agora roda a analise, ver "Alteracoes posteriores").
 - [x] T8 e T9 pesquisas em `docs/research/` (2026-10-27). Lacunas: precos do RapidAPI/OpenWeb Ninja nao confirmados; campos por SKU e regras de cache do Places nao verificados; demos do ThemeForest nao avaliadas visualmente
 
+Area administrativa (em andamento, branch `feat/admin-panel`, nao publicada): ver a secao "Area administrativa da agencia" abaixo.
+
 Mantenha este plano atualizado somente enquanto uma iniciativa semelhante estiver em andamento; ao conclui-la, registre o resultado sem transformar o arquivo em historico de cada tarefa cotidiana.
+
+## Area administrativa da agencia (em andamento)
+
+Objetivo: tela restrita a agencia para ver as analises feitas (referencia de layout: `06-relatorios.html` do Claude Design). Branch `feat/admin-panel`, sem push, sem migration aplicada.
+
+Achados:
+- Nao existe login no app: so um formulario de link magico oculto na pagina de GEO (`signInWithOtp`). `/geo-admin` e um placeholder e `/reports` e publica; ela le `geo_crawl_snapshots` e `geo_projects`, tabelas que NAO estao nas migrations do repositorio (existem so no Supabase), entao nao se sabe se a RLS delas protege os dados. Risco a conferir.
+- O sistema nao guarda quem fez a analise: `diagnostic_reports` tem so o relatorio (dominio em `report.geo.domain`) e a data; `quote_interest_events` tem dominio, tipo de evento e sessao anonima; o contato de quem pede orcamento so vai por e-mail. Mostrar "pessoas" exigiria passar a guardar dados pessoais (decisao de privacidade).
+- Autenticacao nao e autorizacao: qualquer conta com link magico entraria. A autorizacao fica no banco (`agency_admins` + `is_agency_admin()`), e o login usa `shouldCreateUser: false`.

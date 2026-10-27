@@ -61,7 +61,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_agency_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
+      admin_list_analyses: {
+        Args: { limit_rows?: number }
+        Returns: {
+          id: string
+          domain: string | null
+          created_at: string
+          mobile_score: number | null
+          desktop_score: number | null
+          quote_opened: number
+          quote_submitted: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
