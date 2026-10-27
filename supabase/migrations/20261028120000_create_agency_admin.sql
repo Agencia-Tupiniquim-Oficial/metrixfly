@@ -13,11 +13,11 @@ alter table public.agency_admins enable row level security;
 revoke all on table public.agency_admins from public, anon, authenticated;
 grant select, insert, delete on table public.agency_admins to service_role;
 
--- First agency account. The same e-mail must also exist in Supabase Auth
--- (Authentication > Users) so the magic link can be sent: sign-ups are not
--- created by the app.
+-- First agency account (more can be added later). The same e-mail must also
+-- exist in Supabase Auth (Authentication > Users) so the magic link can be
+-- sent: sign-ups are not created by the app.
 insert into public.agency_admins (email)
-values ('suporte@agenciatupiniquim.com.br')
+values ('bruno.meireles@agenciatupiniquim.com.br')
 on conflict (email) do nothing;
 
 create or replace function public.is_agency_admin()
