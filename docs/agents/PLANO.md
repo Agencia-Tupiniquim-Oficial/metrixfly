@@ -20,7 +20,7 @@ As referencias conceituais selecionadas foram `codebase-design`, `tdd`, `diagnos
 
 ## Iniciativa feat/metrixfly-functionalities (publicada em 2026-10-27; pendencias abaixo)
 
-Estado em 2026-10-27 (atualizado apos o redesign): a `main` esta em `8077e34`. Tudo abaixo entrou na `main` em `1ebee98` e no Supabase `ocrjjlblxfgrvsnfalhp` (migration aplicada; funcoes `quote-interest` e `quote-request` publicadas; deploy do front pela Vercel a partir da `main`). Rollback: Instant Rollback na Vercel ou `git revert`; a tabela se desfaz com `drop table public.quote_interest_events` e `drop function public.purge_quote_interest_events`.
+Estado em 2026-10-27 (atualizado apos o redesign): a `main` esta em `673fa5e` (2026-10-28). Tudo abaixo entrou na `main` em `1ebee98` e no Supabase `ocrjjlblxfgrvsnfalhp` (migration aplicada; funcoes `quote-interest` e `quote-request` publicadas; deploy do front pela Vercel a partir da `main`). Rollback: Instant Rollback na Vercel ou `git revert`; a tabela se desfaz com `drop table public.quote_interest_events` e `drop function public.purge_quote_interest_events`.
 
 Alteracoes posteriores ao plano original (pedidos do usuario):
 - Removidos o link "Ver um exemplo de diagnostico" e o card `ServiceInterestCard` (T5). O campo `serviceInterest` segue aceito no e-mail e na tabela, mas o front nao o envia mais.
@@ -61,15 +61,21 @@ Incidente de processo (corrigido): uma edicao com `[IO.File]::WriteAllText` e ca
 Decisoes de nivel B: evento `cta_click` (`cta_id`, `location`) na landing; `?url=` pre-preenche o endereco no diagnostico (substituido: agora roda a analise, ver "Alteracoes posteriores").
 - [x] T8 e T9 pesquisas em `docs/research/` (2026-10-27). Lacunas: precos do RapidAPI/OpenWeb Ninja nao confirmados; campos por SKU e regras de cache do Places nao verificados; demos do ThemeForest nao avaliadas visualmente
 
-Area administrativa (em andamento, branch `feat/admin-panel`, nao publicada): ver a secao "Area administrativa da agencia" abaixo.
+Area administrativa (publicada na `main` em 2026-10-28): ver a secao "Area administrativa da agencia" abaixo.
+
+Outras alteracoes de 2026-10-28: a nota "Medicao com o PageSpeed Insights... Rodar o Agent Crawl" foi removida da home (o Agent Crawl segue no card proprio).
 
 Mantenha este plano atualizado somente enquanto uma iniciativa semelhante estiver em andamento; ao conclui-la, registre o resultado sem transformar o arquivo em historico de cada tarefa cotidiana.
 
-## Area administrativa da agencia (em andamento)
+## Area administrativa da agencia (publicada em 2026-10-28)
 
-Objetivo: tela restrita a agencia para ver as analises feitas (referencia de layout: `06-relatorios.html` do Claude Design). Branch `feat/admin-panel`, sem push, sem migration aplicada.
+Objetivo: tela restrita a agencia para ver as analises feitas (referencia de layout: `06-relatorios.html` do Claude Design).
+
+Estado: na `main` (`673fa5e`). Rotas `/admin/login` (link por e-mail, sem senha, `shouldCreateUser: false`) e `/admin` (todas as analises salvas, mais recentes primeiro, com dominio, data, nota no celular, selo de orcamento, busca e link para o relatorio); `noindex`. Migration `20261028120000_create_agency_admin.sql` APLICADA em producao com `db push --linked` (tabela `agency_admins`, `is_agency_admin()`, `admin_list_analyses()`); administrador inicial: `bruno.meireles@agenciatupiniquim.com.br` (para incluir mais pessoas: criar o usuario no Supabase Auth e inserir o e-mail em `agency_admins`). `/reports` e `/geo-admin` redirecionam para `/admin`; as paginas antigas foram removidas. Testes em `src/test/AdminArea.test.tsx`. Verificado em producao pelo usuario: login e lista carregam.
+
+Pendente: guardar QUEM roda o diagnostico (exige pedir e-mail na home; decisao de privacidade); Site URL e Redirect URLs do Supabase Auth devem apontar para `metrixfly.vercel.app` (o link do e-mail abriu em `localhost:3000`); conferir a RLS das tabelas `geo_*` no painel; o GEO nao e salvo no banco (so no `sessionStorage`).
 
 Achados:
 - Nao existe login no app: so um formulario de link magico oculto na pagina de GEO (`signInWithOtp`). `/geo-admin` e um placeholder e `/reports` e publica; ela le `geo_crawl_snapshots` e `geo_projects`, tabelas que NAO estao nas migrations do repositorio (existem so no Supabase), entao nao se sabe se a RLS delas protege os dados. Risco a conferir.
 - O sistema nao guarda quem fez a analise: `diagnostic_reports` tem so o relatorio (dominio em `report.geo.domain`) e a data; `quote_interest_events` tem dominio, tipo de evento e sessao anonima; o contato de quem pede orcamento so vai por e-mail. Mostrar "pessoas" exigiria passar a guardar dados pessoais (decisao de privacidade).
-- Autenticacao nao e autorizacao: qualquer conta com link magico entraria. A autorizacao fica no banco (`agency_admins` + `is_agency_admin()`), e o login usa `shouldCreateUser: false`.
+- Autenticacao nao e autorizacao: qualquer conta com link magico entraria (por isso a checagem fica no banco). A autorizacao fica no banco (`agency_admins` + `is_agency_admin()`), e o login usa `shouldCreateUser: false`.
