@@ -40,4 +40,29 @@ describe("application route fallback", () => {
     ).toHaveAttribute("aria-valuenow", "250");
     expect(screen.getByText(/Nota mobile PageSpeed: 43\/100\./)).toBeInTheDocument();
   });
+
+  it("shows the explanatory home page on the root route", () => {
+    window.history.replaceState({}, "", "/");
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Como funciona" })).toBeInTheDocument();
+  });
+
+  it("keeps the diagnostic experience on /diagnostico", () => {
+    window.history.replaceState({}, "", "/diagnostico");
+    render(<App />);
+
+    expect(
+      screen.getByRole("heading", { name: "Diagnóstico & Desempenho" }),
+    ).toBeInTheDocument();
+  });
+
+  it("redirects old demo links on the root to the diagnostic page", () => {
+    window.history.replaceState({}, "", "/?demo=1");
+    render(<App />);
+
+    expect(window.location.pathname).toBe("/diagnostico");
+    expect(window.location.search).toBe("?demo=1");
+    expect(screen.getByText("Boletim de Saúde Digital")).toBeInTheDocument();
+  });
 });

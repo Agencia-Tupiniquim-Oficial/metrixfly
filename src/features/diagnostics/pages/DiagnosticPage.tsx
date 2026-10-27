@@ -44,7 +44,11 @@ const DiagnosticPage = () => {
     setDiagnosticReportId,
   } = useDiagnosis();
 
-  const [url, setUrl] = useState(diagnostic?.geo?.domain ?? "");
+  const [searchParams] = useSearchParams();
+  // The home page hands the typed address over as ?url=; a saved diagnostic wins.
+  const [url, setUrl] = useState(
+    diagnostic?.geo?.domain ?? searchParams.get("url")?.trim() ?? "",
+  );
   const [loading, setLoading] = useState(false);
   const [diagnosticProgress, setDiagnosticProgress] =
     useState<DiagnosticProgressState>(initialDiagnosticProgress);
@@ -435,7 +439,6 @@ const DiagnosticPage = () => {
     }
   };
 
-  const [searchParams] = useSearchParams();
   const isDemo = searchParams.get("demo") === "1";
 
   const activeResult = result ?? (isDemo ? sampleDiagnosticResult : null);

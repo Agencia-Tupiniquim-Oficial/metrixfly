@@ -31,10 +31,12 @@ Decisoes registradas:
 - [x] T1 marca nos e-mails e textos visiveis (`_shared/brand.ts`, `brand.test.ts`; `deno check` ok; envio real de e-mail pendente de validacao manual)
 - [x] T3 cabecalho white-label dos PDFs (`model/report-branding.ts`, opcao `branding` em `create*Pdf`; aparencia visual do PDF pendente de validacao manual; a previa HTML do relatorio nao foi alterada)
 - [x] T2 evento dataLayer apos envio confirmado (`lib/analytics.ts`, `services/quote-analytics.ts`, evento `generate_lead`; GTM so carrega com `VITE_GTM_ID`; validacao no GTM Preview pendente ate a conta existir)
-- [ ] T6 registro do clique em "Solicitar orcamento" por empresa
-- [ ] T5 pontos de conversao Search Console e Analytics
-- [ ] T7 aviso de saida
-- [ ] T4 landing explicativa
+- [x] T6 registro do clique em "Solicitar orcamento" por empresa (migration `20261027120000_create_quote_interest_events.sql` NAO aplicada; Edge Function `quote-interest` NAO publicada; retencao de 12 meses e proposta, a funcao `purge_quote_interest_events` nao esta agendada; sem limite de taxa no endpoint publico, risco registrado)
+- [x] T5 pontos de conversao Search Console e Analytics (`ServiceInterestCard`, campo `serviceInterest` ate o e-mail; copy sem prometer integracao, a revisar pelo usuario)
+- [x] T7 aviso de saida (`use-exit-guard`, `QuoteExitGuard`). Limites: texto ao fechar/recarregar e do navegador; botao Voltar do navegador nao e interceptavel com `BrowserRouter`; modal de exit-intent NAO implementado (decisao de produto pendente)
+- [x] T4 landing explicativa em `/` (`src/features/home`); diagnostico segue em `/diagnostico`; `/?demo=1` redireciona; links "voltar ao diagnostico" agora apontam para `/diagnostico` (teste de `SharedDiagnosticReportPage` atualizado de proposito); copy a revisar pelo usuario; validacao visual mobile/desktop pendente
+
+Decisoes de nivel B: evento `cta_click` (`cta_id`, `location`) na landing; `?url=` pre-preenche o endereco no diagnostico (sem rodar a analise automaticamente).
 - [ ] T8 e T9 pesquisas (RapidAPI, ThemeForest/CodeCanyon) em `docs/research/`
 
 Mantenha este plano atualizado somente enquanto uma iniciativa semelhante estiver em andamento; ao conclui-la, registre o resultado sem transformar o arquivo em historico de cada tarefa cotidiana.

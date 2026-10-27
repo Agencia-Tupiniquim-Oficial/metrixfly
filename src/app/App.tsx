@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import DiagnosticPage from "@/features/diagnostics/pages/DiagnosticPage";
 import SharedDiagnosticReportPage from "@/features/diagnostics/pages/SharedDiagnosticReportPage";
 import { DiagnosisProvider } from "@/features/diagnostics/state/DiagnosisContext";
+import { HomePage } from "@/features/home";
 import GeoAeoDashboard from "@/features/geo-aeo/pages/GeoAeoDashboard";
 import GeoAdmin from "@/features/geo-aeo/pages/GeoAdmin";
 import FinancialCalculator from "@/features/financial-calculator/pages/FinancialCalculator";
@@ -31,6 +32,16 @@ const CampaignTrackingCapture = () => {
   return null;
 };
 
+// Old demo links (/?demo=1) predate the home page; keep them working.
+const RootRoute = () => {
+  const { search } = useLocation();
+  return new URLSearchParams(search).get("demo") === "1" ? (
+    <Navigate to={`/diagnostico${search}`} replace />
+  ) : (
+    <HomePage />
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -45,7 +56,7 @@ const App = () => (
                 path="/diagnostico/:reportId"
                 element={<SharedDiagnosticReportPage />}
               />
-              <Route path="/" element={<DiagnosticPage />} />
+              <Route path="/" element={<RootRoute />} />
               <Route path="/diagnostico" element={<DiagnosticPage />} />
               <Route path="/geo-aeo" element={<GeoAeoDashboard />} />
               <Route path="/geo-admin" element={<GeoAdmin />} />

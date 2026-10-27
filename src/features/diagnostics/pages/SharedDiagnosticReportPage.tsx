@@ -120,7 +120,7 @@ export default function SharedDiagnosticReportPage() {
             <h2 className="text-xl font-semibold">Relatório indisponível</h2>
             <p className="text-muted-foreground">{errorMessage}</p>
             <Button asChild variant="outline">
-              <Link to="/">
+              <Link to="/diagnostico">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar ao diagnóstico
               </Link>

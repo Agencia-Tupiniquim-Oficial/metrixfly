@@ -96,6 +96,6 @@ describe("SharedDiagnosticReportPage", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Voltar ao diagnóstico" }),
-    ).toHaveAttribute("href", "/");
+    ).toHaveAttribute("href", "/diagnostico");
   });
 });

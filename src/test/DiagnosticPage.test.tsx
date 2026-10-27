@@ -45,6 +45,14 @@ describe("Diagnostic experience", () => {
     expect(screen.getByText("Geo/AEO")).toBeDefined();
   });
 
+  it("prefills the site address received from the home page", () => {
+    renderWithProviders(["/diagnostico?url=exemplo.com.br%2Floja"]);
+
+    expect(screen.getByPlaceholderText("exemplo.com.br")).toHaveValue(
+      "exemplo.com.br/loja",
+    );
+  });
+
   it("renders a populated diagnostic when demo mode is enabled", () => {
     renderWithProviders(["/?demo=1"]);
     expect(screen.getByText("Boletim de Saúde Digital")).toBeDefined();
