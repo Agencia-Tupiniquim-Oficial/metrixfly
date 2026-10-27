@@ -146,7 +146,7 @@ export const sampleDiagnosticResult: DiagnoseResult = {
 
 export const sampleBusinessSummary: BusinessSummary = {
   resumo:
-    "O diagnóstico de website speedlink-demo.com.br registrou nota de desempenho mobile 43/100 e LCP de 5.8 segundos. Esses dados apontam demora na exibição do conteúdo principal em dispositivos móveis.",
+    "O diagnóstico de website metricfly-demo.com.br registrou nota de desempenho mobile 43/100 e LCP de 5.8 segundos. Esses dados apontam demora na exibição do conteúdo principal em dispositivos móveis.",
   contexto:
     "No mobile, o conteúdo principal levou 5.8 segundos para aparecer na medição. O diagnóstico também identificou oportunidades relacionadas à transferência de JavaScript e ao carregamento de imagens.",
   impactoNegocio: [

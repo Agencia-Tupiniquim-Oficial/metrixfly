@@ -1,4 +1,4 @@
-# Metrixfly
+# Metricfly
 
 Aplicação web para analisar sites e apresentar oportunidades de melhoria em performance, SEO e visibilidade em mecanismos de resposta por IA (GEO/AEO). O relatório técnico pode ser complementado por uma visão executiva e exportado para uso comercial.
 
@@ -40,7 +40,7 @@ docs/                           # backlog e documentação do produto
 .github/
   copilot-instructions.md       # ponto de entrada de compatibilidade do Copilot
 AGENTS.md                       # instruções principais compartilhadas
-.agents/skills/                 # skills próprias do Metrixfly para agentes compatíveis
+.agents/skills/                 # skills próprias do Metricfly para agentes compatíveis
 .husky/
   pre-commit                    # hook Git executado antes dos commits
 supabase/

@@ -26,6 +26,13 @@ Siga este procedimento para funcionalidades e correcoes. Ajuste a profundidade d
 - Corrija problemas introduzidos pela mudanca e repita as verificacoes afetadas. Identifique erros preexistentes sem atribui-los a tarefa nem declarar sucesso global.
 - Revise `git diff` e `git diff --cached`: confirme os criterios, imports, testes, seguranca, ausencia de alteracoes incidentais e preservacao do trabalho alheio.
 
+## Papeis e registro
+
+- **Planejar:** transforme a tarefa em um cartao em `PLANO.md` com criterios de aceite, arquivos provaveis, testes e riscos antes de editar.
+- **Executar:** siga a skill `metrixfly-implementation`, uma tarefa por vez. Registre no cartao as decisoes de nivel B, as verificacoes executadas (comando e resultado) e as pendencias.
+- **Revisar:** use a skill `metrixfly-review` em contexto separado do executor, lendo apenas o diff, os criterios do cartao e as evidencias. Achados voltam ao executor; ver limites em `GOVERNANCA.md`.
+- Os niveis de decisao e o limite de tentativas estao em `GOVERNANCA.md`.
+
 ## 5. Reportar
 
 Informe o que mudou, a branch, os comandos executados e seus resultados, limitacoes ou falhas preexistentes, e o que ainda exige validacao manual. Nao declare a tarefa concluida apenas porque os arquivos foram editados.

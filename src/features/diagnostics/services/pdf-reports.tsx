@@ -20,6 +20,11 @@ import type {
 import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
 import {
+  resolveReportLogos,
+  type ReportBranding,
+  type ReportLogo,
+} from "@/features/diagnostics/model/report-branding";
+import {
   DIAGNOSTIC_REPORT_COLORS,
   DIAGNOSTIC_REPORT_FONTS,
   DIAGNOSTIC_REPORT_LAYOUT,
@@ -390,11 +395,16 @@ function numberedTitle(index: number, title: string): string {
   return `${index + 1}. ${unnumberedTitle}`;
 }
 
-function Header({ clientLogo }: { clientLogo?: string | null }) {
+function Header({ logos }: { logos: ReportLogo[] }) {
   return (
     <View style={styles.header}>
-      <Image src={tupiniquimLogo} style={styles.logo} />
-      {clientLogo ? <Image src={clientLogo} style={styles.clientLogo} /> : null}
+      {logos.map((logo, index) => (
+        <Image
+          key={`${logo.role}-${index}`}
+          src={logo.src}
+          style={logo.role === "agency" ? styles.logo : styles.clientLogo}
+        />
+      ))}
       <View>
         <Text style={styles.brandCaption}>Diagnóstico e estratégia digital</Text>
       </View>
@@ -414,14 +424,14 @@ function Footer() {
 
 function ReportPage({
   children,
-  clientLogo,
+  logos,
 }: {
   children: React.ReactNode;
-  clientLogo?: string | null;
+  logos: ReportLogo[];
 }) {
   return (
     <Page size="A4" style={styles.page} wrap>
-      <Header clientLogo={clientLogo} />
+      <Header logos={logos} />
       {children}
       <Footer />
     </Page>
@@ -431,11 +441,11 @@ function ReportPage({
 function DiagnosticReportPage({
   children,
   cover = false,
-  clientLogo,
+  logos = [],
 }: {
   children: React.ReactNode;
   cover?: boolean;
-  clientLogo?: string | null;
+  logos?: ReportLogo[];
 }) {
   return (
     <Page
@@ -448,10 +458,17 @@ function DiagnosticReportPage({
     >
       {cover ? (
         <View style={diagnosticStyles.coverLogoRow}>
-          <Image src={tupiniquimLogo} style={diagnosticStyles.coverLogo} />
-          {clientLogo ? (
-            <Image src={clientLogo} style={diagnosticStyles.coverClientLogo} />
-          ) : null}
+          {logos.map((logo, index) => (
+            <Image
+              key={`${logo.role}-${index}`}
+              src={logo.src}
+              style={
+                logo.role === "agency"
+                  ? diagnosticStyles.coverLogo
+                  : diagnosticStyles.coverClientLogo
+              }
+            />
+          ))}
         </View>
       ) : null}
       {children}
@@ -770,12 +787,12 @@ function TechnicalReport({
   url,
   result,
   geo,
-  clientLogo,
+  logos,
 }: {
   url: string;
   result: DiagnoseResult;
   geo?: GeoReportData;
-  clientLogo?: string | null;
+  logos: ReportLogo[];
 }) {
   const hostname = hostLabel(url);
   const optimized = isDiagnosticOptimized(result);
@@ -786,7 +803,7 @@ function TechnicalReport({
       subject="Diagnóstico técnico de performance e visibilidade digital"
       language="pt-BR"
     >
-      <DiagnosticReportPage cover clientLogo={clientLogo}>
+      <DiagnosticReportPage cover logos={logos}>
         <Text style={diagnosticStyles.title}>{hostname} - DIAGNÓSTICO DE SITE</Text>
         {optimized ? (
           <View style={diagnosticStyles.optimizedCallout}>
@@ -879,11 +896,11 @@ function TechnicalReport({
 function BusinessReport({
   url,
   summary,
-  clientLogo,
+  logos,
 }: {
   url: string;
   summary: BusinessSummary;
-  clientLogo?: string | null;
+  logos: ReportLogo[];
 }) {
   const hostname = hostLabel(url);
   return (
@@ -893,7 +910,7 @@ function BusinessReport({
       subject="Relatório executivo de oportunidades digitais"
       language="pt-BR"
     >
-      <ReportPage clientLogo={clientLogo}>
+      <ReportPage logos={logos}>
         <Text style={styles.title}>{hostname} - RELATÓRIO EXECUTIVO</Text>
         <Section>Visão geral</Section>
         <View style={styles.businessCallout}>
@@ -938,34 +955,51 @@ async function renderPdf(document: ReactElement): Promise<Blob> {
   return blob;
 }
 
-export function createDiagnosticReportPdf(
+export type ReportPdfOptions = {
+  /** White-label extension point; omit to keep the default Tupiniquim layout. */
+  branding?: ReportBranding;
+};
+
+async function resolveLogos(
   url: string,
-  result: DiagnoseResult,
-): Promise<Blob> {
-  return getClientLogoDataUrl(url).then((clientLogo) =>
-    renderPdf(<TechnicalReport url={url} result={result} clientLogo={clientLogo} />),
-  );
+  options: ReportPdfOptions,
+): Promise<ReportLogo[]> {
+  const clientLogo = await getClientLogoDataUrl(url);
+  return resolveReportLogos({
+    agencyLogo: tupiniquimLogo,
+    clientLogo,
+    branding: options.branding,
+  });
 }
 
-export function createGeoAeoReportPdf(
+export async function createDiagnosticReportPdf(
+  url: string,
+  result: DiagnoseResult,
+  options: ReportPdfOptions = {},
+): Promise<Blob> {
+  const logos = await resolveLogos(url, options);
+  return renderPdf(<TechnicalReport url={url} result={result} logos={logos} />);
+}
+
+export async function createGeoAeoReportPdf(
   url: string,
   result: DiagnoseResult,
   geo: GeoReportData,
+  options: ReportPdfOptions = {},
 ): Promise<Blob> {
-  return getClientLogoDataUrl(url).then((clientLogo) =>
-    renderPdf(
-      <TechnicalReport url={url} result={result} geo={geo} clientLogo={clientLogo} />,
-    ),
+  const logos = await resolveLogos(url, options);
+  return renderPdf(
+    <TechnicalReport url={url} result={result} geo={geo} logos={logos} />,
   );
 }
 
-export function createBusinessReportPdf(
+export async function createBusinessReportPdf(
   url: string,
   summary: BusinessSummary,
+  options: ReportPdfOptions = {},
 ): Promise<Blob> {
-  return getClientLogoDataUrl(url).then((clientLogo) =>
-    renderPdf(<BusinessReport url={url} summary={summary} clientLogo={clientLogo} />),
-  );
+  const logos = await resolveLogos(url, options);
+  return renderPdf(<BusinessReport url={url} summary={summary} logos={logos} />);
 }
 
 export function reportPdfFilename(url: string, suffix: string): string {

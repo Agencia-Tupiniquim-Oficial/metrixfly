@@ -25,6 +25,7 @@ import {
 } from "@/features/diagnostics/demo/diagnosticMock";
 import { importPdfReports } from "@/lib/dynamic-import";
 import { runDiagnosticWithProgress } from "@/features/diagnostics/services/diagnose-site";
+import { trackQuoteRequestLead } from "@/features/diagnostics/services/quote-analytics";
 import {
   applyDiagnosticProgress,
   initialDiagnosticProgress,
@@ -283,6 +284,7 @@ const DiagnosticPage = () => {
         throw new Error("O serviço não confirmou o envio da solicitação.");
       }
       clearCampaignTracking();
+      trackQuoteRequestLead(normalizedUrl);
     } finally {
       setQuoteSending(false);
     }
@@ -413,7 +415,7 @@ const DiagnosticPage = () => {
   const activeBusinessSummary = businessSummary ?? (isDemo ? sampleBusinessSummary : null);
 
   return <DiagnosticExperience
-    url={isDemo ? "speedlink-demo.com.br" : url}
+    url={isDemo ? "metricfly-demo.com.br" : url}
     setUrl={setUrl}
     loading={loading}
     diagnosticProgress={diagnosticProgress}

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
+import { quoteEmailHeading, quoteEmailSubject } from "../_shared/brand.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -345,7 +346,7 @@ serve(async (req: Request) => {
     const pdfBase64 = encodeBase64(pdfBytes);
 
     const text = [
-      "Nova solicitação de orçamento - Metrixfly",
+      quoteEmailHeading(),
       "",
       `Formulário: ${formName}`,
       `Nome: ${name}`,
@@ -360,7 +361,7 @@ serve(async (req: Request) => {
       campaignTrackingText(campaignTracking),
     ].join("\n");
     const html = `
-      <h1>Nova solicitação de orçamento - Metrixfly</h1>
+      <h1>${escapeHtml(quoteEmailHeading())}</h1>
       <p><strong>Formulário:</strong> ${escapeHtml(formName)}</p>
       <p><strong>Nome:</strong> ${escapeHtml(name)}<br>
       <strong>Empresa:</strong> ${escapeHtml(company)}<br>
@@ -382,7 +383,7 @@ serve(async (req: Request) => {
         from,
         to: [quoteRecipient],
         reply_to: email,
-        subject: "[Speed Fly] Novo orçamento",
+        subject: quoteEmailSubject(),
         text,
         html,
         attachments: [

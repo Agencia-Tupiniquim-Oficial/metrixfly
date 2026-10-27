@@ -224,6 +224,34 @@ describe("PDF reports", () => {
     expect(await firstPageImageCount(geoBlob)).toBeGreaterThanOrEqual(2);
   });
 
+  it("adds partner logos to the header without changing the default branding", async () => {
+    getClientLogoDataUrl.mockResolvedValueOnce(clientLogo);
+    const defaultBlob = await createDiagnosticReportPdf("https://logo-client.test", diagnostic);
+    const defaultImages = await firstPageImageCount(defaultBlob);
+
+    getClientLogoDataUrl.mockResolvedValueOnce(clientLogo);
+    const partnerBlob = await createDiagnosticReportPdf(
+      "https://logo-client.test",
+      diagnostic,
+      { branding: { partnerLogos: [clientLogo] } },
+    );
+    expect(await firstPageImageCount(partnerBlob)).toBe(defaultImages + 1);
+
+    getClientLogoDataUrl.mockResolvedValueOnce(clientLogo);
+    const businessDefaultImages = await firstPageImageCount(
+      await createBusinessReportPdf("https://logo-client.test", businessSummary),
+    );
+    getClientLogoDataUrl.mockResolvedValueOnce(clientLogo);
+    const businessPartnerBlob = await createBusinessReportPdf(
+      "https://logo-client.test",
+      businessSummary,
+      { branding: { partnerLogos: [clientLogo] } },
+    );
+    expect(await firstPageImageCount(businessPartnerBlob)).toBe(
+      businessDefaultImages + 1,
+    );
+  });
+
   it("requires complete desktop and mobile scores strictly above 90", () => {
     const healthyDiagnostic: DiagnoseResult = {
       ...diagnostic,

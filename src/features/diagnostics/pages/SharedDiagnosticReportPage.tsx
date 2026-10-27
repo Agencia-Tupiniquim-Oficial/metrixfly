@@ -88,7 +88,7 @@ export default function SharedDiagnosticReportPage() {
       <div className="container max-w-5xl space-y-8 py-12 md:py-16">
         <header className="flex flex-col items-center gap-5 text-center">
           <Link to="/" aria-label="Ir para o início">
-            <img src={logoColored} alt="Metrixfly" className="h-16 object-contain" />
+            <img src={logoColored} alt="Metricfly" className="h-16 object-contain" />
           </Link>
           <h1 className="text-3xl font-bold text-foreground">
             Relatório de diagnóstico

@@ -23,4 +23,43 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  // Fronteiras de camadas (docs/agents/MANIFESTO.md): shared nao importa de features nem de app.
+  {
+    files: [
+      "src/components/**/*.{ts,tsx}",
+      "src/hooks/**/*.{ts,tsx}",
+      "src/lib/**/*.{ts,tsx}",
+      "src/integrations/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/features/*", "@/app/*"],
+              message: "Codigo compartilhado nao pode depender de features nem de app.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Features nao importam de app.
+  {
+    files: ["src/features/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/app/*"],
+              message: "Features nao podem depender da camada app.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
