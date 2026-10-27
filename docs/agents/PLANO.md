@@ -36,6 +36,10 @@ Decisoes registradas:
 - [x] T7 aviso de saida (`use-exit-guard`, `QuoteExitGuard`). Limites: texto ao fechar/recarregar e do navegador; botao Voltar do navegador nao e interceptavel com `BrowserRouter`; modal de exit-intent NAO implementado (decisao de produto pendente)
 - [x] T4 landing explicativa em `/` (`src/features/home`); diagnostico segue em `/diagnostico`; `/?demo=1` redireciona; links "voltar ao diagnostico" agora apontam para `/diagnostico` (teste de `SharedDiagnosticReportPage` atualizado de proposito); copy a revisar pelo usuario; validacao visual mobile/desktop pendente
 
+Divida preexistente encontrada (nao corrigida, fora do escopo): `deno check supabase/functions/diagnose-site/index.ts` falha com erros de tipo (TS2322 em `index.ts:172`, TS2339 em `index.ts:329` e outros); `venv/` do Python esta versionado (1253 arquivos); 3 imports entre dominios (ver acima).
+
+Incidente de processo (corrigido): uma edicao com `[IO.File]::WriteAllText` e caminho relativo gravou na arvore original em vez da worktree. Foi revertida byte a byte e `git status` da arvore original voltou a vazio. Efeito colateral: faltava a ligacao `onOpened` em `DiagnosticPreview` na worktree, que os testes nao detectavam por mockarem essa camada; corrigido e coberto por `DiagnosticPreviewQuoteInterest.test.tsx` (verificado por mutacao). Regra pratica: nunca usar caminho relativo em .NET dentro de `cd`; usar Edit ou caminho absoluto.
+
 Decisoes de nivel B: evento `cta_click` (`cta_id`, `location`) na landing; `?url=` pre-preenche o endereco no diagnostico (sem rodar a analise automaticamente).
 - [x] T8 e T9 pesquisas em `docs/research/` (2026-10-27). Lacunas: precos do RapidAPI/OpenWeb Ninja nao confirmados; campos por SKU e regras de cache do Places nao verificados; demos do ThemeForest nao avaliadas visualmente
 

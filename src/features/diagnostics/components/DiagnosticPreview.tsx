@@ -93,6 +93,7 @@ export default function DiagnosticPreview({
         {onSubmitQuoteRequest && (
           <QuoteRequestDialog
             onSubmitRequest={onSubmitQuoteRequest}
+            onOpened={onQuoteDialogOpen}
             sending={quoteSending}
           />
         )}
@@ -252,6 +253,7 @@ export default function DiagnosticPreview({
         {onSubmitQuoteRequest && (
           <QuoteRequestDialog
             onSubmitRequest={onSubmitQuoteRequest}
+            onOpened={onQuoteDialogOpen}
             sending={quoteSending}
           />
         )}
