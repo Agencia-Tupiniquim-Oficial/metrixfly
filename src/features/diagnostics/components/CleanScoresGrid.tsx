@@ -1,5 +1,6 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
+import { ScoreRing } from "@/components/score-ring";
 import type { Metrics, Scores } from "@/features/diagnostics/model/diagnose";
 
 type CleanScoresGridProps = {
@@ -8,66 +9,67 @@ type CleanScoresGridProps = {
   metrics: Metrics;
 };
 
+type MetricStatus = "good" | "attention" | "unknown";
+
+const statusDot: Record<MetricStatus, string> = {
+  good: "bg-success",
+  attention: "bg-warning",
+  unknown: "bg-muted-foreground/40",
+};
+
+/** Colors the status dot only; the displayed value and the target stay untouched. */
+function metricStatus(
+  value: string | number | undefined,
+  limit: number,
+): MetricStatus {
+  const text = String(value ?? "");
+  const match = text.replace(",", ".").match(/-?\d+(?:\.\d+)?/);
+  if (!match) return "unknown";
+  const number = Number(match[0]);
+  const inMilliseconds = text.toLowerCase().includes("ms");
+  // The limit of TBT is in ms (200); the timings are in seconds.
+  const normalized = limit >= 100 && !inMilliseconds ? number * 1000 : number;
+  return normalized <= limit ? "good" : "attention";
+}
+
 export function CleanScoresGrid({
   title,
   scores,
   metrics,
 }: CleanScoresGridProps) {
-  const getScoreBadgeClass = (val: number) => {
-    if (val >= 90) return "text-emerald-700 border-emerald-500 bg-emerald-50 dark:text-emerald-200 dark:border-emerald-800 dark:bg-emerald-950/50";
-    if (val >= 50) return "text-amber-700 border-amber-500 bg-amber-50 dark:text-amber-200 dark:border-amber-800 dark:bg-amber-950/50";
-    return "text-rose-700 border-rose-500 bg-rose-50 dark:text-rose-200 dark:border-rose-800 dark:bg-rose-950/50";
-  };
-
   const metricRows = [
-    { label: "FCP (First Contentful Paint)", value: metrics.fcp, target: "< 1.8s" },
-    { label: "LCP (Largest Contentful Paint)", value: metrics.lcp, target: "< 2.5s" },
-    { label: "TBT (Total Blocking Time)", value: metrics.tbt, target: "< 200ms" },
-    { label: "CLS (Cumulative Layout Shift)", value: metrics.cls, target: "< 0.1" },
-    { label: "SI (Speed Index)", value: metrics.si, target: "< 3.4s" },
+    { label: "FCP (First Contentful Paint)", value: metrics.fcp, target: "< 1.8s", limit: 1.8 },
+    { label: "LCP (Largest Contentful Paint)", value: metrics.lcp, target: "< 2.5s", limit: 2.5 },
+    { label: "TBT (Total Blocking Time)", value: metrics.tbt, target: "< 200ms", limit: 200 },
+    { label: "CLS (Cumulative Layout Shift)", value: metrics.cls, target: "< 0.1", limit: 0.1 },
+    { label: "SI (Speed Index)", value: metrics.si, target: "< 3.4s", limit: 3.4 },
   ];
 
   return (
     <Card className="motion-card p-6 bg-card border-border shadow-sm">
-      <h3 className="text-xl font-semibold mb-6 text-foreground flex items-center gap-2">
+      <h3 className="text-lg font-bold mb-5 text-foreground flex items-center gap-2">
         {title}
       </h3>
 
-      {/* 4 Large Score Rings */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: "Desempenho", value: scores.performance },
-          { label: "Acessibilidade", value: scores.accessibility },
-          { label: "Práticas", value: scores.bestPractices },
-          { label: "SEO", value: scores.seo },
-        ].map((item) => (
-          <div key={item.label} className="flex flex-col items-center gap-2 text-center">
-            <div
-              className={`w-16 h-16 rounded-full border-[3px] flex items-center justify-center font-bold text-2xl shadow-sm ${getScoreBadgeClass(
-                item.value
-              )}`}
-            >
-              {item.value}
-            </div>
-            <span className="text-sm font-medium text-muted-foreground">
-              {item.label}
-            </span>
-          </div>
-        ))}
+      <div className="grid grid-cols-4 gap-2 mb-5">
+        <ScoreRing label="Desempenho" score={scores.performance} size={60} />
+        <ScoreRing label="Acessibilidade" score={scores.accessibility} size={60} />
+        <ScoreRing label="Práticas" score={scores.bestPractices} size={60} />
+        <ScoreRing label="SEO" score={scores.seo} size={60} />
       </div>
 
-      {/* Core Web Vitals Rows with Legible Font */}
-      <div className="divide-y divide-border/80 border-t border-border/80 pt-3 text-sm">
+      <div className="divide-y divide-border/80 border-t border-border/80 text-sm">
         {metricRows.map((m) => (
-          <div
-            key={m.label}
-            className="flex items-center justify-between py-2.5 gap-4"
-          >
-            <div>
+          <div key={m.label} className="flex items-center gap-3 py-2.5">
+            <span
+              aria-hidden="true"
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${statusDot[metricStatus(m.value, m.limit)]}`}
+            />
+            <div className="min-w-0 flex-1">
               <span className="font-medium text-foreground block">{m.label}</span>
               <span className="text-xs text-muted-foreground">Meta: {m.target}</span>
             </div>
-            <span className="text-base font-bold text-foreground font-mono">
+            <span className="text-base font-bold text-foreground tabular-nums">
               {m.value}
             </span>
           </div>

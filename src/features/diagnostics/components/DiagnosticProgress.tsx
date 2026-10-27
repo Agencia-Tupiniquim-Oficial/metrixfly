@@ -93,8 +93,10 @@ function StepIcon({ status }: { status: DiagnosticProgressStatus }) {
 
 export function DiagnosticProgress({
   progress = initialDiagnosticProgress,
+  domain,
 }: {
   progress?: DiagnosticProgressState;
+  domain?: string;
 }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -119,25 +121,39 @@ export function DiagnosticProgress({
   const isUsingFallback = progress.ai === "fallback" || progress.ai === "skipped";
 
   return (
-    <section aria-labelledby="diagnostic-progress-title">
-      <Card className="motion-enter mx-auto mt-8 max-w-2xl overflow-hidden border-border bg-card text-left shadow-md">
+    <section
+      aria-labelledby="diagnostic-progress-title"
+      className="mx-auto max-w-3xl space-y-7"
+    >
+      <div className="flex flex-col items-center gap-2 text-center">
+        <p className="text-xs font-bold uppercase tracking-widest text-primary">
+          Diagnóstico de desempenho
+        </p>
+        <h2
+          className="break-all text-3xl font-extrabold leading-tight tracking-tight md:text-4xl"
+          id="diagnostic-progress-title"
+        >
+          {domain ? `Analisando ${domain}` : "Estamos analisando seu site"}
+        </h2>
+        <p className="text-muted-foreground">
+          Pode deixar a aba aberta: o relatório aparece aqui assim que ficar
+          pronto.
+        </p>
+      </div>
+
+      <Card
+        className="motion-enter overflow-hidden border-border bg-card text-left"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
         <div className="p-5 sm:p-7">
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <h2
-                className="text-lg font-semibold text-foreground sm:text-xl"
-                id="diagnostic-progress-title"
-              >
-                Estamos analisando seu site
-              </h2>
-              <p
-                aria-live="polite"
-                className="mt-1 text-sm text-muted-foreground"
-              >
-                {activeStep?.activity ??
-                  "Aguardando a confirmação do serviço de diagnóstico."}
-              </p>
-            </div>
+          <div className="mb-5">
+            <p
+              aria-live="polite"
+              className="text-base font-semibold text-foreground"
+            >
+              {activeStep?.activity ??
+                "Aguardando a confirmação do serviço de diagnóstico."}
+            </p>
           </div>
 
           <div className="mb-6">
@@ -238,6 +254,26 @@ export function DiagnosticProgress({
           )}
         </div>
       </Card>
+
+      <div className="space-y-3" aria-hidden="true">
+        <span className="text-xs font-semibold text-muted-foreground">
+          Prévia do resultado
+        </span>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1].map((item) => (
+            <Card
+              key={item}
+              className="flex items-center gap-4 border-border bg-card p-5"
+            >
+              <div className="h-16 w-16 shrink-0 rounded-xl bg-muted" />
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="h-2.5 w-3/5 rounded bg-muted" />
+                <div className="h-4 w-2/5 rounded bg-muted" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

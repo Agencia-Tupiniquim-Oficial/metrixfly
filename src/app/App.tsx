@@ -15,6 +15,7 @@ import Reports from "@/features/reports/pages/Reports";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { APP_HEADER_ROUTES } from "@/components/app-header-routes";
 import { captureCampaignTracking } from "@/features/diagnostics/model/campaign-tracking";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,12 @@ const CampaignTrackingCapture = () => {
   }, [location.pathname, location.search]);
 
   return null;
+};
+
+// Pages with <AppHeader /> already carry the toggle in the header.
+const FloatingThemeToggle = () => {
+  const { pathname } = useLocation();
+  return APP_HEADER_ROUTES.includes(pathname) ? null : <ThemeToggle />;
 };
 
 // Old demo links (/?demo=1) predate the home page; keep them working.
@@ -65,7 +72,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <ThemeToggle />
+            <FloatingThemeToggle />
           </BrowserRouter>
         </TooltipProvider>
       </DiagnosisProvider>

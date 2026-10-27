@@ -221,7 +221,7 @@ export default function DiagnosticPreview({
       </Card>
 
 
-      <div className="sticky bottom-4 mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="sticky bottom-4 z-10 mt-4 grid gap-3 sm:grid-cols-2">
         <Button
           onClick={downloadTechnicalPdf}
           disabled={downloading}
@@ -250,14 +250,28 @@ export default function DiagnosticPreview({
             ? "Preparando relatório..."
             : "Baixar versão corporativa em PDF"}
         </Button>
-        {onSubmitQuoteRequest && (
-          <QuoteRequestDialog
-            onSubmitRequest={onSubmitQuoteRequest}
-            onOpened={onQuoteDialogOpen}
-            sending={quoteSending}
-          />
-        )}
       </div>
+
+      {onSubmitQuoteRequest && (
+        <section className="mt-8 flex flex-wrap items-center justify-between gap-6 rounded-2xl bg-primary px-6 py-8 text-primary-foreground md:px-10">
+          <div className="min-w-0 flex-1 basis-80 space-y-1.5">
+            <h2 className="text-2xl font-extrabold tracking-tight">
+              Quer ajuda para aplicar essas melhorias?
+            </h2>
+            <p className="opacity-90">
+              Nossa equipe recebe o diagnóstico junto com o pedido e retorna com
+              um orçamento.
+            </p>
+          </div>
+          <div className="w-full sm:w-64">
+            <QuoteRequestDialog
+              onSubmitRequest={onSubmitQuoteRequest}
+              onOpened={onQuoteDialogOpen}
+              sending={quoteSending}
+            />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

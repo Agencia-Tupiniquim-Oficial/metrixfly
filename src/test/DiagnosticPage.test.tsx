@@ -37,9 +37,12 @@ function renderWithProviders(initialEntries: string[] = ["/"]) {
 describe("Diagnostic experience", () => {
   it("renders the diagnostic landing page on the root route", () => {
     renderWithProviders(["/"]);
-    expect(screen.getByRole("img", { name: "Logo" })).toHaveAttribute(
-      "src",
-      logoColored,
+    expect(
+      screen.getByRole("link", { name: "Metricfly, página inicial" }).querySelector("img"),
+    ).toHaveAttribute("src", logoColored);
+    expect(screen.getByRole("link", { name: "GEO/AEO" })).toHaveAttribute(
+      "href",
+      "/geo-aeo",
     );
     expect(
       screen.getByRole("heading", { name: "Diagnóstico & Desempenho" }),
@@ -59,9 +62,9 @@ describe("Diagnostic experience", () => {
     runDiagnosticWithProgress.mockClear();
     renderWithProviders(["/diagnostico?url=exemplo.com.br%2Floja"]);
 
-    expect(screen.getByPlaceholderText("exemplo.com.br")).toHaveValue(
-      "exemplo.com.br/loja",
-    );
+    expect(
+      screen.getByRole("heading", { name: "Analisando exemplo.com.br/loja" }),
+    ).toBeInTheDocument();
     expect(runDiagnosticWithProgress).toHaveBeenCalledTimes(1);
     expect(runDiagnosticWithProgress.mock.calls[0][0]).toBe(
       "https://exemplo.com.br/loja",
@@ -86,9 +89,9 @@ describe("Diagnostic experience", () => {
       expect(runDiagnosticWithProgress.mock.calls[0][0]).toBe(
         "https://novo.com.br",
       );
-      expect(screen.getByPlaceholderText("exemplo.com.br")).toHaveValue(
-        "novo.com.br",
-      );
+      expect(
+        screen.getByRole("heading", { name: "Analisando novo.com.br" }),
+      ).toBeInTheDocument();
       expect(screen.queryByText("Boletim de Saúde Digital")).toBeNull();
     } finally {
       sessionStorage.clear();
@@ -106,10 +109,10 @@ describe("Diagnostic experience", () => {
   it("renders a populated diagnostic when demo mode is enabled", () => {
     renderWithProviders(["/?demo=1"]);
     expect(screen.getByText("Boletim de Saúde Digital")).toBeDefined();
-    expect(screen.getByText("Pontuação Mobile (Celular)")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Auditoria técnica" })).toBeDefined();
     expect(screen.getByText("Versão corporativa")).toBeDefined();
     expect(
-      screen.getByText("📱 Desempenho Mobile").closest(".motion-card"),
+      screen.getByRole("heading", { name: "Celular" }).closest(".motion-card"),
     ).not.toBeNull();
   });
 

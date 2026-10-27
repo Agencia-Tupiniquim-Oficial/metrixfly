@@ -4,22 +4,38 @@ import {
   Calculator,
   FileText,
   Gauge,
-  Monitor,
-  Smartphone,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AppHeader } from "@/components/app-header";
 import DiagnosticForm from "@/features/diagnostics/components/DiagnosticForm";
 import DiagnosticPreview from "@/features/diagnostics/components/DiagnosticPreview";
 import { CleanScoresGrid } from "./CleanScoresGrid";
-import logoColored from "@/assets/logo-colored.png";
 import type { DiagnosticPageProps } from "@/features/diagnostics/model/page-props";
 import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
 import { DiagnosticProgress } from "./DiagnosticProgress";
 import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
 import { DiagnosticReportShareCard } from "./DiagnosticReportShareCard";
+
+const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
+
+/** >= 90 green, 50-89 amber, below 50 red; dark text tones keep the contrast. */
+const toneClass = (score: number) => {
+  if (score >= 90)
+    return "text-emerald-700 border-emerald-500 bg-emerald-50 dark:text-emerald-200 dark:border-emerald-800 dark:bg-emerald-950/50";
+  if (score >= 50)
+    return "text-amber-700 border-amber-500 bg-amber-50 dark:text-amber-200 dark:border-amber-800 dark:bg-amber-950/50";
+  return "text-rose-700 border-rose-500 bg-rose-50 dark:text-rose-200 dark:border-rose-800 dark:bg-rose-950/50";
+};
+
+const getGrade = (score: number) => {
+  if (score >= 90) return { letter: "A", label: "Excelente" };
+  if (score >= 75) return { letter: "B", label: "Bom" };
+  if (score >= 50) return { letter: "C", label: "Regular" };
+  if (score >= 30) return { letter: "D", label: "Crítico" };
+  return { letter: "F", label: "Grave" };
+};
 
 export function DiagnosticExperience({
   url,
@@ -47,197 +63,142 @@ export function DiagnosticExperience({
   quoteSending,
   reportUrl,
 }: DiagnosticPageProps) {
-  const getGrade = (score: number) => {
-    if (score >= 90)
-      return {
-        letter: "A",
-        label: "Excelente",
-        color:
-          "text-emerald-700 border-emerald-500 bg-emerald-50 dark:text-emerald-200 dark:border-emerald-800 dark:bg-emerald-950/50",
-      };
-    if (score >= 75)
-      return {
-        letter: "B",
-        label: "Bom",
-        color:
-          "text-teal-700 border-teal-500 bg-teal-50 dark:text-teal-200 dark:border-teal-800 dark:bg-teal-950/50",
-      };
-    if (score >= 50)
-      return {
-        letter: "C",
-        label: "Regular",
-        color:
-          "text-amber-700 border-amber-500 bg-amber-50 dark:text-amber-200 dark:border-amber-800 dark:bg-amber-950/50",
-      };
-    if (score >= 30)
-      return {
-        letter: "D",
-        label: "Crítico",
-        color:
-          "text-orange-700 border-orange-500 bg-orange-50 dark:text-orange-200 dark:border-orange-800 dark:bg-orange-950/50",
-      };
-    return {
-      letter: "F",
-      label: "Grave",
-      color:
-        "text-rose-700 border-rose-500 bg-rose-50 dark:text-rose-200 dark:border-rose-800 dark:bg-rose-950/50",
-    };
-  };
-
   const mobileScore = result?.summary.mobile.scores.performance ?? 43;
   const desktopScore = result?.summary.desktop.scores.performance ?? 71;
-  const mobileGrade = getGrade(mobileScore);
-  const desktopGrade = getGrade(desktopScore);
   const optimized = isDiagnosticOptimized(result);
   const financialCalculatorUrl = `/calculadora-financeira?mobileScore=${mobileScore}&traffic=15000&ticket=250`;
+  const domain = url.trim().replace(/^https?:\/\//i, "");
+
+  const form = (
+    <DiagnosticForm
+      url={url}
+      setUrl={setUrl}
+      onSubmit={runDiagnostic}
+      loading={loading}
+      runGeoCrawl={runGeoCrawl}
+      geoLoading={geoLoading}
+    />
+  );
 
   return (
-    <main
+    <div
       className="min-h-screen pb-32"
       style={{ background: "var(--gradient-hero)" }}
     >
-      <div className="container max-w-5xl py-12 md:py-20">
-        {/* Header */}
-        <header className="motion-enter text-center mb-10 flex flex-col items-center">
-          <img
-            src={logoColored}
-            alt="Logo"
-            className="h-20 mb-8 object-contain drop-shadow-sm"
-          />
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 text-foreground">
-            Diagnóstico &{" "}
-            <span
-              className="bg-clip-text text-transparent"
-              style={{ backgroundImage: "var(--gradient-primary)" }}
-            >
-              Desempenho 
-            </span>
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Analise as notas e métricas do PageSpeed Insights e identifique
-            oportunidades técnicas para otimizar seu site.
-          </p>
-        </header>
-
-        {/* Diagnostic Form */}
-        <DiagnosticForm
-          url={url}
-          setUrl={setUrl}
-          onSubmit={runDiagnostic}
-          loading={loading}
-          runGeoCrawl={runGeoCrawl}
-          geoLoading={geoLoading}
-        />
-
-        {/* Loading State */}
-        {loading && (
-          <DiagnosticProgress progress={diagnosticProgress} />
-        )}
-
-        {/* Empty State */}
-        {!result && !loading && (
-          <div className="motion-stagger grid sm:grid-cols-3 gap-6 mt-16">
-            {[
-              {
-                icon: Gauge,
-                title: "Boletim de Notas",
-                desc: "Avaliação clara de desempenho para tomadores de decisão.",
-              },
-              {
-                icon: Calculator,
-                title: "Cenários de otimização",
-                desc: "Estime o impacto da lentidão na experiência dos visitantes do seu site",
-              },
-              {
-                icon: FileText,
-                title: "Relatórios em PDF",
-                desc: "Gere versões técnicas e comerciais prontas para apresentação.",
-              },
-            ].map(({ icon: Icon, title, desc }) => (
-              <Card
-                key={title}
-                className="motion-card p-6 bg-card border-border shadow-sm"
-              >
-                <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4">
-                  <Icon className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-foreground">
-                  {title}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {desc}
-                </p>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Populated Results in Clean Narrative Storyline */}
-        {result && (
-          <section className="motion-stagger mt-12 space-y-12">
-            {/* Act 1: Executive Grade Banner */}
-            <Card className="p-8 bg-card border-border shadow-md">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                  1
+      <AppHeader />
+      <main className="container max-w-6xl py-10 md:py-14">
+        {loading ? (
+          <DiagnosticProgress progress={diagnosticProgress} domain={domain} />
+        ) : !result ? (
+          <div className="mx-auto max-w-3xl">
+            <header className="motion-enter mb-8 flex flex-col items-center text-center">
+              <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
+                Diagnóstico &{" "}
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: "var(--gradient-primary)" }}
+                >
+                  Desempenho
                 </span>
-                <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Boletim de Saúde Digital
-                </span>
-              </div>
+              </h1>
+              <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
+                Analise as notas e métricas do PageSpeed Insights e identifique
+                oportunidades técnicas para otimizar seu site.
+              </p>
+            </header>
 
-              <div className="grid md:grid-cols-2 gap-8">
-                {[
-                  {
-                    icon: Smartphone,
-                    title: "Dispositivo Móvel",
-                    badge: "Mobile",
-                    score: mobileScore,
-                    grade: mobileGrade,
-                    label: "Pontuação Mobile (Celular)",
-                  },
-                  {
-                    icon: Monitor,
-                    title: "Computador",
-                    badge: "Desktop",
-                    score: desktopScore,
-                    grade: desktopGrade,
-                    label: "Pontuação Desktop (Computador)",
-                  },
-                ].map((device) => (
-                  <div
-                    key={device.badge}
-                    className="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-xl bg-muted/20 border border-border"
-                  >
-                    <div
-                      className={`w-24 h-24 rounded-2xl border-[3px] flex flex-col items-center justify-center font-extrabold shadow-sm ${device.grade.color} shrink-0`}
-                    >
-                      <span className="text-4xl">{device.grade.letter}</span>
-                      <span className="text-xs uppercase font-bold tracking-wider">
-                        {device.grade.label}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      <Badge variant="outline" className="mb-1">
-                        {device.badge}
-                      </Badge>
-                      <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold block">
-                        {device.label}
-                      </span>
-                      <span className="text-3xl font-extrabold text-foreground">
-                        {device.score}/100
-                      </span>
-                      <span className="text-xs text-muted-foreground block">
-                        {device.score < 50
-                          ? "Abaixo do padrão de mercado"
-                          : "Dentro da média esperada"}
-                      </span>
-                    </div>
+            {form}
+
+            <div className="motion-stagger mt-16 grid gap-6 sm:grid-cols-3">
+              {[
+                {
+                  icon: Gauge,
+                  title: "Boletim de Notas",
+                  desc: "Avaliação clara de desempenho para tomadores de decisão.",
+                },
+                {
+                  icon: Calculator,
+                  title: "Cenários de otimização",
+                  desc: "Estime o impacto da lentidão na experiência dos visitantes do seu site",
+                },
+                {
+                  icon: FileText,
+                  title: "Relatórios em PDF",
+                  desc: "Gere versões técnicas e comerciais prontas para apresentação.",
+                },
+              ].map(({ icon: Icon, title, desc }) => (
+                <Card
+                  key={title}
+                  className="motion-card border-border bg-card p-6 shadow-sm"
+                >
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
                   </div>
-                ))}
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                    {title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {desc}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="motion-stagger space-y-8">
+            <div className="flex flex-wrap items-end justify-between gap-5">
+              <div className="min-w-0 space-y-1">
+                <p className={eyebrow}>Diagnóstico de desempenho</p>
+                <h1 className="break-all text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
+                  {domain}
+                </h1>
+              </div>
+              <div className="w-full md:max-w-lg md:flex-1">{form}</div>
+            </div>
+
+            <Card className="space-y-7 border-border bg-card p-6 shadow-md md:p-8">
+              <p className={eyebrow}>Boletim de Saúde Digital</p>
+              <div className="grid gap-5 md:grid-cols-2">
+                {[
+                  { badge: "Mobile", name: "Celular", score: mobileScore },
+                  { badge: "Desktop", name: "Computador", score: desktopScore },
+                ].map((device) => {
+                  const grade = getGrade(device.score);
+                  return (
+                    <div
+                      key={device.badge}
+                      className="flex items-center gap-5 rounded-xl border border-border bg-muted/30 p-5"
+                    >
+                      <div
+                        className={`flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-2xl border-[3px] font-extrabold ${toneClass(device.score)}`}
+                      >
+                        <span className="text-4xl leading-none">{grade.letter}</span>
+                        <span className="mt-1 text-[11px] font-bold uppercase tracking-wider">
+                          {grade.label}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-muted-foreground">
+                          {device.name}
+                        </span>
+                        <span className="text-3xl font-extrabold leading-tight text-foreground">
+                          {device.score}
+                          <span className="text-lg font-semibold text-muted-foreground">
+                            /100
+                          </span>
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {device.score < 50
+                            ? "Abaixo do padrão de mercado"
+                            : "Dentro da média esperada"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="mt-8 border-t border-border pt-8 space-y-3">
+              <div className="space-y-2 border-t border-border pt-6">
                 {optimized ? (
                   <div
                     role="status"
@@ -254,10 +215,10 @@ export function DiagnosticExperience({
                   </div>
                 ) : (
                   <>
-                    <h3 className="text-xl font-bold text-foreground">
+                    <h2 className="text-xl font-extrabold text-foreground">
                       O que esse resultado significa
-                    </h3>
-                    <p className="text-base text-muted-foreground leading-relaxed">
+                    </h2>
+                    <p className="max-w-3xl text-base leading-relaxed text-muted-foreground">
                       {businessSummary?.resumo ||
                         `O PageSpeed registrou LCP de ${result?.summary.mobile.metrics.lcp} no celular e ${result?.summary.desktop.metrics.lcp} no computador. Consulte as métricas e oportunidades abaixo para orientar a análise técnica.`}
                     </p>
@@ -266,55 +227,26 @@ export function DiagnosticExperience({
               </div>
             </Card>
 
-            {/* Financial simulation is separate from the optimization diagnosis. */}
-            <Card className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between bg-card border-border shadow-md">
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Simulação de otimização
-                </p>
-                <h2 className="text-xl font-bold text-foreground">
-                  Estime o potencial de melhoria do seu site
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Explore estimativas de otimização com base nas notas de
-                  desempenho e nos dados informados.
-                </p>
-              </div>
-              <Button asChild size="lg" className="shrink-0">
-                <Link to={financialCalculatorUrl}>
-                  <Calculator aria-hidden="true" />
-                  Abrir estimativa de otimização
-                </Link>
-              </Button>
-            </Card>
-
-            {/* Act 2: Detailed Metrics */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                  2
-                </span>
-                <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Auditoria Técnica Completa
-                </span>
-              </div>
-
-              <div className="motion-stagger grid md:grid-cols-2 gap-6">
+            <section className="space-y-4">
+              <h2 className="text-2xl font-extrabold tracking-tight text-foreground">
+                Auditoria técnica
+              </h2>
+              <div className="motion-stagger grid gap-5 md:grid-cols-2">
                 <CleanScoresGrid
-                  title="📱 Desempenho Mobile"
+                  title="Celular"
                   scores={result.summary.mobile.scores}
                   metrics={result.summary.mobile.metrics}
                 />
                 <CleanScoresGrid
-                  title="💻 Desempenho Desktop"
+                  title="Computador"
                   scores={result.summary.desktop.scores}
                   metrics={result.summary.desktop.metrics}
                 />
               </div>
 
               {result.summary.screenshot && (
-                <Card className="p-6 bg-card border-border shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
+                <Card className="border-border bg-card p-6 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-foreground">
                       Captura da Página Inicial
                     </h3>
@@ -327,7 +259,7 @@ export function DiagnosticExperience({
                       Abrir em nova aba
                     </a>
                   </div>
-                  <div className="rounded-xl overflow-hidden border border-border bg-muted/20 flex items-center justify-center p-2">
+                  <div className="flex items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/20 p-2">
                     <img
                       src={result.summary.screenshot}
                       alt="Screenshot do site"
@@ -336,19 +268,41 @@ export function DiagnosticExperience({
                   </div>
                 </Card>
               )}
-            </div>
+            </section>
 
-            {/* Act 3: Diagnostic Preview and Exporting */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                  3
+            <Card className="flex flex-col gap-5 border-border bg-card p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between md:px-8">
+              <div className="flex items-center gap-4">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <Calculator aria-hidden="true" className="h-6 w-6 text-primary" />
                 </span>
-                <span className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  {optimized
-                    ? "Resultado do diagnóstico"
-                    : "Revisão e Exportação de Documentos (PDF)"}
-                </span>
+                <div className="space-y-0.5">
+                  <h2 className="text-lg font-bold text-foreground">
+                    Estime o potencial de melhoria do seu site
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Explore estimativas de otimização com base nas notas de
+                    desempenho e nos dados informados.
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="lg" variant="outline" className="shrink-0 border-primary text-primary">
+                <Link to={financialCalculatorUrl}>
+                  <Calculator aria-hidden="true" />
+                  Abrir estimativa de otimização
+                </Link>
+              </Button>
+            </Card>
+
+            <section className="space-y-4">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-extrabold tracking-tight text-foreground">
+                  {optimized ? "Resultado do diagnóstico" : "Relatório do diagnóstico"}
+                </h2>
+                {!optimized && (
+                  <p className="text-sm text-muted-foreground">
+                    Revise e edite os textos antes de baixar os documentos em PDF.
+                  </p>
+                )}
               </div>
 
               <DiagnosticPreview
@@ -371,10 +325,10 @@ export function DiagnosticExperience({
                 onLoadBusinessSummary={fetchBusinessSummary}
               />
               {reportUrl && <DiagnosticReportShareCard reportUrl={reportUrl} />}
-            </div>
-          </section>
+            </section>
+          </div>
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
