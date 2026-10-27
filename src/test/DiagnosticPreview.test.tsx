@@ -118,3 +118,48 @@ describe("DiagnosticPreview report frame", () => {
     expect(screen.getByRole("button", { name: "Baixar PDF técnico" })).toBeTruthy();
   });
 });
+
+describe("DiagnosticPreview closing area", () => {
+  const result = {
+    scoreAvailability: { mobile: true, desktop: true },
+    summary: {
+      mobile: {
+        scores: { performance: 40, accessibility: 92, bestPractices: 93, seo: 94 },
+        metrics: { lcp: "3 s" },
+      },
+      desktop: {
+        scores: { performance: 60, accessibility: 96, bestPractices: 97, seo: 98 },
+        metrics: { lcp: "1 s" },
+      },
+    },
+    improvements: [{ title: "Reduzir scripts" }],
+  } as unknown as DiagnoseResult;
+
+  it("shows the footer before the quote band and keeps the quote button readable", () => {
+    render(
+      <DiagnosticPreview
+        url="https://site.test"
+        result={result}
+        previewMode="view"
+        setPreviewMode={vi.fn()}
+        updateImprovement={vi.fn()}
+        updateUiuxOverview={vi.fn()}
+        downloadTechnicalPdf={vi.fn()}
+        downloading={false}
+        downloadBusinessPdf={vi.fn()}
+        businessDownloading={false}
+        onSubmitQuoteRequest={vi.fn().mockResolvedValue(undefined)}
+        footer={<p>Relatório salvo (rodapé)</p>}
+      />,
+    );
+
+    const footer = screen.getByText("Relatório salvo (rodapé)");
+    const band = screen.getByRole("heading", { name: "Quer ajuda para aplicar essas melhorias?" });
+    expect(footer.compareDocumentPosition(band) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // On the green band the trigger must not inherit the band's white text.
+    const trigger = screen.getByRole("button", { name: "Solicitar orçamento" });
+    expect(trigger.className).toContain("text-primary");
+    expect(trigger.className).toContain("bg-background");
+  });
+});

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, ExternalLink } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -41,56 +41,49 @@ export function DiagnosticReportShareCard({
   };
 
   return (
-    <Card className="space-y-4 border-primary/20 bg-card p-5">
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold text-foreground">
+    <Card className="flex flex-wrap items-center justify-between gap-5 border-border bg-card px-6 py-5 md:px-7">
+      <div className="flex min-w-0 flex-1 basis-72 flex-col gap-0.5">
+        <h2 className="text-lg font-extrabold text-foreground">
           Relatório salvo com sucesso
         </h2>
         <p className="text-sm text-muted-foreground">
-          Seu diagnóstico está disponível. Você pode acessá-lo novamente ou
-          compartilhá-lo com outras pessoas.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-4 rounded-lg bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">
-            Link do relatório
-          </p>
+          Qualquer pessoa com o link pode abrir.{" "}
           <a
             href={reportUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block break-all text-sm text-primary hover:underline"
+            className="font-semibold text-primary hover:underline"
           >
-            {reportUrl}
+            Ver como o cliente vê
           </a>
-        </div>
-
-        <div className="flex shrink-0 flex-col gap-2 sm:w-auto">
-          <Button onClick={copyReportUrl}>
-            {copied ? (
-              <Check aria-hidden="true" />
-            ) : (
-              <Copy aria-hidden="true" />
-            )}
-            {copied ? "Link copiado!" : "Copiar link do relatório"}
-          </Button>
-          <Button asChild variant="outline">
-            <a href={reportUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink aria-hidden="true" />
-              Abrir relatório salvo
-            </a>
-          </Button>
-        </div>
+        </p>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Compartilhe este link para permitir que outras pessoas acessem este
-        diagnóstico.
-      </p>
+      <div className="flex min-w-0 flex-1 basis-96 items-center gap-2 rounded-xl border border-border bg-muted/40 py-1.5 pl-3.5 pr-1.5">
+        <a
+          href={reportUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="min-w-0 flex-1 truncate text-sm text-muted-foreground hover:text-foreground hover:underline"
+        >
+          {reportUrl}
+        </a>
+        <Button
+          onClick={copyReportUrl}
+          aria-label={copied ? "Link copiado!" : "Copiar link do relatório"}
+          className="shrink-0 bg-foreground text-background hover:bg-foreground/90"
+        >
+          {copied ? (
+            <Check aria-hidden="true" />
+          ) : (
+            <Copy aria-hidden="true" />
+          )}
+          {copied ? "Copiado!" : "Copiar link"}
+        </Button>
+      </div>
+
       {copied && (
-        <p role="status" className="text-sm text-primary">
+        <p role="status" className="basis-full text-sm text-primary">
           Link copiado com sucesso!
         </p>
       )}

@@ -9,7 +9,7 @@ import type {
   ServiceInterest,
 } from "@/features/diagnostics/model/quote-request";
 import { Building2, CheckCircle2, Download, Eye, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   isDiagnosticOptimized,
   type DiagnoseResult,
@@ -38,6 +38,8 @@ type Props = {
   onSubmitQuoteRequest?: (request: QuoteRequest) => Promise<void>;
   onQuoteDialogOpen?: (interest: ServiceInterest) => void;
   quoteSending?: boolean;
+  /** Rendered between the report and the closing quote band (e.g. the saved-report link). */
+  footer?: ReactNode;
 };
 
 export default function DiagnosticPreview({
@@ -58,6 +60,7 @@ export default function DiagnosticPreview({
   onSubmitQuoteRequest,
   onQuoteDialogOpen,
   quoteSending = false,
+  footer,
 }: Props) {
   const [reportType, setReportType] = useState<"full" | "corporate">("full");
 
@@ -263,6 +266,8 @@ export default function DiagnosticPreview({
         )}
       </div>
 
+      {footer}
+
       {onSubmitQuoteRequest && (
         <section className="mt-8 flex flex-wrap items-center justify-between gap-6 rounded-2xl bg-primary px-6 py-8 text-primary-foreground md:px-10">
           <div className="min-w-0 flex-1 basis-80 space-y-1.5">
@@ -279,6 +284,7 @@ export default function DiagnosticPreview({
               onSubmitRequest={onSubmitQuoteRequest}
               onOpened={onQuoteDialogOpen}
               sending={quoteSending}
+              triggerClassName="border-transparent bg-background text-primary hover:bg-background/90 hover:text-primary"
             />
           </div>
         </section>

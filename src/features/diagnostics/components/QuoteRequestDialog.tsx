@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type {
   QuoteRequest,
@@ -26,6 +27,8 @@ type Props = {
   /** Called when the visitor opens the dialog (interest signal, not a submission). */
   onOpened?: (interest: ServiceInterest) => void;
   triggerLabel?: string;
+  /** Lets a colored surface restyle the trigger (e.g. the closing band). */
+  triggerClassName?: string;
 };
 
 export default function QuoteRequestDialog({
@@ -34,6 +37,7 @@ export default function QuoteRequestDialog({
   serviceInterest,
   onOpened,
   triggerLabel = "Solicitar orçamento",
+  triggerClassName,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [request, setRequest] = useState<QuoteRequest>({
@@ -116,7 +120,7 @@ export default function QuoteRequestDialog({
           type="button"
           size="lg"
           variant="outline"
-          className="w-full font-semibold"
+          className={cn("w-full font-semibold", triggerClassName)}
         >
           <Mail className="mr-2 h-5 w-5" />
           {triggerLabel}

@@ -41,9 +41,7 @@ describe("DiagnosticReportShareCard", () => {
       reportUrl,
     );
     expect(
-      screen.getByText(
-        "Compartilhe este link para permitir que outras pessoas acessem este diagnóstico.",
-      ),
+      screen.getByText(/Qualquer pessoa com o link pode abrir./),
     ).toBeInTheDocument();
   });
 

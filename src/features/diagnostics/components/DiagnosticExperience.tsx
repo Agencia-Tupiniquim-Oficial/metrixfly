@@ -318,8 +318,15 @@ export function DiagnosticExperience({
                 setBusinessSummary={setBusinessSummary}
                 businessLoading={businessLoading}
                 onLoadBusinessSummary={fetchBusinessSummary}
+                footer={
+                  !optimized && reportUrl ? (
+                    <DiagnosticReportShareCard reportUrl={reportUrl} />
+                  ) : undefined
+                }
               />
-              {reportUrl && <DiagnosticReportShareCard reportUrl={reportUrl} />}
+              {optimized && reportUrl && (
+                <DiagnosticReportShareCard reportUrl={reportUrl} />
+              )}
             </section>
           </div>
         )}
