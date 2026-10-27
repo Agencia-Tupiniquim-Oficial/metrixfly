@@ -33,13 +33,12 @@ describe("FinancialCalculator page", () => {
       "/calculadora-financeira?mobileScore=43&traffic=15000&ticket=250",
     );
 
-    expect(screen.getByRole("img", { name: "Tupiniquim" })).toHaveAttribute(
-      "src",
-      logoColored,
-    );
+    expect(
+      screen.getByRole("link", { name: "Metricfly, página inicial" }).querySelector("img"),
+    ).toHaveAttribute("src", logoColored);
     expect(
       screen.getByRole("heading", {
-        name: "Descubra oportunidades de melhoria para seu site",
+        name: "Quanto a lentidão pode estar custando?",
       }),
     ).toBeInTheDocument();
     expect(
@@ -51,6 +50,8 @@ describe("FinancialCalculator page", () => {
     expect(screen.getByText(/28\.500/)).toBeInTheDocument();
     expect(screen.getByText("~5.700 acessos")).toBeInTheDocument();
     expect(screen.getByText("38%")).toBeInTheDocument();
+    expect(screen.getByText("38% de abandono")).toBeInTheDocument();
+    expect(screen.getByText("~114")).toBeInTheDocument();
     expect(
       screen.getByText(/Estimativa baseada em estudos do Google/),
     ).toBeInTheDocument();

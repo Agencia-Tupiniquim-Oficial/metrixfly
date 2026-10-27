@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Calculator, Info, TrendingDown } from "lucide-react";
-import logoColored from "@/assets/logo-colored.png";
+import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -59,11 +59,12 @@ export default function FinancialCalculator() {
   );
 
   return (
-    <main
-      className="min-h-screen py-8 sm:py-12"
+    <div
+      className="min-h-screen"
       style={{ background: "var(--gradient-hero)" }}
     >
-      <div className="container max-w-6xl space-y-8">
+      <AppHeader />
+      <main className="container max-w-6xl space-y-8 py-8 sm:py-12">
         <Button asChild variant="ghost" className="-ml-3">
           <Link to="/diagnostico">
             <ArrowLeft aria-hidden="true" />
@@ -71,19 +72,14 @@ export default function FinancialCalculator() {
           </Link>
         </Button>
 
-        <header className="mx-auto max-w-3xl space-y-4 text-center">
-          <img
-            src={logoColored}
-            alt="Tupiniquim"
-            className="mx-auto h-16 w-16 object-contain"
-          />
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <header className="max-w-2xl space-y-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">
             Simulação de otimização
           </p>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Descubra oportunidades de melhoria para seu site
+          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-foreground sm:text-4xl">
+            Quanto a lentidão pode estar custando?
           </h1>
-          <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <p className="text-base leading-relaxed text-muted-foreground">
             Ajuste os dados do site para visualizar uma estimativa associada à
             nota de desempenho mobile do PageSpeed.
           </p>
@@ -158,10 +154,25 @@ export default function FinancialCalculator() {
                 Use o valor médio de uma venda ou oportunidade.
               </p>
             </div>
+
+            {abandonmentRate !== null && (
+              <div className="flex items-center gap-3 rounded-xl bg-muted/50 px-4 py-3.5 text-sm">
+                <span className="shrink-0 text-xl font-extrabold text-amber-700 dark:text-amber-300">
+                  {mobileScore}
+                </span>
+                <span className="text-muted-foreground">
+                  Nota mobile do diagnóstico: premissa de{" "}
+                  <strong className="text-foreground">
+                    {abandonmentRate}% de abandono
+                  </strong>{" "}
+                  e conversão de {DEFAULT_CONVERSION_RATE}%.
+                </span>
+              </div>
+            )}
           </Card>
 
-          <Card className="space-y-6 border-rose-200 bg-rose-50 p-6 text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-100 sm:p-8">
-            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
+          <Card className="space-y-6 border-transparent bg-surface-dark p-6 text-surface-dark-foreground sm:p-8">
+            <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-amber-300">
               <TrendingDown aria-hidden="true" className="h-5 w-5" />
               Estimativa mensal da simulação
             </div>
@@ -172,11 +183,19 @@ export default function FinancialCalculator() {
                   {currency.format(estimate.estimatedMonthlyLoss)}
                   <span className="ml-2 text-base font-medium">/ mês</span>
                 </p>
-                <div className="grid gap-4 border-t border-rose-200 pt-5 dark:border-rose-900 sm:grid-cols-2">
+                <div className="grid gap-4 border-t border-white/15 pt-5 sm:grid-cols-2">
                   <div>
                     <p className="text-sm">Visitantes que podem desistir</p>
                     <p className="mt-1 font-mono text-xl font-semibold">
                       ~{number.format(estimate.abandonedVisitors)} acessos
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-surface-dark-muted">
+                      Conversões que podem se perder
+                    </p>
+                    <p className="mt-1 font-mono text-xl font-semibold">
+                      ~{number.format(estimate.estimatedLostConversions)}
                     </p>
                   </div>
                   <div>
@@ -186,8 +205,8 @@ export default function FinancialCalculator() {
                     </p>
                   </div>
                 </div>
-                <p className="text-xs leading-relaxed">
-                  <strong>Nota mobile PageSpeed: {mobileScore}/100.</strong>{" "}
+                <p className="text-xs leading-relaxed text-surface-dark-muted">
+                  <strong className="text-surface-dark-foreground">Nota mobile PageSpeed: {mobileScore}/100.</strong>{" "}
                   Estimativa baseada em estudos do Google sobre a relação entre
                   o tempo de carregamento mobile e a desistência de compras. A
                   nota é usada como referência para a simulação, não como uma
@@ -216,7 +235,7 @@ export default function FinancialCalculator() {
             mede diretamente abandono, conversões ou faturamento.
           </p>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

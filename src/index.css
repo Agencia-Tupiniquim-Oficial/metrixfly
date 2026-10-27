@@ -101,6 +101,10 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 60px hsl(149 100% 28% / 0.25);
     --shadow-card: 0 8px 32px hsl(149 30% 20% / 0.08);
 
+    --surface-dark: 150 14% 13%;
+    --surface-dark-foreground: 0 0% 100%;
+    --surface-dark-muted: 150 10% 78%;
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -154,6 +158,10 @@ All colors MUST be HSL.
     --gradient-hero: radial-gradient(ellipse at top, hsl(149 70% 35% / 0.13), transparent 60%), linear-gradient(180deg, hsl(222 25% 9%), hsl(222 23% 12%));
     --shadow-glow: 0 0 60px hsl(149 70% 35% / 0.2);
     --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.25);
+
+    --surface-dark: 150 14% 17%;
+    --surface-dark-foreground: 0 0% 100%;
+    --surface-dark-muted: 150 10% 78%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
