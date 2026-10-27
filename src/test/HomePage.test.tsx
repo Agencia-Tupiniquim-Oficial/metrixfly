@@ -126,6 +126,17 @@ describe("HomePage", () => {
     expect(screen.queryByText(/^destino:/)).not.toBeInTheDocument();
   });
 
+  it("does not show the PageSpeed note under the address field", () => {
+    renderHome();
+
+    expect(screen.queryByText(/Medição com o PageSpeed Insights/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Rodar o Agent Crawl GEO/AEO" }),
+    ).not.toBeInTheDocument();
+    // The Agent Crawl remains reachable from its own card.
+    expect(screen.getByRole("link", { name: "Rodar Agent Crawl" })).toBeInTheDocument();
+  });
+
   it("does not promise results it cannot guarantee", () => {
     renderHome();
 
