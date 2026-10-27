@@ -45,7 +45,9 @@ describe("application route fallback", () => {
     window.history.replaceState({}, "", "/");
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Como funciona" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /Do endereço ao relatório em três passos/ }),
+    ).toBeInTheDocument();
   });
 
   it("keeps the diagnostic experience on /diagnostico", () => {
