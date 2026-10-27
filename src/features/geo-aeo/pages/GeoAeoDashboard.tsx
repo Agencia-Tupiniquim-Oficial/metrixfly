@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
 import { importPdfReports } from "@/lib/dynamic-import";
@@ -14,19 +14,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { AppHeader } from "@/components/app-header";
+import { ScoreRing } from "@/components/score-ring";
 import {
-  ArrowLeft,
   Bot,
-  FileSearch,
+  Download,
   Globe2,
   Loader2,
   Network,
   Search,
-  Sparkles,
   Target,
-  TrendingUp,
 } from "lucide-react";
-import logoColored from "@/assets/logo-colored.png";
 
 type Page = { url: string; title: string; score: number; issues: string[] };
 type Finding = {
@@ -139,32 +137,6 @@ function contentSignalLabel(signal: ContentSignal) {
     case "unspecified":
       return "Não informado";
   }
-}
-
-function Metric({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: number;
-  icon: typeof Bot;
-}) {
-  return (
-    <Card className="motion-card p-5">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <Icon className="h-4 w-4 text-primary" />
-      </div>
-      <div className={`mt-3 text-4xl font-bold ${scoreColor(value)}`}>
-        {value}
-        <span className="text-base font-normal text-muted-foreground">
-          /100
-        </span>
-      </div>
-      <Progress value={value} className="mt-3 h-2" />
-    </Card>
-  );
 }
 
 const GeoAeoDashboard = () => {
@@ -539,83 +511,74 @@ const GeoAeoDashboard = () => {
       });
   };
 
+  const subscores: [string, number, string][] = result
+    ? [
+        ["GEO", result.scores.geo, "Presença em mecanismos generativos"],
+        ["AEO", result.scores.aeo, "Capacidade de responder perguntas"],
+        ["Técnico", result.scores.technical, "Saúde estrutural do domínio"],
+        ["Autoridade", result.scores.authority, "Sinais de autoridade do domínio"],
+      ]
+    : [];
+  const statLabels: Record<string, string> = {
+    pages: "Páginas",
+    indexedPages: "Indexáveis",
+    schemaPages: "Com schema",
+    answerPages: "Prontas para resposta",
+    words: "Palavras",
+  };
+  const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
+
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="border-b border-border bg-card">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/diagnostico"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" /> Diagnóstico técnico
-            </Link>
-            {/* <Link
-              to="/geo-admin"
-              className="text-sm text-primary hover:underline"
-            >
-              Administração
-            </Link> */}
+    <div className="min-h-screen bg-secondary/40">
+      <AppHeader />
+      <main className="container max-w-6xl space-y-8 py-10 md:py-12">
+        <section className="flex flex-wrap items-end justify-between gap-7">
+          <div className="motion-enter min-w-0 flex-1 basis-96 space-y-2.5">
+            <p className={eyebrow}>Agent Crawl · GEO/AEO</p>
+            <h1 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
+              Descubra se sua marca é encontrada e citada por IAs.
+            </h1>
+            <p className="max-w-xl text-muted-foreground">
+              Um crawl profissional para GEO (Generative Engine Optimization) e
+              AEO (Answer Engine Optimization), com recomendações que sua equipe
+              pode executar.
+            </p>
           </div>
-          <div className="flex items-center gap-2 font-semibold">
-            <Sparkles className="h-5 w-5 text-primary" /> Agent Crawl{" "}
-            <span className="text-muted-foreground font-normal">GEO/AEO</span>
-          </div>
-          <img
-            src={logoColored}
-            alt="Logo"
-            className="mr-12 h-8 object-contain"
-          />
-        </div>
-      </header>
-      <div className="container py-8 md:py-12">
-        <div className="motion-enter max-w-3xl">
-          <img
-            src={logoColored}
-            alt="Logo"
-            className="h-12 mb-6 object-contain drop-shadow-sm"
-          />
-          <p className="mb-3 text-sm font-medium text-primary">
-            VISIBILIDADE EM BUSCA E IA
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
-            Descubra se sua marca é encontrada e citada por IAs.
-          </h1>
-          <p className="mt-4 text-muted-foreground">
-            Um crawl profissional para GEO (Generative Engine Optimization) e
-            AEO (Answer Engine Optimization), com recomendações que sua equipe
-            pode executar.
-          </p>
-        </div>
-        <Card className="motion-card mt-8 p-2 shadow-sm">
-          <form onSubmit={runCrawl} className="flex flex-col gap-2 sm:flex-row">
-            <div className="flex flex-1 items-center gap-2 px-3">
-              <Globe2 className="h-4 w-4 text-muted-foreground" />
-              <Input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="suaempresa.com.br"
-                className="border-0 focus-visible:ring-0"
-                required
-                disabled={loading}
-              />
-            </div>
-            <Button type="submit" size="lg" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Rastreando
-                  site...
-                </>
-              ) : (
-                <>
-                  <Search className="mr-2 h-4 w-4" /> Executar Agent Crawl
-                </>
-              )}
-            </Button>
-          </form>
-        </Card>
+          <Card
+            className="motion-card flex-1 basis-96 border-border bg-card p-2"
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
+            <form onSubmit={runCrawl} className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex flex-1 items-center gap-2 px-3">
+                <Globe2 className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  aria-label="Endereço do site"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="suaempresa.com.br"
+                  className="border-0 bg-transparent focus-visible:ring-0"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <Button type="submit" size="lg" variant="hero" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Rastreando
+                    site...
+                  </>
+                ) : (
+                  <>
+                    <Search className="mr-2 h-4 w-4" /> Executar Agent Crawl
+                  </>
+                )}
+              </Button>
+            </form>
+          </Card>
+        </section>
+
         {!userId && (
-          <Card className="mt-4 border-primary/20 bg-primary/5 p-4 hidden">
+          <Card className="hidden border-primary/20 bg-primary/5 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="flex-1">
                 <p className="font-medium">Salve os projetos da sua agência</p>
@@ -638,8 +601,9 @@ const GeoAeoDashboard = () => {
             </div>
           </Card>
         )}
+
         {loading && (
-          <Card className="motion-enter mt-4 border-primary/20 bg-primary/5 p-4">
+          <Card className="motion-enter border-primary/20 bg-primary/5 p-4">
             <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span>{crawlStage}</span>
@@ -660,8 +624,9 @@ const GeoAeoDashboard = () => {
             </p>
           </Card>
         )}
+
         {!result && !loading && (
-          <div className="motion-stagger mt-10 grid gap-4 md:grid-cols-3">
+          <div className="motion-stagger grid gap-4 md:grid-cols-3">
             {[
               [
                 Bot,
@@ -689,119 +654,65 @@ const GeoAeoDashboard = () => {
             ))}
           </div>
         )}
+
         {result && (
-          <section className="motion-stagger mt-10 space-y-6">
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Relatório de {result.domain}
-                </p>
-                <h2 className="text-2xl font-bold">Resumo executivo</h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">
-                  Atualizado{" "}
-                  {new Date(result.crawledAt).toLocaleString("pt-BR")}
-                </Badge>
-              </div>
-            </div>
-            <Card className="motion-card overflow-hidden border-slate-200 shadow-sm">
-              <div className="flex flex-col justify-between gap-6 p-6 sm:flex-row sm:items-center">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                    Relatório de auditoria
-                  </p>
-                  <h2 className="mt-2 text-2xl font-bold tracking-tight">
+          <div className="motion-stagger space-y-8">
+            <Card className="motion-card flex flex-wrap items-center gap-9 border-border bg-card p-6 shadow-sm md:p-8">
+              <div className="flex min-w-0 flex-1 basis-96 items-center gap-6">
+                <ScoreRing label="Score geral de prontidão" score={overall} size={132} />
+                <div className="min-w-0 space-y-1">
+                  <span className={eyebrow}>Prontidão digital</span>
+                  <h2 className="break-all text-2xl font-extrabold tracking-tight">
                     {result.domain}
                   </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Última análise em{" "}
-                    {new Date(result.crawledAt).toLocaleDateString("pt-BR")} ·{" "}
+                  <p className="text-sm text-muted-foreground">
+                    Atualizado em{" "}
+                    {new Date(result.crawledAt).toLocaleString("pt-BR")} ·{" "}
                     {result.stats.pages} páginas avaliadas
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className={`text-5xl font-bold ${scoreColor(overall)}`}>
-                    {overall}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    <div className="font-medium text-foreground">
-                      Score geral
-                    </div>
-                    <div>de prontidão digital</div>
-                  </div>
-                </div>
               </div>
-            </Card>
-            <div className="motion-stagger grid gap-4 md:grid-cols-3">
-              {[
-                [
-                  "GEO",
-                  result.scores.geo,
-                  "Presença em mecanismos generativos",
-                ],
-                ["AEO", result.scores.aeo, "Capacidade de responder perguntas"],
-                [
-                  "Técnico",
-                  result.scores.technical,
-                  "Saúde estrutural do domínio",
-                ],
-              ].map(([label, value, description]) => (
-                <Card
-                  key={label as string}
-                  className="motion-card border-slate-200 p-5 shadow-sm"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">
-                        {label as string}
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {description as string}
-                      </p>
-                    </div>
+              <div className="grid flex-1 basis-[32rem] grid-cols-2 gap-3 lg:grid-cols-4">
+                {subscores.map(([label, value, description]) => (
+                  <div
+                    key={label}
+                    className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-4"
+                  >
+                    <span className="text-sm font-bold">{label}</span>
                     <span
-                      className={`text-2xl font-bold ${scoreColor(value as number)}`}
+                      className={`text-3xl font-extrabold leading-none ${scoreColor(value)}`}
                     >
                       {value}
+                      <span className="text-sm font-semibold text-muted-foreground">
+                        /100
+                      </span>
+                    </span>
+                    <Progress value={value} className="h-1.5" />
+                    <span className="text-xs leading-snug text-muted-foreground">
+                      {description}
                     </span>
                   </div>
-                  <Progress value={value as number} className="mt-4 h-1.5" />
-                </Card>
-              ))}
-            </div>
-            <Card className="motion-card border-slate-200 p-6 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    Recomendações prioritárias
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Ações com maior impacto identificadas nesta análise.
-                  </p>
-                </div>
-                <Badge variant="outline">
-                  {prioritizedFindings.length + 1} itens
-                </Badge>
+                ))}
               </div>
-              <div className="motion-stagger mt-5 grid gap-3 lg:grid-cols-2">
+            </Card>
+
+            <section className="space-y-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="text-2xl font-extrabold tracking-tight">
+                  Recomendações prioritárias
+                </h2>
+                <span className="text-sm text-muted-foreground">
+                  Ações com maior impacto nesta análise
+                </span>
+              </div>
+              <div className="motion-stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {prioritizedFindings.map((finding, index) => (
-                  <div
+                  <Card
                     key={`${finding.title}-${index}`}
-                    className="motion-card rounded-lg border border-slate-200 p-4"
+                    className="motion-card flex flex-col gap-3 border-border bg-card p-5"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex gap-3">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold">
-                          {index + 1}
-                        </span>
-                        <div>
-                          <p className="font-medium">{finding.title}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {finding.description}
-                          </p>
-                        </div>
-                      </div>
+                      <p className="font-bold">{finding.title}</p>
                       <Badge
                         variant="outline"
                         className={`shrink-0 ${severityClass(finding.severity)}`}
@@ -809,36 +720,17 @@ const GeoAeoDashboard = () => {
                         {severityLabel(finding.severity)}
                       </Badge>
                     </div>
-                    <p className="mt-3 border-t pt-3 text-sm text-primary">
+                    <p className="text-sm text-muted-foreground">
+                      {finding.description}
+                    </p>
+                    <p className="mt-auto border-t border-border pt-3 text-sm font-semibold text-primary">
                       {finding.recommendation}
                     </p>
-                  </div>
+                  </Card>
                 ))}
-                <div className="rounded-lg border border-slate-200 p-4">
+                <Card className="motion-card flex flex-col gap-3 border-border bg-card p-5">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex gap-3">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold">
-                        {prioritizedFindings.length + 1}
-                      </span>
-                      <div>
-                        <p className="font-medium">
-                          Visibilidade por mecanismo
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {robotsCardDescription}
-                        </p>
-                        {robotsVisibility.robotsUrl && (
-                          <a
-                            href={robotsVisibility.robotsUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-1 inline-block break-all text-xs text-primary underline"
-                          >
-                            robots.txt
-                          </a>
-                        )}
-                      </div>
-                    </div>
+                    <p className="font-bold">Visibilidade por mecanismo</p>
                     <Badge
                       variant="outline"
                       className={`shrink-0 ${severityClass(robotsApproved ? "passed" : "warning")}`}
@@ -846,171 +738,140 @@ const GeoAeoDashboard = () => {
                       {robotsApproved ? "Aprovado" : "Atenção"}
                     </Badge>
                   </div>
-                  <p className="mt-3 border-t pt-3 text-sm text-primary">
+                  <p className="text-sm text-muted-foreground">
+                    {robotsCardDescription}
+                  </p>
+                  {robotsVisibility.robotsUrl && (
+                    <a
+                      href={robotsVisibility.robotsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block break-all text-xs text-primary underline"
+                    >
+                      robots.txt
+                    </a>
+                  )}
+                  <p className="mt-auto border-t border-border pt-3 text-sm font-semibold text-primary">
                     {robotsRecommendation}
                   </p>
                   {contentSignalSummary && (
-                    <p className="mt-2 text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {contentSignalSummary}
                     </p>
                   )}
-                </div>
+                </Card>
               </div>
-            </Card>
-            <div className="motion-stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Metric label="GEO Score" value={result.scores.geo} icon={Bot} />
-              <Metric
-                label="AEO Score"
-                value={result.scores.aeo}
-                icon={Target}
-              />
-              <Metric
-                label="Técnico"
-                value={result.scores.technical}
-                icon={FileSearch}
-              />
-              <Metric
-                label="Autoridade"
-                value={result.scores.authority}
-                icon={TrendingUp}
-              />
-            </div>
-            <div>
-              <Card className="motion-card p-6">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-20 w-20 items-center justify-center rounded-full border-8 border-primary/20 text-3xl font-bold ${scoreColor(overall)}`}
-                  >
-                    {overall}
+            </section>
+
+            <section className="grid gap-5 lg:grid-cols-2">
+              {result.scoreBreakdown?.technical && (
+                <Card className="motion-card flex flex-col gap-3.5 border-border bg-card p-6">
+                  <h2 className="text-lg font-extrabold">
+                    Como a pontuação foi calculada
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {result.scoreBreakdown.technical.formula}
+                  </p>
+                  <div className="flex flex-col text-sm">
+                    {[
+                      ["Base média das páginas", result.scoreBreakdown.technical.base],
+                      ["Bônus robots.txt", result.scoreBreakdown.technical.robotsBonus],
+                      ["Bônus sitemap.xml", result.scoreBreakdown.technical.sitemapBonus],
+                      [
+                        "Desconto por links quebrados",
+                        result.scoreBreakdown.technical.brokenLinksPenalty,
+                      ],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label as string}
+                        className="flex justify-between border-t border-border py-2.5"
+                      >
+                        <span>{label as string}</span>
+                        <strong>{value}</strong>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      Score geral de prontidão
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Baseado em {result.stats.pages} páginas rastreadas e
-                      sinais públicos do domínio.
+                  {result.scoreBreakdown.coverage && (
+                    <p className="text-xs text-muted-foreground">
+                      {result.scoreBreakdown.coverage.pagesCrawled} páginas
+                      analisadas · {result.scoreBreakdown.coverage.sitemapUrls}{" "}
+                      URLs encontradas no sitemap ·{" "}
+                      {result.scoreBreakdown.coverage.brokenLinksChecked} links
+                      verificados
                     </p>
-                  </div>
-                </div>
-                <div className="mt-6 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                  )}
+                </Card>
+              )}
+
+              <Card className="motion-card flex flex-col gap-3.5 border-border bg-card p-6">
+                <h2 className="text-lg font-extrabold">Sinais encontrados</h2>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   {Object.entries(result.stats).map(([key, value]) => (
-                    <div key={key} className="rounded-lg bg-muted/50 p-3">
-                      <div className="text-xl font-semibold">{value}</div>
+                    <div key={key} className="rounded-xl bg-muted/50 p-3.5">
+                      <div className="text-2xl font-extrabold">{value}</div>
                       <div className="text-xs text-muted-foreground">
-                        {
-                          (
-                            {
-                              pages: "Páginas",
-                              indexedPages: "Indexáveis",
-                              schemaPages: "Com schema",
-                              answerPages: "Prontas para resposta",
-                              words: "Palavras",
-                            } as Record<string, string>
-                          )[key]
-                        }
+                        {statLabels[key]}
                       </div>
                     </div>
                   ))}
                 </div>
-              </Card>
-            </div>
-            {result.scoreBreakdown?.technical && (
-              <Card className="motion-card p-6">
-                <h3 className="font-semibold">
-                  Como a pontuação foi calculada
+                <h3 className="mt-2 flex items-center gap-2 text-sm font-bold">
+                  <Network className="h-4 w-4 text-primary" /> Entidades e tópicos
                 </h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {result.scoreBreakdown.technical.formula}
-                </p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                  {[
-                    ["Base média", result.scoreBreakdown.technical.base],
-                    [
-                      "Bônus robots.txt",
-                      result.scoreBreakdown.technical.robotsBonus,
-                    ],
-                    [
-                      "Bônus sitemap.xml",
-                      result.scoreBreakdown.technical.sitemapBonus,
-                    ],
-                    [
-                      "Desconto por links quebrados",
-                      result.scoreBreakdown.technical.brokenLinksPenalty,
-                    ],
-                  ].map(([label, value]) => (
-                    <div
-                      key={label as string}
-                      className="rounded-lg bg-muted/50 p-3"
-                    >
-                      <div className="text-lg font-semibold">{value}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {label as string}
+                {result.entities.length ? (
+                  <div className="space-y-3">
+                    {result.entities.slice(0, 6).map((entity) => (
+                      <div key={entity.name}>
+                        <div className="mb-1 flex justify-between text-sm">
+                          <span className="font-semibold">{entity.name}</span>
+                          <span className="text-muted-foreground">
+                            {entity.coverage}% · {entity.pages} pág.
+                          </span>
+                        </div>
+                        <Progress value={entity.coverage} />
                       </div>
-                    </div>
-                  ))}
-                </div>
-                {result.scoreBreakdown.coverage && (
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    {result.scoreBreakdown.coverage.pagesCrawled} páginas
-                    analisadas · {result.scoreBreakdown.coverage.sitemapUrls}{" "}
-                    URLs encontradas no sitemap ·{" "}
-                    {result.scoreBreakdown.coverage.brokenLinksChecked} links
-                    verificados
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma entidade semântica detectada. Adicione conteúdo
+                    topical e dados estruturados.
                   </p>
                 )}
               </Card>
-            )}
-            <Card className="motion-card p-6">
-              <h3 className="mb-4 flex items-center gap-2 font-semibold">
-                <Network className="h-4 w-4 text-primary" /> Entidades e tópicos
-              </h3>
-              {result.entities.length ? (
-                <div className="space-y-4">
-                  {result.entities.slice(0, 6).map((entity) => (
-                    <div key={entity.name}>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span>{entity.name}</span>
-                        <span className="text-muted-foreground">
-                          {entity.coverage}% · {entity.pages} pág.
-                        </span>
-                      </div>
-                      <Progress value={entity.coverage} />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Nenhuma entidade semântica detectada. Adicione conteúdo
-                  topical e dados estruturados.
-                </p>
-              )}
-            </Card>
-            <Card className="motion-card p-6">
-              <h3 className="mb-4 font-semibold">Score por página</h3>
+            </section>
+
+            <Card className="motion-card overflow-hidden border-border bg-card">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5">
+                <h2 className="text-lg font-extrabold">Score por página</h2>
+                <Button onClick={exportReport} variant="outline">
+                  <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Exportar CSV
+                </Button>
+              </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="w-full min-w-[620px] text-left text-sm">
                   <thead>
-                    <tr className="border-b text-muted-foreground">
-                      <th className="pb-3">Página</th>
-                      <th className="pb-3">Título</th>
-                      <th className="pb-3">Score</th>
-                      <th className="pb-3">Alertas</th>
+                    <tr className="bg-muted/40 text-muted-foreground">
+                      <th className="px-6 py-3 font-semibold">Página</th>
+                      <th className="px-6 py-3 font-semibold">Título</th>
+                      <th className="px-6 py-3 font-semibold">Score</th>
+                      <th className="px-6 py-3 font-semibold">Alertas</th>
                     </tr>
                   </thead>
                   <tbody>
                     {result.pages.map((page) => (
-                      <tr key={page.url} className="border-b last:border-0">
-                        <td className="max-w-[280px] truncate py-3 text-primary">
+                      <tr key={page.url} className="border-t border-border">
+                        <td className="max-w-[280px] truncate px-6 py-3.5 text-primary">
                           {page.url}
                         </td>
-                        <td className="py-3">{page.title || "Sem título"}</td>
+                        <td className="px-6 py-3.5">{page.title || "Sem título"}</td>
                         <td
-                          className={`py-3 font-semibold ${scoreColor(page.score)}`}
+                          className={`px-6 py-3.5 font-bold ${scoreColor(page.score)}`}
                         >
                           {page.score}
                         </td>
-                        <td className="py-3 text-muted-foreground">
+                        <td className="px-6 py-3.5 text-muted-foreground">
                           {page.issues.length || "Nenhuma"}
                         </td>
                       </tr>
@@ -1019,22 +880,10 @@ const GeoAeoDashboard = () => {
                 </table>
               </div>
             </Card>
-            <div className="grid gap-3 md:grid-cols-2">
-              {/* <Button
-                onClick={() => runCrawlAndReport()}
-                className="bg-emerald-600 text-white"
-                disabled={loading}
-              >
-                Gerar relatório técnico
-              </Button> */}
-              <Button onClick={exportReport} variant="outline">
-                Exportar CSV
-              </Button>
-            </div>
-          </section>
+          </div>
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 };
 
