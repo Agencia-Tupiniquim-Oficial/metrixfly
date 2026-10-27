@@ -43,6 +43,7 @@ export function DiagnosticExperience({
   updateImprovement,
   updateUiuxOverview,
   sendQuoteRequest,
+  onQuoteDialogOpen,
   quoteSending,
   reportUrl,
 }: DiagnosticPageProps) {
@@ -358,6 +359,7 @@ export function DiagnosticExperience({
                 updateImprovement={updateImprovement}
                 updateUiuxOverview={updateUiuxOverview}
                 onSubmitQuoteRequest={sendQuoteRequest}
+                onQuoteDialogOpen={onQuoteDialogOpen}
                 quoteSending={quoteSending}
                 downloadTechnicalPdf={downloadTechnicalPdf}
                 downloading={downloading}

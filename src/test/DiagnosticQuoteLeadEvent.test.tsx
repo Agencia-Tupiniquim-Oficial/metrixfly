@@ -7,6 +7,7 @@ import type { DiagnosticPageProps } from "@/features/diagnostics/model/page-prop
 
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
+  recordQuoteInterest: vi.fn().mockResolvedValue(undefined),
   diagnostic: {
     summary: {
       mobile: { scores: {}, metrics: {} },
@@ -19,6 +20,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { functions: { invoke: mocks.invoke } },
+}));
+
+vi.mock("@/features/diagnostics/services/quote-interest", () => ({
+  recordQuoteInterest: mocks.recordQuoteInterest,
 }));
 
 vi.mock("@/hooks/use-toast", () => ({
@@ -44,20 +49,24 @@ vi.mock("@/lib/dynamic-import", () => ({
 vi.mock("@/features/diagnostics/components/DiagnosticExperience", () => ({
   DiagnosticExperience: ({
     sendQuoteRequest,
-  }: Pick<DiagnosticPageProps, "sendQuoteRequest">) => (
-    <button
-      onClick={() =>
-        void sendQuoteRequest?.({
-          "form-name": "form-contato",
-          name: "Ana Silva",
-          company: "Exemplo Ltda.",
-          email: "ana@example.com",
-          phone: "+55 41 99999-0000",
-        }).catch(() => undefined)
-      }
-    >
-      Enviar orçamento
-    </button>
+    onQuoteDialogOpen,
+  }: Pick<DiagnosticPageProps, "sendQuoteRequest" | "onQuoteDialogOpen">) => (
+    <>
+      <button onClick={() => onQuoteDialogOpen?.("analytics")}>Abrir orçamento</button>
+      <button
+        onClick={() =>
+          void sendQuoteRequest?.({
+            "form-name": "form-contato",
+            name: "Ana Silva",
+            company: "Exemplo Ltda.",
+            email: "ana@example.com",
+            phone: "+55 41 99999-0000",
+          }).catch(() => undefined)
+        }
+      >
+        Enviar orçamento
+      </button>
+    </>
   ),
 }));
 
@@ -78,6 +87,7 @@ function renderPage() {
 describe("generate_lead event for quote requests", () => {
   beforeEach(() => {
     mocks.invoke.mockReset();
+    mocks.recordQuoteInterest.mockClear();
     testWindow.dataLayer = [];
   });
 
@@ -96,6 +106,25 @@ describe("generate_lead event for quote requests", () => {
       site_domain: "exemplo.com.br",
     });
     expect(JSON.stringify(testWindow.dataLayer)).not.toContain("ana@example.com");
+    expect(mocks.recordQuoteInterest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "request_submitted",
+        domain: "https://www.exemplo.com.br",
+      }),
+    );
+  });
+
+  it("records the dialog opening for the analyzed company", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir orçamento" }));
+
+    expect(mocks.recordQuoteInterest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "dialog_opened",
+        domain: "https://www.exemplo.com.br",
+        serviceInterest: "analytics",
+      }),
+    );
   });
 
   it("does not fire when the function returns an error", async () => {
@@ -109,6 +138,9 @@ describe("generate_lead event for quote requests", () => {
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledTimes(1));
     await Promise.resolve();
     expect(testWindow.dataLayer).toEqual([]);
+    expect(mocks.recordQuoteInterest).not.toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: "request_submitted" }),
+    );
   });
 
   it("does not fire when the function does not confirm success", async () => {

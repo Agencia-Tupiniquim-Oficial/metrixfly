@@ -13,6 +13,7 @@ import {
   validateDiagnosticPdf,
   type QuoteEmailRequest,
   type QuoteRequest,
+  type ServiceInterest,
 } from "@/features/diagnostics/model/quote-request";
 import {
   buildCampaignTrackingForSubmission,
@@ -26,6 +27,7 @@ import {
 import { importPdfReports } from "@/lib/dynamic-import";
 import { runDiagnosticWithProgress } from "@/features/diagnostics/services/diagnose-site";
 import { trackQuoteRequestLead } from "@/features/diagnostics/services/quote-analytics";
+import { recordQuoteInterest } from "@/features/diagnostics/services/quote-interest";
 import {
   applyDiagnosticProgress,
   initialDiagnosticProgress,
@@ -209,6 +211,22 @@ const DiagnosticPage = () => {
     }
   };
 
+  const publicReportId =
+    diagnosticReportId && isPublicDiagnosticReportId(diagnosticReportId)
+      ? diagnosticReportId
+      : null;
+
+  const recordQuoteDialogOpen = (interest: ServiceInterest) => {
+    const analyzedUrl = result?.geo?.domain?.trim() || url.trim();
+    if (!analyzedUrl) return;
+    void recordQuoteInterest({
+      eventType: "dialog_opened",
+      domain: /^https?:\/\//i.test(analyzedUrl) ? analyzedUrl : `https://${analyzedUrl}`,
+      reportId: publicReportId,
+      serviceInterest: interest,
+    });
+  };
+
   const sendQuoteRequest = async (request: QuoteRequest) => {
     if (!result) {
       throw new Error("Gere um diagnóstico antes de solicitar um orçamento.");
@@ -252,6 +270,9 @@ const DiagnosticPage = () => {
       formData.append("email", payload.email);
       formData.append("phone", payload.phone);
       formData.append("domain", payload.domain);
+      if (payload.serviceInterest) {
+        formData.append("serviceInterest", payload.serviceInterest);
+      }
       formData.append("diagnosticSummary", payload.diagnosticSummary);
       formData.append(
         "campaignTracking",
@@ -285,6 +306,12 @@ const DiagnosticPage = () => {
       }
       clearCampaignTracking();
       trackQuoteRequestLead(normalizedUrl);
+      void recordQuoteInterest({
+        eventType: "request_submitted",
+        domain: normalizedUrl,
+        reportId: publicReportId,
+        serviceInterest: request.serviceInterest,
+      });
     } finally {
       setQuoteSending(false);
     }
@@ -438,6 +465,7 @@ const DiagnosticPage = () => {
     }}
     updateUiuxOverview={updateUiuxOverview}
     sendQuoteRequest={isDemo ? undefined : sendQuoteRequest}
+    onQuoteDialogOpen={isDemo ? undefined : recordQuoteDialogOpen}
     quoteSending={quoteSending}
     reportUrl={isDemo ? null : reportUrl}
     openGeoDashboard={openGeoDashboard}

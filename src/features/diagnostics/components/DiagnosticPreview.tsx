@@ -4,7 +4,10 @@ import DiagnosticReportPreview from "@/features/diagnostics/components/Diagnosti
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
-import type { QuoteRequest } from "@/features/diagnostics/model/quote-request";
+import type {
+  QuoteRequest,
+  ServiceInterest,
+} from "@/features/diagnostics/model/quote-request";
 import { Building2, CheckCircle2, Download, Eye, FileText, Loader2, Pencil, UserRound } from "lucide-react";
 import { useState } from "react";
 import {
@@ -33,6 +36,7 @@ type Props = {
   businessLoading?: boolean;
   onLoadBusinessSummary?: () => Promise<BusinessSummary | null>;
   onSubmitQuoteRequest?: (request: QuoteRequest) => Promise<void>;
+  onQuoteDialogOpen?: (interest: ServiceInterest) => void;
   quoteSending?: boolean;
 };
 
@@ -52,6 +56,7 @@ export default function DiagnosticPreview({
   businessLoading = false,
   onLoadBusinessSummary,
   onSubmitQuoteRequest,
+  onQuoteDialogOpen,
   quoteSending = false,
 }: Props) {
   const [reportType, setReportType] = useState<"full" | "corporate">("full");

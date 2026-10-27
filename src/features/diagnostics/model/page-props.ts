@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import type { BusinessSummary } from "./business-report";
 import type { DiagnoseResult, Improvement } from "./diagnose";
 import type { DiagnosticProgressState } from "./diagnostic-progress";
-import type { QuoteRequest } from "./quote-request";
+import type { QuoteRequest, ServiceInterest } from "./quote-request";
 
 export type DiagnosticPageProps = {
   url: string;
@@ -30,6 +30,7 @@ export type DiagnosticPageProps = {
   ) => void;
   updateUiuxOverview: (value: string) => void;
   sendQuoteRequest?: (request: QuoteRequest) => Promise<void>;
+  onQuoteDialogOpen?: (interest: ServiceInterest) => void;
   quoteSending: boolean;
   reportUrl?: string | null;
   openGeoDashboard?: (crawl?: unknown) => void;

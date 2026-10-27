@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.203.0/http/server.ts";
 import { quoteEmailHeading, quoteEmailSubject } from "../_shared/brand.ts";
+import {
+  parseServiceInterest,
+  serviceInterestLabel,
+} from "../_shared/quote-interest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -302,10 +306,12 @@ serve(async (req: Request) => {
     const campaignTracking = parseCampaignTracking(
       formData.get("campaignTracking"),
     );
+    const serviceInterest = parseServiceInterest(formData.get("serviceInterest"));
     const report = formData.get("report");
 
     if (
       formName !== "form-contato" ||
+      !serviceInterest ||
       !name ||
       !company ||
       !email ||
@@ -349,6 +355,7 @@ serve(async (req: Request) => {
       quoteEmailHeading(),
       "",
       `Formulário: ${formName}`,
+      `Interesse: ${serviceInterestLabel(serviceInterest)}`,
       `Nome: ${name}`,
       `Empresa: ${company}`,
       `E-mail: ${email}`,
@@ -362,7 +369,8 @@ serve(async (req: Request) => {
     ].join("\n");
     const html = `
       <h1>${escapeHtml(quoteEmailHeading())}</h1>
-      <p><strong>Formulário:</strong> ${escapeHtml(formName)}</p>
+      <p><strong>Formulário:</strong> ${escapeHtml(formName)}<br>
+      <strong>Interesse:</strong> ${escapeHtml(serviceInterestLabel(serviceInterest))}</p>
       <p><strong>Nome:</strong> ${escapeHtml(name)}<br>
       <strong>Empresa:</strong> ${escapeHtml(company)}<br>
       <strong>E-mail:</strong> ${escapeHtml(email)}<br>

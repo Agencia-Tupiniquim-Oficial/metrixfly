@@ -1,12 +1,17 @@
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
 import type { CampaignTracking } from "@/features/diagnostics/model/campaign-tracking";
 
+/** Service the visitor is interested in; mirrors the allowlist of the Edge Functions. */
+export type ServiceInterest = "general" | "search_console" | "analytics";
+
 export type QuoteRequest = {
   "form-name": "form-contato";
   name: string;
   company: string;
   email: string;
   phone: string;
+  /** Set only by service-specific calls to action; omitted for the general button. */
+  serviceInterest?: ServiceInterest;
 };
 
 export type QuoteEmailRequest = QuoteRequest & {

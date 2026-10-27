@@ -11,16 +11,25 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { QuoteRequest } from "@/features/diagnostics/model/quote-request";
+import type {
+  QuoteRequest,
+  ServiceInterest,
+} from "@/features/diagnostics/model/quote-request";
 
 type Props = {
   onSubmitRequest: (request: QuoteRequest) => Promise<void>;
   sending?: boolean;
+  /** Service-specific calls to action set this; the general button leaves it unset. */
+  serviceInterest?: ServiceInterest;
+  /** Called when the visitor opens the dialog (interest signal, not a submission). */
+  onOpened?: (interest: ServiceInterest) => void;
 };
 
 export default function QuoteRequestDialog({
   onSubmitRequest,
   sending = false,
+  serviceInterest,
+  onOpened,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [request, setRequest] = useState<QuoteRequest>({
@@ -57,6 +66,9 @@ export default function QuoteRequestDialog({
         company: String(formData.get("company") ?? "").trim(),
         email: String(formData.get("email") ?? "").trim(),
         phone: String(formData.get("phone") ?? "").trim(),
+        ...(serviceInterest && serviceInterest !== "general"
+          ? { serviceInterest }
+          : {}),
       });
       setOpen(false);
       setRequest({
@@ -79,8 +91,13 @@ export default function QuoteRequestDialog({
     }
   };
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen && !open) onOpened?.(serviceInterest ?? "general");
+    setOpen(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           type="button"
