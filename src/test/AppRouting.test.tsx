@@ -29,7 +29,7 @@ describe("application route fallback", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: "Descubra oportunidades de melhoria para seu site",
+        name: "Quanto a lentidão pode estar custando?",
       }),
     ).toBeInTheDocument();
     expect(
