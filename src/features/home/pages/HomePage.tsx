@@ -95,14 +95,6 @@ export default function HomePage() {
           </form>
         </Card>
 
-        <p className="text-sm text-muted-foreground">
-          <Link
-            to="/diagnostico?demo=1"
-            className="font-medium text-primary underline-offset-4 hover:underline"
-          >
-            Ver um exemplo de diagnóstico
-          </Link>
-        </p>
       </section>
 
       <section className="container max-w-5xl space-y-8 py-12">

@@ -66,13 +66,12 @@ describe("HomePage", () => {
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 
-  it("links to the demo diagnostic without running a real analysis", () => {
+  it("does not offer the example diagnostic link", () => {
     renderHome();
 
-    expect(screen.getByRole("link", { name: "Ver um exemplo de diagnóstico" })).toHaveAttribute(
-      "href",
-      "/diagnostico?demo=1",
-    );
+    expect(
+      screen.queryByRole("link", { name: "Ver um exemplo de diagnóstico" }),
+    ).not.toBeInTheDocument();
   });
 
   it("records the start of a diagnostic from the home page", () => {

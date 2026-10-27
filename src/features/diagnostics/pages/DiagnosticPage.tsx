@@ -1,4 +1,4 @@
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useRef, useState, FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -74,6 +74,17 @@ const DiagnosticPage = () => {
     if (diagnostic.geo?.domain) setUrl(diagnostic.geo.domain);
   }, [diagnostic]);
 
+  // An address handed over as ?url= (landing page) starts the diagnostic once.
+  const autoRunStarted = useRef(false);
+  useEffect(() => {
+    const requested = searchParams.get("url")?.trim();
+    if (!requested || diagnostic || autoRunStarted.current) return;
+    if (searchParams.get("demo") === "1") return;
+    autoRunStarted.current = true;
+    void runDiagnosticFor(requested);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     setReportUrl(
       diagnosticReportId && isPublicDiagnosticReportId(diagnosticReportId)
@@ -82,9 +93,13 @@ const DiagnosticPage = () => {
     );
   }, [diagnosticReportId]);
 
-  const runDiagnostic = async (e: FormEvent) => {
+  const runDiagnostic = (e: FormEvent) => {
     e.preventDefault();
-    let normalized = url.trim();
+    return runDiagnosticFor(url);
+  };
+
+  const runDiagnosticFor = async (rawUrl: string) => {
+    let normalized = rawUrl.trim();
     if (!/^https?:\/\//i.test(normalized)) normalized = "https://" + normalized;
 
     setLoading(true);

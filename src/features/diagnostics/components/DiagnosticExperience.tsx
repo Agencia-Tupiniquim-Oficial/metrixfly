@@ -20,7 +20,6 @@ import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
 import { DiagnosticProgress } from "./DiagnosticProgress";
 import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
 import { DiagnosticReportShareCard } from "./DiagnosticReportShareCard";
-import ServiceInterestCard from "./ServiceInterestCard";
 
 export function DiagnosticExperience({
   url,
@@ -288,14 +287,6 @@ export function DiagnosticExperience({
                 </Link>
               </Button>
             </Card>
-
-            {sendQuoteRequest && (
-              <ServiceInterestCard
-                onSubmitQuoteRequest={sendQuoteRequest}
-                onQuoteDialogOpen={onQuoteDialogOpen}
-                quoteSending={quoteSending}
-              />
-            )}
 
             {/* Act 2: Detailed Metrics */}
             <div className="space-y-6">

@@ -1,10 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import logoColored from "@/assets/logo-colored.png";
 import { DiagnosisProvider } from "@/features/diagnostics/state/DiagnosisContext";
 import DiagnosticPage from "@/features/diagnostics/pages/DiagnosticPage";
+
+const { runDiagnosticWithProgress } = vi.hoisted(() => ({
+  runDiagnosticWithProgress: vi.fn((..._args: unknown[]) => new Promise(() => {})),
+}));
+
+vi.mock("@/features/diagnostics/services/diagnose-site", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/diagnostics/services/diagnose-site")>()),
+  runDiagnosticWithProgress,
+}));
 
 function renderWithProviders(initialEntries: string[] = ["/"]) {
   const queryClient = new QueryClient({
@@ -45,12 +54,25 @@ describe("Diagnostic experience", () => {
     expect(screen.getByText("Geo/AEO")).toBeDefined();
   });
 
-  it("prefills the site address received from the home page", () => {
+  it("prefills the address and starts the diagnostic received from the home page", () => {
+    runDiagnosticWithProgress.mockClear();
     renderWithProviders(["/diagnostico?url=exemplo.com.br%2Floja"]);
 
     expect(screen.getByPlaceholderText("exemplo.com.br")).toHaveValue(
       "exemplo.com.br/loja",
     );
+    expect(runDiagnosticWithProgress).toHaveBeenCalledTimes(1);
+    expect(runDiagnosticWithProgress.mock.calls[0][0]).toBe(
+      "https://exemplo.com.br/loja",
+    );
+  });
+
+  it("does not start a diagnostic without an address or in demo mode", () => {
+    runDiagnosticWithProgress.mockClear();
+    renderWithProviders(["/diagnostico"]);
+    renderWithProviders(["/diagnostico?demo=1&url=exemplo.com.br"]);
+
+    expect(runDiagnosticWithProgress).not.toHaveBeenCalled();
   });
 
   it("renders a populated diagnostic when demo mode is enabled", () => {
