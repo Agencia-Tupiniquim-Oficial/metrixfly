@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { sampleDiagnosticResult } from "@/features/diagnostics/demo/diagnosticMock";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import logoColored from "@/assets/logo-colored.png";
@@ -65,6 +66,33 @@ describe("Diagnostic experience", () => {
     expect(runDiagnosticWithProgress.mock.calls[0][0]).toBe(
       "https://exemplo.com.br/loja",
     );
+  });
+
+  it("ignores a diagnostic saved from an earlier visit when an address is requested", async () => {
+    runDiagnosticWithProgress.mockClear();
+    sessionStorage.setItem(
+      "diagnosis:result",
+      JSON.stringify({
+        ...sampleDiagnosticResult,
+        geo: { domain: "https://antigo.com.br/" },
+      }),
+    );
+    try {
+      renderWithProviders(["/diagnostico?url=novo.com.br"]);
+
+      await waitFor(() =>
+        expect(runDiagnosticWithProgress).toHaveBeenCalledTimes(1),
+      );
+      expect(runDiagnosticWithProgress.mock.calls[0][0]).toBe(
+        "https://novo.com.br",
+      );
+      expect(screen.getByPlaceholderText("exemplo.com.br")).toHaveValue(
+        "novo.com.br",
+      );
+      expect(screen.queryByText("Boletim de Saúde Digital")).toBeNull();
+    } finally {
+      sessionStorage.clear();
+    }
   });
 
   it("does not start a diagnostic without an address or in demo mode", () => {

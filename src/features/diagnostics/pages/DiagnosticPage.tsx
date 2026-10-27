@@ -45,17 +45,26 @@ const DiagnosticPage = () => {
   } = useDiagnosis();
 
   const [searchParams] = useSearchParams();
-  // The home page hands the typed address over as ?url=; a saved diagnostic wins.
+  // The home page hands the typed address over as ?url=; it wins over any
+  // diagnostic saved from an earlier visit, which must not be shown instead.
+  const [requestedUrl] = useState(() =>
+    searchParams.get("demo") === "1" ? "" : (searchParams.get("url")?.trim() ?? ""),
+  );
+  // Saved diagnostics are rehydrated asynchronously after mount, so with a
+  // requested address only the result of this page's own run may be shown.
+  const ownRunDone = useRef(!requestedUrl);
   const [url, setUrl] = useState(
-    diagnostic?.geo?.domain ?? searchParams.get("url")?.trim() ?? "",
+    requestedUrl || (diagnostic?.geo?.domain ?? ""),
   );
   const [loading, setLoading] = useState(false);
   const [diagnosticProgress, setDiagnosticProgress] =
     useState<DiagnosticProgressState>(initialDiagnosticProgress);
   const [geoLoading, setGeoLoading] = useState(false);
-  const [result, setResult] = useState<Result | null>(diagnostic ?? null);
+  const [result, setResult] = useState<Result | null>(
+    requestedUrl ? null : (diagnostic ?? null),
+  );
   const [reportUrl, setReportUrl] = useState<string | null>(() =>
-    diagnosticReportId && isPublicDiagnosticReportId(diagnosticReportId)
+    !requestedUrl && diagnosticReportId && isPublicDiagnosticReportId(diagnosticReportId)
       ? `${window.location.origin}/diagnostico/${diagnosticReportId}`
       : null,
   );
@@ -69,7 +78,7 @@ const DiagnosticPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!diagnostic) return;
+    if (!diagnostic || !ownRunDone.current) return;
     setResult(diagnostic);
     if (diagnostic.geo?.domain) setUrl(diagnostic.geo.domain);
   }, [diagnostic]);
@@ -77,11 +86,9 @@ const DiagnosticPage = () => {
   // An address handed over as ?url= (landing page) starts the diagnostic once.
   const autoRunStarted = useRef(false);
   useEffect(() => {
-    const requested = searchParams.get("url")?.trim();
-    if (!requested || diagnostic || autoRunStarted.current) return;
-    if (searchParams.get("demo") === "1") return;
+    if (!requestedUrl || autoRunStarted.current) return;
     autoRunStarted.current = true;
-    void runDiagnosticFor(requested);
+    void runDiagnosticFor(requestedUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -120,6 +127,7 @@ const DiagnosticPage = () => {
         ...completed.diagnosis,
         geo: { ...completed.diagnosis.geo, domain: normalized },
       } satisfies DiagnoseResult;
+      ownRunDone.current = true;
       setResult(diagnosticResult);
       setDiagnostic(diagnosticResult);
       if (
