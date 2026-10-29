@@ -452,7 +452,6 @@ const DiagnosticPage = () => {
     onQuoteDialogOpen={isDemo ? undefined : recordQuoteDialogOpen}
     quoteDialogOpen={quoteDialogOpen}
     onQuoteDialogOpenChange={setQuoteDialogOpen}
-    onQuoteIntent={() => setQuoteIntent(true)}
     quoteSending={quoteSending}
     reportUrl={isDemo ? null : reportUrl}
     reportLocked={reportLocked}

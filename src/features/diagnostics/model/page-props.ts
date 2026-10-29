@@ -41,7 +41,6 @@ export type DiagnosticPageProps = {
   /** The quote popup opened by the closing band, or right after a diagnostic asked for from it. */
   quoteDialogOpen?: boolean;
   onQuoteDialogOpenChange?: (open: boolean) => void;
-  /** The visitor asked for a quote before having a diagnostic: open it when the report is ready. */
-  onQuoteIntent?: () => void;
+
   openGeoDashboard?: (crawl?: unknown) => void;
 };
