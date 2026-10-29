@@ -58,6 +58,13 @@ const DiagnosticPage = () => {
     () => (routerLocation.state as { openQuote?: boolean } | null)?.openQuote === true,
   );
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  useEffect(() => {
+    if ((routerLocation.state as { openQuote?: boolean } | null)?.openQuote) {
+      navigate(`${routerLocation.pathname}${routerLocation.search}`, { replace: true, state: null });
+    }
+    // Runs once: the intent was already read into state above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // The report opens at once for a visitor whose e-mail is already known in this browser.
   const [reportUnlocked, setReportUnlocked] = useState(
     () => readRememberedLeadEmail() !== null,
@@ -267,6 +274,9 @@ const DiagnosticPage = () => {
     enabled: !isDemoMode,
   });
 
+  // The report stays blurred until an e-mail is given, also while the quote form (which asks for one) is open.
+  const reportLocked = !isDemoMode && result !== null && !reportUnlocked;
+
   const unlockReport = async (email: string) => {
     rememberLeadEmail(email);
     try {
@@ -445,7 +455,8 @@ const DiagnosticPage = () => {
     onQuoteIntent={() => setQuoteIntent(true)}
     quoteSending={quoteSending}
     reportUrl={isDemo ? null : reportUrl}
-    reportLocked={!isDemo && result !== null && !reportUnlocked && !quoteDialogOpen}
+    reportLocked={reportLocked}
+    emailGateOpen={reportLocked && !quoteDialogOpen}
     onUnlockReport={isDemo ? undefined : unlockReport}
     openGeoDashboard={openGeoDashboard}
   />;

@@ -62,6 +62,7 @@ export function DiagnosticExperience({
   quoteSending,
   reportUrl,
   reportLocked = false,
+  emailGateOpen = reportLocked,
   onUnlockReport,
   quoteDialogOpen = false,
   onQuoteDialogOpenChange,
@@ -338,7 +339,7 @@ export function DiagnosticExperience({
         />
       )}
       {result && onUnlockReport && (
-        <ReportEmailGate open={reportLocked} domain={domain} onSubmit={onUnlockReport} />
+        <ReportEmailGate open={emailGateOpen} domain={domain} onSubmit={onUnlockReport} />
       )}
     </div>
   );
