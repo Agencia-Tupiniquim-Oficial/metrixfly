@@ -31,6 +31,7 @@ Siga este procedimento para funcionalidades e correcoes. Ajuste a profundidade d
 - **Planejar:** transforme a tarefa em um cartao em `PLANO.md` com criterios de aceite, arquivos provaveis, testes e riscos antes de editar.
 - **Executar:** siga a skill `metrixfly-implementation`, uma tarefa por vez. Registre no cartao as decisoes de nivel B, as verificacoes executadas (comando e resultado) e as pendencias.
 - **Revisar:** use a skill `metrixfly-review` em contexto separado do executor, lendo apenas o diff, os criterios do cartao e as evidencias. Achados voltam ao executor; ver limites em `GOVERNANCA.md`.
+- **Design:** em pedidos visuais (secao, layout, animacao, tema), siga a skill `metrixfly-design` antes de implementar; para telas novas ou grandes, use o subagente `metrixfly-design-review` (somente leitura), definido em `.claude/agents/`.
 - Os niveis de decisao e o limite de tentativas estao em `GOVERNANCA.md`.
 
 ## 5. Reportar
