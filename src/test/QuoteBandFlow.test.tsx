@@ -185,3 +185,42 @@ describe("quote asked for before the diagnostic", () => {
     expect(mocks.sendQuoteRequest).not.toHaveBeenCalled();
   });
 });
+
+describe("quote asked for from the band, then the site typed in the form", () => {
+  beforeEach(() => {
+    for (const mock of Object.values(mocks)) mock.mockClear();
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+
+  it("shows a single popup when the report is ready", async () => {
+    mocks.runDiagnosticWithProgress.mockResolvedValue({
+      diagnosis: { ...sampleDiagnosticResult, geo: { domain: "loja-exemplo.com.br" } },
+      reportId: null,
+      persistenceError: null,
+    });
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <DiagnosisProvider>
+          <MemoryRouter initialEntries={[{ pathname: "/diagnostico", state: { openQuote: true } }]}>
+            <Routes>
+              <Route path="/diagnostico" element={<DiagnosticPage />} />
+            </Routes>
+          </MemoryRouter>
+        </DiagnosisProvider>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("exemplo.com.br"), {
+      target: { value: "loja-exemplo.com.br" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Diagnosticar/ }));
+
+    expect(await screen.findByRole("dialog", { name: "Solicitar orçamento" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByRole("dialog")).toHaveLength(1));
+    expect(screen.queryByRole("dialog", { name: "Seu relatório está pronto" })).not.toBeInTheDocument();
+  });
+});
