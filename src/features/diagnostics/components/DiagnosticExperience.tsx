@@ -14,6 +14,8 @@ import { DiagnosticProgress } from "./DiagnosticProgress";
 import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
 import { DiagnosticReportShareCard } from "./DiagnosticReportShareCard";
 import ReportEmailGate from "./ReportEmailGate";
+import QuoteBandAction from "./QuoteBandAction";
+import QuoteRequestDialog from "./QuoteRequestDialog";
 
 const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
 
@@ -61,6 +63,9 @@ export function DiagnosticExperience({
   reportUrl,
   reportLocked = false,
   onUnlockReport,
+  quoteDialogOpen = false,
+  onQuoteDialogOpenChange,
+  onQuoteIntent,
 }: DiagnosticPageProps) {
   const reportContent = useRef<HTMLDivElement>(null);
   // While locked the report is blurred and unreachable by pointer or keyboard.
@@ -310,7 +315,28 @@ export function DiagnosticExperience({
           </div>
         )}
       </main>
-      {!loading && !result && <QuoteBand location="diagnostico" />}
+      {!loading && !result && (
+        <QuoteBand>
+          <QuoteBandAction
+            location="diagnostico"
+            onRequestDiagnostic={() => {
+              onQuoteIntent?.();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              document.getElementById("diagnostic-url")?.focus({ preventScroll: true });
+            }}
+          />
+        </QuoteBand>
+      )}
+      {result && sendQuoteRequest && (
+        <QuoteRequestDialog
+          open={quoteDialogOpen}
+          onOpenChange={onQuoteDialogOpenChange}
+          showTrigger={false}
+          onSubmitRequest={sendQuoteRequest}
+          onOpened={onQuoteDialogOpen}
+          sending={quoteSending}
+        />
+      )}
       {result && onUnlockReport && (
         <ReportEmailGate open={reportLocked} domain={domain} onSubmit={onUnlockReport} />
       )}

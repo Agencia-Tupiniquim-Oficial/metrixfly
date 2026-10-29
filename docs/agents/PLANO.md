@@ -99,3 +99,12 @@ PENDENTE (autorizacao do usuario): aplicar a migration `20261029120000_create_re
 - Vercel: projeto `metrixfly` no time `tupinquim`; o conector MCP da Vercel esta autenticado e permite consultar deploys e previews (somente leitura nesta iniciativa).
 - Skill `metrixfly-design` e subagente `metrixfly-design-review` criados para avaliar pedidos visuais antes de implementar; nao foram usados na rodada das 4 branches.
 - Itens ainda abertos: lista de decisoes pendentes acima (migration, textos, retencao, limite de taxa, destino do "Solicitar orcamento" fora do relatorio, formulario geral de orcamento, link da faixa nas paginas internas).
+
+### feat/quote-band-flow (2026-10-29, na `develop`)
+
+Pedido do usuario: o "Solicitar orcamento" da faixa final passa a depender de haver diagnostico. Com diagnostico rodado, abre no proprio lugar o mesmo formulario (Nome, Empresa, E-mail, Telefone) da pagina de resultado, que envia o e-mail com o PDF. Sem diagnostico, leva a `/diagnostico` (router state `openQuote`) e, assim que o relatorio fica pronto, o formulario abre sozinho; o popup de e-mail do relatorio nao aparece nesse caso.
+- `hooks/use-quote-request.ts` (novo): logica de envio do orcamento extraida da `DiagnosticPage`, sem mudar o comportamento; usada pela pagina e pelo botao da faixa.
+- `components/QuoteBandAction.tsx` (novo) e `components/quote-band.tsx` (agora recebe o botao como filho). `QuoteRequestDialog` ganhou modo controlado (`open`, `onOpenChange`, `showTrigger`).
+- O e-mail digitado no formulario de orcamento tambem libera o relatorio e grava o lead (mesma funcao `submit_report_lead`; depende da migration pendente). Se o formulario for fechado sem enviar, o popup de e-mail aparece.
+- Na propria `/diagnostico` sem resultado, o botao da faixa registra a intencao, rola ate o campo do site e foca nele.
+- Divida: paginas de outros dominios (home, geo-aeo, calculadora) importam `QuoteBandAction` de `features/diagnostics`; `useOptionalDiagnosis` foi adicionado ao contexto para o botao nao quebrar fora do provedor.
