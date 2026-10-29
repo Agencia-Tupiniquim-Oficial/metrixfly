@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  ArrowUp,
   Briefcase,
   Check,
   FileText,
@@ -330,6 +331,12 @@ export default function HomePage() {
             O PageSpeed Insights é um serviço do Google. Os resultados refletem o
             momento da análise e podem variar entre medições.
           </p>
+          <Button asChild variant="outline" size="sm">
+            <a href="#topo">
+              <ArrowUp aria-hidden="true" />
+              Voltar ao topo
+            </a>
+          </Button>
         </div>
       </footer>
     </div>
