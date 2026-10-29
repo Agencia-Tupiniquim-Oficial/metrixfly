@@ -30,6 +30,11 @@ import { runDiagnosticWithProgress } from "@/features/diagnostics/services/diagn
 import { trackQuoteRequestLead } from "@/features/diagnostics/services/quote-analytics";
 import { recordQuoteInterest } from "@/features/diagnostics/services/quote-interest";
 import {
+  readRememberedLeadEmail,
+  rememberLeadEmail,
+  submitReportLead,
+} from "@/features/diagnostics/services/report-lead";
+import {
   applyDiagnosticProgress,
   initialDiagnosticProgress,
   type DiagnosticProgressEvent,
@@ -58,6 +63,10 @@ const DiagnosticPage = () => {
     requestedUrl || (diagnostic?.geo?.domain ?? ""),
   );
   const [loading, setLoading] = useState(false);
+  // The report opens at once for a visitor whose e-mail is already known in this browser.
+  const [reportUnlocked, setReportUnlocked] = useState(
+    () => readRememberedLeadEmail() !== null,
+  );
   const [diagnosticProgress, setDiagnosticProgress] =
     useState<DiagnosticProgressState>(initialDiagnosticProgress);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -134,6 +143,16 @@ const DiagnosticPage = () => {
       ownRunDone.current = true;
       setResult(diagnosticResult);
       setDiagnostic(diagnosticResult);
+      const rememberedEmail = readRememberedLeadEmail();
+      setReportUnlocked(rememberedEmail !== null);
+      if (rememberedEmail) {
+        // Same visitor, new analysis: record it so the agency sees how many they ran.
+        void submitReportLead({
+          email: rememberedEmail,
+          domain: diagnosticResult.geo?.domain?.trim() || normalized,
+          reportId: completed.reportId ?? null,
+        }).catch((error: unknown) => console.error(error));
+      }
       if (
         completed.reportId &&
         isPublicDiagnosticReportId(completed.reportId)
@@ -256,6 +275,24 @@ const DiagnosticPage = () => {
       reportId: publicReportId,
       serviceInterest: interest,
     });
+  };
+
+  const unlockReport = async (email: string) => {
+    rememberLeadEmail(email);
+    try {
+      await submitReportLead({
+        email,
+        domain: result?.geo?.domain?.trim() || url.trim(),
+        reportId: diagnosticReportId,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Relatório liberado",
+        description: "Não conseguimos registrar o seu e-mail agora, mas você já pode ver o diagnóstico.",
+      });
+    }
+    setReportUnlocked(true);
   };
 
   const sendQuoteRequest = async (request: QuoteRequest) => {
@@ -498,6 +535,8 @@ const DiagnosticPage = () => {
     onQuoteDialogOpen={isDemo ? undefined : recordQuoteDialogOpen}
     quoteSending={quoteSending}
     reportUrl={isDemo ? null : reportUrl}
+    reportLocked={!isDemo && result !== null && !reportUnlocked}
+    onUnlockReport={isDemo ? undefined : unlockReport}
     openGeoDashboard={openGeoDashboard}
   />;
 };

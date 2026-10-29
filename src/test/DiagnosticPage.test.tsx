@@ -153,6 +153,8 @@ describe("Diagnostic result address bar", () => {
         geo: { domain: "https://safetyrentalsplataformas.com.br/" },
       }),
     );
+    // A known e-mail opens the report at once (otherwise it stays blurred behind the e-mail popup).
+    localStorage.setItem("metrixfly:report-lead-email", "visitante@exemplo.com.br");
     try {
       renderWithProviders(["/diagnostico"]);
 
@@ -164,6 +166,7 @@ describe("Diagnostic result address bar", () => {
       );
     } finally {
       sessionStorage.clear();
+      localStorage.clear();
     }
   });
 });

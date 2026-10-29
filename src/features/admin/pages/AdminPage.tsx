@@ -9,15 +9,20 @@ import { AdminHeader } from "@/features/admin/components/AdminHeader";
 import { useAdminSession, useNoIndex } from "@/features/admin/hooks/use-admin-session";
 import {
   AdminAccessError,
+  emailsByReport,
   filterAnalyses,
+  filterContacts,
+  groupContacts,
   listAnalyses,
+  listReportLeads,
   signOutAdmin,
   type AdminAnalysis,
+  type AdminLead,
 } from "@/features/admin/services/admin-api";
 
 type LoadState =
   | { status: "loading" }
-  | { status: "ready"; analyses: AdminAnalysis[] }
+  | { status: "ready"; analyses: AdminAnalysis[]; leads: AdminLead[] | null }
   | { status: "forbidden" }
   | { status: "error"; message: string };
 
@@ -65,7 +70,15 @@ export default function AdminPage() {
   const load = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      setState({ status: "ready", analyses: await listAnalyses() });
+      const [analyses, leads] = await Promise.all([
+        listAnalyses(),
+        // The e-mail list is extra: the analyses still show if it cannot be read.
+        listReportLeads().catch((error: unknown) => {
+          console.error("Unable to load the captured e-mails", error);
+          return null;
+        }),
+      ]);
+      setState({ status: "ready", analyses, leads });
     } catch (error) {
       if (error instanceof AdminAccessError) {
         setState({ status: "forbidden" });
@@ -89,7 +102,13 @@ export default function AdminPage() {
   }, [signedIn, load]);
 
   const analyses = state.status === "ready" ? state.analyses : [];
-  const visible = useMemo(() => filterAnalyses(analyses, term), [analyses, term]);
+  const leads = useMemo(() => (state.status === "ready" ? state.leads : null), [state]);
+  const emails = useMemo(() => emailsByReport(leads ?? []), [leads]);
+  const visible = useMemo(() => filterAnalyses(analyses, term, emails), [analyses, term, emails]);
+  const contacts = useMemo(
+    () => filterContacts(groupContacts(leads ?? []), term),
+    [leads, term],
+  );
   const requests = analyses.filter((analysis) => analysis.quoteSubmitted > 0).length;
 
   if (session.status === "anonymous") return <Navigate to="/admin/login" replace />;
@@ -165,8 +184,8 @@ export default function AdminPage() {
                   <Search aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    aria-label="Buscar domínio"
-                    placeholder="Buscar domínio"
+                    aria-label="Buscar domínio ou e-mail"
+                    placeholder="Buscar domínio ou e-mail"
                     value={term}
                     onChange={(event) => setTerm(event.target.value)}
                     className="h-10 w-52 border-0 bg-transparent px-0 focus-visible:ring-0"
@@ -187,10 +206,11 @@ export default function AdminPage() {
                 </p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[720px] text-left text-sm">
+                  <table className="w-full min-w-[860px] text-left text-sm">
                     <thead>
                       <tr className="bg-muted/40 text-muted-foreground">
                         <th className="px-6 py-3.5 font-semibold">Domínio</th>
+                        <th className="px-6 py-3.5 font-semibold">E-mail</th>
                         <th className="px-6 py-3.5 font-semibold">Data da análise</th>
                         <th className="w-56 px-6 py-3.5 font-semibold">Desempenho no celular</th>
                         <th className="px-6 py-3.5 font-semibold">Orçamento</th>
@@ -203,6 +223,11 @@ export default function AdminPage() {
                       {visible.map((analysis) => (
                         <tr key={analysis.id} className="border-t border-border">
                           <td className="px-6 py-4 font-bold">{analysis.domain}</td>
+                          <td className="px-6 py-4">
+                            {emails.get(analysis.id) ?? (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </td>
                           <td className="px-6 py-4 text-muted-foreground">
                             {new Date(analysis.createdAt).toLocaleString("pt-BR")}
                           </td>
@@ -232,6 +257,54 @@ export default function AdminPage() {
                 </div>
               )}
             </Card>
+
+            <section aria-labelledby="admin-contacts-title" className="space-y-3">
+              <h2 id="admin-contacts-title" className="text-xl font-extrabold tracking-tight">
+                E-mails que liberaram relatórios
+              </h2>
+              {leads === null ? (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Não foi possível carregar os e-mails agora.
+                </p>
+              ) : (
+                <Card className="overflow-hidden border-border bg-card">
+                  {contacts.length === 0 ? (
+                    <p className="px-6 py-10 text-center text-sm text-muted-foreground">
+                      {leads.length === 0
+                        ? "Ainda não há e-mails registrados."
+                        : "Nenhum e-mail encontrado para essa busca."}
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[720px] text-left text-sm">
+                        <thead>
+                          <tr className="bg-muted/40 text-muted-foreground">
+                            <th className="px-6 py-3.5 font-semibold">E-mail</th>
+                            <th className="px-6 py-3.5 font-semibold">Análises</th>
+                            <th className="px-6 py-3.5 font-semibold">Sites analisados</th>
+                            <th className="px-6 py-3.5 font-semibold">Última análise</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {contacts.map((contact) => (
+                            <tr key={contact.email} className="border-t border-border">
+                              <td className="px-6 py-4 font-bold">{contact.email}</td>
+                              <td className="px-6 py-4">{contact.analyses}</td>
+                              <td className="px-6 py-4 text-muted-foreground">
+                                {contact.domains.join(", ")}
+                              </td>
+                              <td className="px-6 py-4 text-muted-foreground">
+                                {new Date(contact.lastAt).toLocaleString("pt-BR")}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
+              )}
+            </section>
           </>
         )}
       </main>
