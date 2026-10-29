@@ -84,6 +84,11 @@ function signedIn(email = "suporte@agenciatupiniquim.com.br") {
   mocks.getSession.mockResolvedValue({ data: { session: { user: { email } } } });
 }
 
+function openContactsTab() {
+  // Radix tabs react to the mouse down, not to a click.
+  fireEvent.mouseDown(screen.getByRole("tab", { name: /Contatos/ }), { button: 0 });
+}
+
 function renderAdmin(path = "/admin") {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -121,7 +126,7 @@ describe("Agency admin area", () => {
     expect(await screen.findByText("https://loja-exemplo.com.br/")).toBeInTheDocument();
     expect(mocks.rpc).toHaveBeenCalledWith("admin_list_analyses", { limit_rows: 200 });
     expect(screen.getByText("suporte@agenciatupiniquim.com.br")).toBeInTheDocument();
-    expect(screen.getByText(/3 análises salvas · 1 pedido de orçamento/)).toBeInTheDocument();
+    expect(screen.getByText(/3 análises · 1 pedido de orçamento no período/)).toBeInTheDocument();
 
     const [table] = screen.getAllByRole("table");
     expect(within(table).getByText("Pediu orçamento")).toBeInTheDocument();
@@ -138,8 +143,10 @@ describe("Agency admin area", () => {
     await screen.findByText("https://loja-exemplo.com.br/");
 
     expect(mocks.rpc).toHaveBeenCalledWith("admin_list_report_leads", { limit_rows: 1000 });
-    const [analysesTable, contactsTable] = screen.getAllByRole("table");
-    expect(within(analysesTable).getAllByText("ana@empresa.com.br")).toHaveLength(2);
+    expect(within(screen.getByRole("table")).getAllByText("ana@empresa.com.br")).toHaveLength(2);
+
+    openContactsTab();
+    const contactsTable = screen.getByRole("table");
 
     const contactRow = within(contactsTable).getByText("ana@empresa.com.br").closest("tr")!;
     expect(within(contactRow).getByText("2")).toBeInTheDocument();
@@ -171,6 +178,7 @@ describe("Agency admin area", () => {
     renderAdmin();
 
     expect(await screen.findByText("https://loja-exemplo.com.br/")).toBeInTheDocument();
+    openContactsTab();
     expect(screen.getByText("Não foi possível carregar os e-mails agora.")).toBeInTheDocument();
   });
 
@@ -189,7 +197,55 @@ describe("Agency admin area", () => {
     fireEvent.change(screen.getByRole("searchbox", { name: "Buscar domínio ou e-mail" }), {
       target: { value: "nada" },
     });
-    expect(screen.getByText("Nenhum domínio encontrado para essa busca.")).toBeInTheDocument();
+    expect(screen.getByText("Nenhum domínio encontrado para esses filtros.")).toBeInTheDocument();
+  });
+
+  it("narrows the cards, the table and the contacts to a date range", async () => {
+    signedIn();
+    renderAdmin();
+    await screen.findByText("https://loja-exemplo.com.br/");
+
+    fireEvent.change(screen.getByLabelText("Data inicial"), { target: { value: "2026-10-27" } });
+    fireEvent.change(screen.getByLabelText("Data final"), { target: { value: "2026-10-27" } });
+
+    expect(screen.getByText("https://loja-exemplo.com.br/")).toBeInTheDocument();
+    expect(screen.queryByText("https://clinica-exemplo.com.br/")).not.toBeInTheDocument();
+    expect(screen.getByText(/1 análise · 1 pedido de orçamento no período/)).toBeInTheDocument();
+
+    openContactsTab();
+    const contactRow = within(screen.getByRole("table")).getByText("ana@empresa.com.br").closest("tr")!;
+    expect(contactRow).toHaveTextContent("https://loja-exemplo.com.br/");
+    expect(contactRow).not.toHaveTextContent("clinica-exemplo");
+
+    fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    expect(screen.getByLabelText("Data inicial")).toHaveValue("");
+  });
+
+  it("filters by quote status and clears the filters", async () => {
+    signedIn();
+    renderAdmin();
+    await screen.findByText("https://loja-exemplo.com.br/");
+
+    fireEvent.change(screen.getByLabelText("Filtrar por orçamento"), {
+      target: { value: "opened" },
+    });
+    expect(screen.queryByText("https://loja-exemplo.com.br/")).not.toBeInTheDocument();
+    expect(screen.getByText("https://clinica-exemplo.com.br/")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    expect(screen.getByText("https://loja-exemplo.com.br/")).toBeInTheDocument();
+  });
+
+  it("sorts by performance when the column header is used", async () => {
+    signedIn();
+    renderAdmin();
+    await screen.findByText("https://loja-exemplo.com.br/");
+
+    fireEvent.click(screen.getByRole("button", { name: "Desempenho no celular" }));
+    const firstRow = () => screen.getAllByRole("row")[1];
+    expect(firstRow()).toHaveTextContent("loja-exemplo");
+    fireEvent.click(screen.getByRole("button", { name: "Desempenho no celular" }));
+    expect(firstRow()).toHaveTextContent("Endereço não informado");
   });
 
   it("tells a signed-in account that is not on the allowlist it has no access", async () => {
@@ -260,7 +316,7 @@ describe("Agency admin area", () => {
     signedIn();
     renderAdmin("/admin/login");
 
-    expect(await screen.findByText(/análises salvas/)).toBeInTheDocument();
+    expect(await screen.findByText(/3 análises · 1 pedido de orçamento/)).toBeInTheDocument();
   });
 });
 

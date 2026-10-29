@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { ExternalLink, Loader2, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Download, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminAnalysesTable } from "@/features/admin/components/AdminAnalysesTable";
+import { AdminContactsTable } from "@/features/admin/components/AdminContactsTable";
+import {
+  AdminFilters,
+  defaultFilters,
+  type AdminFilterState,
+} from "@/features/admin/components/AdminFilters";
 import { AdminHeader } from "@/features/admin/components/AdminHeader";
+import { AdminPagination } from "@/features/admin/components/AdminPagination";
+import { AdminDailyChart, AdminStats } from "@/features/admin/components/AdminStats";
 import { useAdminSession, useNoIndex } from "@/features/admin/hooks/use-admin-session";
 import {
   AdminAccessError,
@@ -19,6 +27,20 @@ import {
   type AdminAnalysis,
   type AdminLead,
 } from "@/features/admin/services/admin-api";
+import {
+  analysesCsv,
+  contactsCsv,
+  dailySeries,
+  downloadCsv,
+  filterByStatus,
+  filterLeadsByRange,
+  inRange,
+  pageCount,
+  sortAnalyses,
+  summarize,
+  type SortDirection,
+  type SortKey,
+} from "@/features/admin/services/admin-insights";
 
 type LoadState =
   | { status: "loading" }
@@ -27,48 +49,26 @@ type LoadState =
   | { status: "error"; message: string };
 
 const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
-
-function scoreClasses(score: number) {
-  if (score >= 90) return { text: "text-emerald-700 dark:text-emerald-300", bar: "bg-success" };
-  if (score >= 50) return { text: "text-amber-700 dark:text-amber-300", bar: "bg-warning" };
-  return { text: "text-rose-700 dark:text-rose-300", bar: "bg-destructive" };
-}
-
-function ScoreCell({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-muted-foreground">-</span>;
-  const tone = scoreClasses(score);
-  return (
-    <div className="flex items-center gap-3">
-      <span className={`w-8 font-extrabold ${tone.text}`}>{score}</span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-        <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${score}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function QuoteBadge({ analysis }: { analysis: AdminAnalysis }) {
-  if (analysis.quoteSubmitted > 0) {
-    return (
-      <Badge className="border-transparent bg-success text-primary-foreground">
-        Pediu orçamento
-      </Badge>
-    );
-  }
-  if (analysis.quoteOpened > 0) {
-    return <Badge variant="outline">Abriu o formulário</Badge>;
-  }
-  return <span className="text-muted-foreground">-</span>;
-}
+const PAGE_SIZE = 10;
+const ANALYSES_LIMIT = 200;
+const emptyMessage = "px-6 py-10 text-center text-sm text-muted-foreground";
 
 export default function AdminPage() {
   useNoIndex();
   const session = useAdminSession();
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [term, setTerm] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [filters, setFilters] = useState<AdminFilterState>(defaultFilters);
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
+    key: "date",
+    direction: "desc",
+  });
+  const [analysesPage, setAnalysesPage] = useState(1);
+  const [contactsPage, setContactsPage] = useState(1);
 
-  const load = useCallback(async () => {
-    setState({ status: "loading" });
+  const load = useCallback(async (silent = false) => {
+    if (silent) setRefreshing(true);
+    else setState({ status: "loading" });
     try {
       const [analyses, leads] = await Promise.all([
         listAnalyses(),
@@ -93,6 +93,8 @@ export default function AdminPage() {
             ? (error as { message: string }).message
             : "Não foi possível carregar as análises.",
       });
+    } finally {
+      setRefreshing(false);
     }
   }, []);
 
@@ -101,15 +103,52 @@ export default function AdminPage() {
     if (signedIn) void load();
   }, [signedIn, load]);
 
-  const analyses = state.status === "ready" ? state.analyses : [];
-  const leads = useMemo(() => (state.status === "ready" ? state.leads : null), [state]);
+  // A new filter or order starts again from the first page.
+  useEffect(() => {
+    setAnalysesPage(1);
+    setContactsPage(1);
+  }, [filters, sort]);
+
+  const all = useMemo(() => (state.status === "ready" ? state.analyses : []), [state]);
+  const leads = state.status === "ready" ? state.leads : null;
   const emails = useMemo(() => emailsByReport(leads ?? []), [leads]);
-  const visible = useMemo(() => filterAnalyses(analyses, term, emails), [analyses, term, emails]);
-  const contacts = useMemo(
-    () => filterContacts(groupContacts(leads ?? []), term),
-    [leads, term],
+
+  // Period and quote status narrow what the cards, chart and tables show; the search narrows the tables.
+  const inPeriod = useMemo(
+    () =>
+      filterByStatus(
+        all.filter((analysis) => inRange(analysis.createdAt, filters.range)),
+        filters.status,
+      ),
+    [all, filters.range, filters.status],
   );
-  const requests = analyses.filter((analysis) => analysis.quoteSubmitted > 0).length;
+  const leadsInPeriod = useMemo(
+    () => (leads === null ? null : filterLeadsByRange(leads, filters.range)),
+    [leads, filters.range],
+  );
+  const summary = useMemo(() => summarize(inPeriod, leadsInPeriod), [inPeriod, leadsInPeriod]);
+  const series = useMemo(() => dailySeries(inPeriod, filters.range), [inPeriod, filters.range]);
+
+  const visible = useMemo(
+    () =>
+      sortAnalyses(filterAnalyses(inPeriod, filters.term, emails), sort.key, sort.direction),
+    [inPeriod, filters.term, emails, sort],
+  );
+  const contacts = useMemo(
+    () => filterContacts(groupContacts(leadsInPeriod ?? []), filters.term),
+    [leadsInPeriod, filters.term],
+  );
+
+  const analysesPages = pageCount(visible.length, PAGE_SIZE);
+  const contactsPages = pageCount(contacts.length, PAGE_SIZE);
+  const analysesSlice = visible.slice(
+    (Math.min(analysesPage, analysesPages) - 1) * PAGE_SIZE,
+    Math.min(analysesPage, analysesPages) * PAGE_SIZE,
+  );
+  const contactsSlice = contacts.slice(
+    (Math.min(contactsPage, contactsPages) - 1) * PAGE_SIZE,
+    Math.min(contactsPage, contactsPages) * PAGE_SIZE,
+  );
 
   if (session.status === "anonymous") return <Navigate to="/admin/login" replace />;
 
@@ -121,13 +160,22 @@ export default function AdminPage() {
     }
   };
 
+  const changeSort = (key: SortKey) =>
+    setSort((current) =>
+      current.key === key
+        ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
+        : { key, direction: key === "domain" ? "asc" : "desc" },
+    );
+
+  const stamp = new Date().toISOString().slice(0, 10);
+
   return (
     <div className="min-h-screen bg-secondary/40">
       <AdminHeader
         email={session.status === "signed-in" ? session.email : undefined}
         onSignOut={signedIn ? signOut : undefined}
       />
-      <main className="container max-w-6xl space-y-6 py-10 md:py-12">
+      <main className="container max-w-7xl space-y-6 py-8 md:py-10">
         {(session.status === "loading" || state.status === "loading") && (
           <div role="status" className="flex items-center justify-center gap-3 py-20">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -142,8 +190,7 @@ export default function AdminPage() {
           >
             <h1 className="text-xl font-semibold">Sem acesso</h1>
             <p className="text-muted-foreground">
-              Esta conta não tem acesso à área administrativa. Entre com o e-mail
-              da agência.
+              Esta conta não tem acesso à área administrativa. Entre com o e-mail da agência.
             </p>
             <Button type="button" variant="outline" onClick={signOut}>
               Sair
@@ -168,143 +215,141 @@ export default function AdminPage() {
           <>
             <div className="flex flex-wrap items-end justify-between gap-5">
               <div className="space-y-1.5">
-                <p className={eyebrow}>Histórico</p>
+                <p className={eyebrow}>Painel</p>
                 <h1 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
                   Análises realizadas
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {analyses.length}{" "}
-                  {analyses.length === 1 ? "análise salva" : "análises salvas"} ·{" "}
-                  {requests} {requests === 1 ? "pedido" : "pedidos"} de orçamento. Os
-                  mais recentes primeiro.
+                  {summary.analyses} {summary.analyses === 1 ? "análise" : "análises"} ·{" "}
+                  {summary.requests} {summary.requests === 1 ? "pedido" : "pedidos"} de orçamento
+                  no período.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-3">
-                  <Search aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    aria-label="Buscar domínio ou e-mail"
-                    placeholder="Buscar domínio ou e-mail"
-                    value={term}
-                    onChange={(event) => setTerm(event.target.value)}
-                    className="h-10 w-52 border-0 bg-transparent px-0 focus-visible:ring-0"
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void load(true)}
+                  disabled={refreshing}
+                >
+                  <RefreshCw
+                    aria-hidden="true"
+                    className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
                   />
-                </div>
+                  Atualizar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={visible.length === 0}
+                  onClick={() =>
+                    downloadCsv(`metricfly-analises-${stamp}.csv`, analysesCsv(visible, emails))
+                  }
+                >
+                  <Download aria-hidden="true" className="mr-2 h-4 w-4" />
+                  Exportar CSV
+                </Button>
                 <Button asChild variant="hero">
                   <Link to="/">Nova análise</Link>
                 </Button>
               </div>
             </div>
 
-            <Card className="overflow-hidden border-border bg-card">
-              {visible.length === 0 ? (
-                <p className="px-6 py-10 text-center text-sm text-muted-foreground">
-                  {analyses.length === 0
-                    ? "Ainda não há análises salvas."
-                    : "Nenhum domínio encontrado para essa busca."}
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[860px] text-left text-sm">
-                    <thead>
-                      <tr className="bg-muted/40 text-muted-foreground">
-                        <th className="px-6 py-3.5 font-semibold">Domínio</th>
-                        <th className="px-6 py-3.5 font-semibold">E-mail</th>
-                        <th className="px-6 py-3.5 font-semibold">Data da análise</th>
-                        <th className="w-56 px-6 py-3.5 font-semibold">Desempenho no celular</th>
-                        <th className="px-6 py-3.5 font-semibold">Orçamento</th>
-                        <th className="px-6 py-3.5">
-                          <span className="sr-only">Ações</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visible.map((analysis) => (
-                        <tr key={analysis.id} className="border-t border-border">
-                          <td className="px-6 py-4 font-bold">{analysis.domain}</td>
-                          <td className="px-6 py-4">
-                            {emails.get(analysis.id) ?? (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-muted-foreground">
-                            {new Date(analysis.createdAt).toLocaleString("pt-BR")}
-                          </td>
-                          <td className="px-6 py-4">
-                            <ScoreCell score={analysis.mobileScore} />
-                          </td>
-                          <td className="px-6 py-4">
-                            <QuoteBadge analysis={analysis} />
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <Button asChild variant="outline" size="sm">
-                              <a
-                                href={`/diagnostico/${analysis.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label={`Abrir o relatório de ${analysis.domain}`}
-                              >
-                                Abrir
-                                <ExternalLink aria-hidden="true" className="ml-1.5 h-3.5 w-3.5" />
-                              </a>
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Card>
+            <AdminFilters value={filters} onChange={setFilters} />
+            <AdminStats summary={summary} emailsAvailable={leads !== null} />
+            <AdminDailyChart series={series} />
 
-            <section aria-labelledby="admin-contacts-title" className="space-y-3">
-              <h2 id="admin-contacts-title" className="text-xl font-extrabold tracking-tight">
-                E-mails que liberaram relatórios
-              </h2>
-              {leads === null ? (
-                <p role="status" className="text-sm text-muted-foreground">
-                  Não foi possível carregar os e-mails agora.
-                </p>
-              ) : (
+            <Tabs defaultValue="analyses" className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <TabsList className="h-11">
+                  <TabsTrigger value="analyses" className="min-h-9 px-4">
+                    Análises ({visible.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="contacts" className="min-h-9 px-4">
+                    Contatos ({leads === null ? "-" : contacts.length})
+                  </TabsTrigger>
+                </TabsList>
+                {all.length >= ANALYSES_LIMIT && (
+                  <p className="text-xs text-muted-foreground">
+                    Mostrando as {ANALYSES_LIMIT} análises mais recentes.
+                  </p>
+                )}
+              </div>
+
+              <TabsContent value="analyses" className="mt-0">
                 <Card className="overflow-hidden border-border bg-card">
-                  {contacts.length === 0 ? (
-                    <p className="px-6 py-10 text-center text-sm text-muted-foreground">
-                      {leads.length === 0
-                        ? "Ainda não há e-mails registrados."
-                        : "Nenhum e-mail encontrado para essa busca."}
+                  {visible.length === 0 ? (
+                    <p className={emptyMessage}>
+                      {all.length === 0
+                        ? "Ainda não há análises salvas."
+                        : "Nenhum domínio encontrado para esses filtros."}
                     </p>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[720px] text-left text-sm">
-                        <thead>
-                          <tr className="bg-muted/40 text-muted-foreground">
-                            <th className="px-6 py-3.5 font-semibold">E-mail</th>
-                            <th className="px-6 py-3.5 font-semibold">Análises</th>
-                            <th className="px-6 py-3.5 font-semibold">Sites analisados</th>
-                            <th className="px-6 py-3.5 font-semibold">Última análise</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {contacts.map((contact) => (
-                            <tr key={contact.email} className="border-t border-border">
-                              <td className="px-6 py-4 font-bold">{contact.email}</td>
-                              <td className="px-6 py-4">{contact.analyses}</td>
-                              <td className="px-6 py-4 text-muted-foreground">
-                                {contact.domains.join(", ")}
-                              </td>
-                              <td className="px-6 py-4 text-muted-foreground">
-                                {new Date(contact.lastAt).toLocaleString("pt-BR")}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <>
+                      <AdminAnalysesTable
+                        analyses={analysesSlice}
+                        emails={emails}
+                        sortKey={sort.key}
+                        direction={sort.direction}
+                        onSort={changeSort}
+                      />
+                      <AdminPagination
+                        page={Math.min(analysesPage, analysesPages)}
+                        pages={analysesPages}
+                        total={visible.length}
+                        pageSize={PAGE_SIZE}
+                        onPage={setAnalysesPage}
+                      />
+                    </>
                   )}
                 </Card>
-              )}
-            </section>
+              </TabsContent>
+
+              <TabsContent value="contacts" className="mt-0 space-y-3">
+                {leads === null ? (
+                  <p role="status" className="text-sm text-muted-foreground">
+                    Não foi possível carregar os e-mails agora.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={contacts.length === 0}
+                        onClick={() =>
+                          downloadCsv(`metricfly-contatos-${stamp}.csv`, contactsCsv(contacts))
+                        }
+                      >
+                        <Download aria-hidden="true" className="mr-2 h-4 w-4" />
+                        Exportar contatos
+                      </Button>
+                    </div>
+                    <Card className="overflow-hidden border-border bg-card">
+                      {contacts.length === 0 ? (
+                        <p className={emptyMessage}>
+                          {leads.length === 0
+                            ? "Ainda não há e-mails registrados."
+                            : "Nenhum e-mail encontrado para esses filtros."}
+                        </p>
+                      ) : (
+                        <>
+                          <AdminContactsTable contacts={contactsSlice} />
+                          <AdminPagination
+                            page={Math.min(contactsPage, contactsPages)}
+                            pages={contactsPages}
+                            total={contacts.length}
+                            pageSize={PAGE_SIZE}
+                            onPage={setContactsPage}
+                          />
+                        </>
+                      )}
+                    </Card>
+                  </>
+                )}
+              </TabsContent>
+            </Tabs>
           </>
         )}
       </main>
