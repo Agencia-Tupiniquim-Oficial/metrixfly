@@ -50,15 +50,13 @@ describe("application route fallback", () => {
     ).toBeInTheDocument();
   });
 
-  it("sends /diagnostico and /geo-aeo without a site to the home page", async () => {
+  it("shows the address form on /diagnostico and sends /geo-aeo without a site there", async () => {
     for (const path of ["/diagnostico", "/geo-aeo"]) {
       window.history.replaceState({}, "", path);
       const { unmount } = render(<App />);
 
-      expect(
-        await screen.findByRole("heading", { name: /Do endereço ao relatório em três passos/ }),
-      ).toBeInTheDocument();
-      expect(window.location.pathname).toBe("/");
+      expect(await screen.findByPlaceholderText("exemplo.com.br")).toBeInTheDocument();
+      expect(window.location.pathname).toBe("/diagnostico");
       unmount();
     }
   });

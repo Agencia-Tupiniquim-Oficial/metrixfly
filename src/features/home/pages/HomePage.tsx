@@ -1,23 +1,22 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowUp,
   Briefcase,
   Check,
   FileText,
   Gauge,
-  Globe,
   Link2,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import logoColored from "@/assets/logo-colored.png";
 import { pushDataLayerEvent } from "@/lib/analytics";
 import { enableAnchorSmoothScroll } from "@/lib/smooth-scroll";
+import QuoteBand from "@/components/quote-band";
 import FaqSection from "../components/FaqSection";
 import PdfMockup from "../components/PdfMockup";
 import ReportPreview from "../components/ReportPreview";
@@ -96,8 +95,6 @@ const deliverables: { icon: LucideIcon; title: string; description: string }[] =
 const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
 
 export default function HomePage() {
-  const [address, setAddress] = useState("");
-  const addressInput = useRef<HTMLInputElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => enableAnchorSmoothScroll(), []);
@@ -108,24 +105,9 @@ export default function HomePage() {
     window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
   }, []);
-  const navigate = useNavigate();
 
-  const focusAddress = () => {
-    addressInput.current?.scrollIntoView?.({ behavior: "smooth", block: "center" });
-    addressInput.current?.focus();
-  };
-
-  const startDiagnostic = (event: FormEvent) => {
-    event.preventDefault();
-    const site = address.trim();
-    if (!site) return;
-
-    pushDataLayerEvent({ event: "cta_click", cta_id: "home_diagnose", location: "home" });
-    navigate(`/diagnostico?${new URLSearchParams({ url: site }).toString()}`);
-  };
-
-  // The Agent Crawl page reads the address from the router state, not from ?url=.
-  const crawlState = address.trim() ? { url: address.trim() } : undefined;
+  const trackDiagnose = (ctaId: string) => () =>
+    pushDataLayerEvent({ event: "cta_click", cta_id: ctaId, location: "home" });
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -148,13 +130,10 @@ export default function HomePage() {
                 {label}
               </a>
             ))}
-            <Button
-              type="button"
-              variant="hero"
-              onClick={focusAddress}
-              className="hidden sm:inline-flex"
-            >
-              Diagnosticar meu site
+            <Button asChild variant="hero" className="hidden sm:inline-flex">
+              <Link to="/diagnostico" onClick={trackDiagnose("home_header_diagnose")}>
+                Diagnosticar meu site
+              </Link>
             </Button>
             <ThemeToggle inline />
           </div>
@@ -173,37 +152,17 @@ export default function HomePage() {
                 <span className="text-primary">citado por IAs</span>?
               </h1>
               <p className="max-w-xl text-base text-muted-foreground md:text-lg">
-                Informe o endereço e receba notas, métricas e oportunidades de melhoria
+                Receba notas, métricas e oportunidades de melhoria
                 explicadas para quem não é técnico, com relatório em PDF pronto para
                 compartilhar.
               </p>
 
-              <Card
-                className="max-w-xl border-border bg-card p-2"
-                style={{ boxShadow: "var(--shadow-card)" }}
-              >
-                <form onSubmit={startDiagnostic} className="flex flex-col gap-2 sm:flex-row">
-                  <div className="flex flex-1 items-center gap-2 px-3">
-                    <Globe
-                      aria-hidden="true"
-                      className="h-4 w-4 shrink-0 text-muted-foreground"
-                    />
-                    <Input
-                      ref={addressInput}
-                      aria-label="Endereço do site"
-                      value={address}
-                      onChange={(event) => setAddress(event.target.value)}
-                      placeholder="exemplo.com.br"
-                      className="border-0 bg-transparent text-base focus-visible:ring-0"
-                      required
-                    />
-                  </div>
-                  <Button type="submit" size="lg" variant="hero">
-                    <Gauge aria-hidden="true" className="mr-2 h-4 w-4" />
-                    Diagnosticar meu site
-                  </Button>
-                </form>
-              </Card>
+              <Button asChild size="lg" variant="hero" className="self-start">
+                <Link to="/diagnostico" onClick={trackDiagnose("home_diagnose")}>
+                  <Gauge aria-hidden="true" className="mr-2 h-4 w-4" />
+                  Diagnosticar meu site
+                </Link>
+              </Button>
             </div>
 
             <ReportPreview />
@@ -238,12 +197,14 @@ export default function HomePage() {
                 </ul>
                 <div className="mt-auto pt-2">
                   {index === 0 ? (
-                    <Button type="button" variant="hero" onClick={focusAddress}>
-                      Diagnosticar desempenho
+                    <Button asChild variant="hero">
+                      <Link to="/diagnostico" onClick={trackDiagnose("home_card_performance")}>
+                        Diagnosticar desempenho
+                      </Link>
                     </Button>
                   ) : (
                     <Button asChild variant="outline">
-                      <Link to="/geo-aeo" state={crawlState}>
+                      <Link to="/diagnostico" onClick={trackDiagnose("home_card_crawl")}>
                         Rodar Agent Crawl
                       </Link>
                     </Button>
@@ -303,39 +264,7 @@ export default function HomePage() {
 
         <FaqSection />
 
-        <section className="container pb-16 md:pb-24">
-          <div className="flex flex-wrap items-center justify-between gap-8 rounded-3xl bg-primary px-6 py-12 text-primary-foreground md:px-12 md:py-16">
-            <div className="flex min-w-0 flex-1 basis-96 flex-col gap-3">
-              <h2 className="text-3xl font-extrabold leading-tight tracking-tight">
-                Achou os problemas? A gente ajuda a resolver.
-              </h2>
-              <p className="text-lg opacity-90">
-                Depois do diagnóstico, nossa equipe pode priorizar e executar as
-                melhorias no seu site.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                size="lg"
-                variant="secondary"
-                className="font-bold"
-                onClick={focusAddress}
-              >
-                Diagnosticar meu site
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                className="border-primary-foreground bg-transparent font-bold text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                onClick={focusAddress}
-              >
-                Solicitar orçamento
-              </Button>
-            </div>
-          </div>
-        </section>
+        <QuoteBand location="home" />
       </main>
 
       <footer className="border-t border-border">

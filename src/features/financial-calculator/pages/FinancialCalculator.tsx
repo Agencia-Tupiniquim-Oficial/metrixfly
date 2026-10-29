@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import QuoteBand from "@/components/quote-band";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Calculator, Info, TrendingDown } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
@@ -236,6 +237,7 @@ export default function FinancialCalculator() {
           </p>
         </div>
       </main>
+      <QuoteBand location="calculadora" />
     </div>
   );
 }

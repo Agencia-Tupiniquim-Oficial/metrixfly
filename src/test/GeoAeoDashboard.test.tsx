@@ -52,7 +52,7 @@ function renderGeo(entry: string | { pathname: string; state?: unknown } = "/geo
       <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/geo-aeo" element={<GeoAeoDashboard />} />
-          <Route path="/" element={<p>pagina inicial</p>} />
+          <Route path="/diagnostico" element={<p>pagina de diagnostico</p>} />
         </Routes>
       </MemoryRouter>
     </DiagnosisProvider>,
@@ -67,10 +67,10 @@ describe("GeoAeoDashboard", () => {
     mocks.invoke.mockResolvedValue({ data: crawl, error: null });
   });
 
-  it("sends a visit with no site and no earlier crawl to the home page", async () => {
+  it("sends a visit with no site and no earlier crawl to the diagnostic page", async () => {
     renderGeo();
 
-    expect(await screen.findByText("pagina inicial")).toBeInTheDocument();
+    expect(await screen.findByText("pagina de diagnostico")).toBeInTheDocument();
     expect(mocks.invoke).not.toHaveBeenCalled();
   });
 

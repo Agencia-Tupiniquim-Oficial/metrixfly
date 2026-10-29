@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import QuoteBand from "@/components/quote-band";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
@@ -539,7 +540,7 @@ const GeoAeoDashboard = () => {
       });
   };
 
-  // The home page is the only entry point: with nothing to show, go there.
+  // The diagnostic page is the entry point: with nothing to show, go there.
   if (
     isHydrated &&
     !result &&
@@ -548,7 +549,7 @@ const GeoAeoDashboard = () => {
     !diagnosedSite &&
     !lastGeoCrawlKey()
   ) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/diagnostico" replace />;
   }
 
   const subscores: [string, number, string][] = result
@@ -893,6 +894,7 @@ const GeoAeoDashboard = () => {
           </div>
         )}
       </main>
+      <QuoteBand location="geo-aeo" />
     </div>
   );
 };

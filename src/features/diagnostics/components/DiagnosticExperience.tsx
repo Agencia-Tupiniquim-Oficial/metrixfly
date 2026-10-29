@@ -1,4 +1,5 @@
 import React from "react";
+import QuoteBand from "@/components/quote-band";
 import { CheckCircle2, Calculator } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -291,6 +292,7 @@ export function DiagnosticExperience({
           </div>
         )}
       </main>
+      {!loading && !result && <QuoteBand location="diagnostico" />}
     </div>
   );
 }
