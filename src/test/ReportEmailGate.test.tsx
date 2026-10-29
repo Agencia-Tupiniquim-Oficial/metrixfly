@@ -21,7 +21,6 @@ vi.mock("@/features/diagnostics/services/report-lead", async (importOriginal) =>
   submitReportLead,
 }));
 
-const REMEMBERED_KEY = "metrixfly:report-lead-email";
 
 function renderSavedReport() {
   sessionStorage.setItem(
@@ -77,7 +76,7 @@ describe("report e-mail gate", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("releases the report, records the e-mail with the site and remembers it", async () => {
+  it("releases the report, records the e-mail with the site", async () => {
     renderSavedReport();
     const input = await screen.findByRole("textbox", { name: "Seu e-mail" });
 
@@ -90,7 +89,7 @@ describe("report e-mail gate", () => {
       domain: "https://loja-exemplo.com.br/",
       reportId: null,
     });
-    expect(localStorage.getItem(REMEMBERED_KEY)).toBe("visitante@exemplo.com.br");
+    expect(localStorage.length).toBe(0);
     const report = document.querySelector(".motion-stagger");
     expect(report).not.toHaveClass("blur-md");
     expect(report).not.toHaveAttribute("inert");
@@ -109,13 +108,12 @@ describe("report e-mail gate", () => {
     expect(await screen.findByText(/Não conseguimos registrar o seu e-mail/)).toBeInTheDocument();
   });
 
-  it("does not ask again when the e-mail is already known in this browser", async () => {
-    localStorage.setItem(REMEMBERED_KEY, "visitante@exemplo.com.br");
+  it("asks again on every report, even after an e-mail was given before", async () => {
+    localStorage.setItem("metrixfly:report-lead-email", "visitante@exemplo.com.br");
     renderSavedReport();
 
-    expect(await screen.findByText("Boletim de Saúde Digital")).toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(document.querySelector(".motion-stagger")).not.toHaveClass("blur-md");
+    expect(await screen.findByRole("dialog", { name: "Seu relatório está pronto" })).toBeInTheDocument();
+    expect(document.querySelector(".motion-stagger")).toHaveClass("blur-md");
   });
 
   it("never asks for an e-mail in demo mode", () => {

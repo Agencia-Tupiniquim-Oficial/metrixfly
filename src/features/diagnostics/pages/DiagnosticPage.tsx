@@ -19,8 +19,6 @@ import { importPdfReports } from "@/lib/dynamic-import";
 import { startGeoCrawl } from "@/lib/geo-crawl-cache";
 import { runDiagnosticWithProgress } from "@/features/diagnostics/services/diagnose-site";
 import {
-  readRememberedLeadEmail,
-  rememberLeadEmail,
   submitReportLead,
 } from "@/features/diagnostics/services/report-lead";
 import {
@@ -66,9 +64,8 @@ const DiagnosticPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // The report opens at once for a visitor whose e-mail is already known in this browser.
-  const [reportUnlocked, setReportUnlocked] = useState(
-    () => readRememberedLeadEmail() !== null,
-  );
+  // Every report asks for an e-mail: nothing is remembered between analyses.
+  const [reportUnlocked, setReportUnlocked] = useState(false);
   const [diagnosticProgress, setDiagnosticProgress] =
     useState<DiagnosticProgressState>(initialDiagnosticProgress);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -144,19 +141,10 @@ const DiagnosticPage = () => {
       ownRunDone.current = true;
       setResult(diagnosticResult);
       setDiagnostic(diagnosticResult);
-      const rememberedEmail = readRememberedLeadEmail();
-      setReportUnlocked(rememberedEmail !== null);
+      setReportUnlocked(false);
       if (quoteIntent) {
         setQuoteIntent(false);
         setQuoteDialogOpen(true);
-      }
-      if (rememberedEmail) {
-        // Same visitor, new analysis: record it so the agency sees how many they ran.
-        void submitReportLead({
-          email: rememberedEmail,
-          domain: diagnosticResult.geo?.domain?.trim() || normalized,
-          reportId: completed.reportId ?? null,
-        }).catch((error: unknown) => console.error(error));
       }
       if (
         completed.reportId &&
@@ -278,7 +266,6 @@ const DiagnosticPage = () => {
   const reportLocked = !isDemoMode && result !== null && !reportUnlocked;
 
   const unlockReport = async (email: string) => {
-    rememberLeadEmail(email);
     try {
       await submitReportLead({
         email,
