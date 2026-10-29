@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowUp,
@@ -19,6 +19,8 @@ import logoColored from "@/assets/logo-colored.png";
 import { pushDataLayerEvent } from "@/lib/analytics";
 import PdfMockup from "../components/PdfMockup";
 import ReportPreview from "../components/ReportPreview";
+
+const BACK_TO_TOP_OFFSET = 400;
 
 const navLinks = [
   { href: "#diagnosticos", label: "Diagnósticos" },
@@ -93,6 +95,14 @@ const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
 export default function HomePage() {
   const [address, setAddress] = useState("");
   const addressInput = useRef<HTMLInputElement>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const update = () => setShowBackToTop(window.scrollY > BACK_TO_TOP_OFFSET);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
   const navigate = useNavigate();
 
   const focusAddress = () => {
@@ -331,14 +341,21 @@ export default function HomePage() {
             O PageSpeed Insights é um serviço do Google. Os resultados refletem o
             momento da análise e podem variar entre medições.
           </p>
-          <Button asChild variant="outline" size="sm">
-            <a href="#topo">
-              <ArrowUp aria-hidden="true" />
-              Voltar ao topo
-            </a>
-          </Button>
         </div>
       </footer>
+
+      {showBackToTop && (
+        <Button
+          asChild
+          variant="hero"
+          size="icon"
+          className="fixed bottom-4 right-4 z-40 rounded-full shadow-lg md:bottom-6 md:right-6"
+        >
+          <a href="#topo" aria-label="Voltar ao topo">
+            <ArrowUp aria-hidden="true" />
+          </a>
+        </Button>
+      )}
     </div>
   );
 }
