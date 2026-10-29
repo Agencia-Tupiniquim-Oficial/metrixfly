@@ -153,13 +153,11 @@ describe("Diagnostic result address bar", () => {
         geo: { domain: "https://safetyrentalsplataformas.com.br/" },
       }),
     );
-    // A known e-mail opens the report at once (otherwise it stays blurred behind the e-mail popup).
-    localStorage.setItem("metrixfly:report-lead-email", "visitante@exemplo.com.br");
     try {
       renderWithProviders(["/diagnostico"]);
 
       expect(
-        await screen.findByRole("heading", { level: 1, name: "safetyrentalsplataformas.com.br" }),
+        await screen.findByRole("heading", { level: 1, name: "safetyrentalsplataformas.com.br", hidden: true }),
       ).toBeInTheDocument();
       expect(screen.getByPlaceholderText("exemplo.com.br")).toHaveValue(
         "safetyrentalsplataformas.com.br",

@@ -131,3 +131,7 @@ A faixa verde "Achou os problemas?" saiu da `/diagnostico` quando ainda nao ha r
 
 Migration `20261029120000_create_report_leads.sql` aplicada pelo usuario com `supabase db push` (confirmada no `migration list`). Falta validar no site: gravar um e-mail pelo popup e ver a tabela de contatos no `/admin`.
 Ainda abertos: aprovar frases do progresso e textos do popup/consentimento; retencao e limite de taxa dos e-mails; destino de "Solicitar orcamento" fora do relatorio; quebra de dominio longo no card de score do GEO.
+
+### fix/email-gate-every-report (2026-10-29)
+
+O e-mail deixou de ser lembrado no navegador: cada relatorio novo (inclusive de outro site) volta a pedir o e-mail no popup, com o relatorio desfocado. Removidos `readRememberedLeadEmail`/`rememberLeadEmail` e a chave `metrixfly:report-lead-email`; o lead de cada analise e gravado pelo popup (ou pelo formulario de orcamento). Substitui a regra anterior de "nao pedir de novo" descrita em feat/report-email-gate. Um recarregamento da pagina com o relatorio salvo na sessao pede o e-mail de novo.
