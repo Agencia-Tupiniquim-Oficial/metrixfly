@@ -106,14 +106,14 @@ export function DiagnosticExperience({
           </div>
         ) : (
           <div className="motion-stagger space-y-8">
-            <div className="flex flex-wrap items-end justify-between gap-5">
-              <div className="min-w-0 flex-1 basis-80 space-y-1">
+            <div className="space-y-5">
+              <div className="min-w-0 space-y-1">
                 <p className={eyebrow}>Diagnóstico de desempenho</p>
                 <h1 className="break-words text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
                   {domain}
                 </h1>
               </div>
-              <div className="w-full lg:w-[40rem]">{form}</div>
+              <div className="w-full max-w-3xl">{form}</div>
             </div>
 
             <Card className="space-y-7 border-border bg-card p-6 shadow-md md:p-8">
