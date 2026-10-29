@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import QuoteBand from "@/components/quote-band";
+import QuoteBandAction from "@/features/diagnostics/components/QuoteBandAction";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
@@ -894,7 +895,9 @@ const GeoAeoDashboard = () => {
           </div>
         )}
       </main>
-      <QuoteBand location="geo-aeo" />
+      <QuoteBand>
+        <QuoteBandAction location="geo-aeo" />
+      </QuoteBand>
     </div>
   );
 };

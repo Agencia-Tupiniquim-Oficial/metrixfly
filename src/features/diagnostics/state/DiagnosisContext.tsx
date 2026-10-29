@@ -100,6 +100,9 @@ export const DiagnosisProvider = ({ children }: { children: React.ReactNode }) =
   );
 };
 
+/** Same data as useDiagnosis, or undefined outside the provider (shared widgets must not crash). */
+export const useOptionalDiagnosis = () => useContext(DiagnosisContext);
+
 export const useDiagnosis = () => {
   const ctx = useContext(DiagnosisContext);
   if (!ctx) throw new Error("useDiagnosis must be used within DiagnosisProvider");

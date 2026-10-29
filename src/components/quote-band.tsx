@@ -1,17 +1,12 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { pushDataLayerEvent } from "@/lib/analytics";
+import type { ReactNode } from "react";
 
 type QuoteBandProps = {
-  /** Where the band sits, for the click event (e.g. "home", "geo-aeo"). */
-  location: string;
+  /** The call to action, supplied by the page (it depends on whether a diagnostic exists). */
+  children: ReactNode;
 };
 
-/**
- * Closing band shared by the public pages. A quote request is sent together with a
- * diagnostic, so outside the report the button leads to the diagnostic page.
- */
-export default function QuoteBand({ location }: QuoteBandProps) {
+/** Closing band shared by the public pages. */
+export default function QuoteBand({ children }: QuoteBandProps) {
   return (
     <section className="container pb-16 md:pb-24">
       <div className="flex flex-wrap items-center justify-between gap-8 rounded-3xl bg-primary px-6 py-12 text-primary-foreground md:px-12 md:py-16">
@@ -24,21 +19,7 @@ export default function QuoteBand({ location }: QuoteBandProps) {
             melhorias no seu site.
           </p>
         </div>
-        <Button
-          asChild
-          size="lg"
-          variant="outline"
-          className="border-primary-foreground bg-transparent font-bold text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-        >
-          <Link
-            to="/diagnostico"
-            onClick={() =>
-              pushDataLayerEvent({ event: "cta_click", cta_id: "quote_band", location })
-            }
-          >
-            Solicitar orçamento
-          </Link>
-        </Button>
+        {children}
       </div>
     </section>
   );

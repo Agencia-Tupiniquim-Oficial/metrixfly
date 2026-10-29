@@ -17,6 +17,7 @@ import logoColored from "@/assets/logo-colored.png";
 import { pushDataLayerEvent } from "@/lib/analytics";
 import { enableAnchorSmoothScroll } from "@/lib/smooth-scroll";
 import QuoteBand from "@/components/quote-band";
+import QuoteBandAction from "@/features/diagnostics/components/QuoteBandAction";
 import FaqSection from "../components/FaqSection";
 import PdfMockup from "../components/PdfMockup";
 import ReportPreview from "../components/ReportPreview";
@@ -264,7 +265,9 @@ export default function HomePage() {
 
         <FaqSection />
 
-        <QuoteBand location="home" />
+        <QuoteBand>
+        <QuoteBandAction location="home" />
+      </QuoteBand>
       </main>
 
       <footer className="border-t border-border">
