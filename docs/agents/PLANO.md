@@ -124,3 +124,10 @@ Correcao de `feat/quote-band-flow`: com o formulario de orcamento aberto (pedido
 ### fix/remove-band-diagnostic-page (2026-10-29, na `develop`)
 
 A faixa verde "Achou os problemas?" saiu da `/diagnostico` quando ainda nao ha resultado (pedido do usuario); no resultado ela ja nao aparecia fora do card proprio do relatorio. Continua na home, GEO/AEO, calculadora e relatorio compartilhado. Removido o codigo que so servia a esse caso (`onQuoteIntent`, `onRequestDiagnostic`).
+
+### Publicacao em producao (2026-10-29)
+
+`develop` mesclada na `main` (merge `b2771bf`) e enviada ao remoto com OK explicito do usuario depois de validar o preview. Verificacoes antes do merge: tsc sem erros, eslint 0 erros (10 warnings de baseline), vitest 43 arquivos aprovados. Deploy de producao `dpl_837gjJPwVkrcyCC7FC5Lz5EQiem9` confirmado READY na Vercel (alias `metrixfly.vercel.app`).
+
+Migration `20261029120000_create_report_leads.sql` aplicada pelo usuario com `supabase db push` (confirmada no `migration list`). Falta validar no site: gravar um e-mail pelo popup e ver a tabela de contatos no `/admin`.
+Ainda abertos: aprovar frases do progresso e textos do popup/consentimento; retencao e limite de taxa dos e-mails; destino de "Solicitar orcamento" fora do relatorio; quebra de dominio longo no card de score do GEO.
