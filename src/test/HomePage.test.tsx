@@ -11,23 +11,12 @@ function Destination() {
   return <p>{`destino:${location.pathname}${location.search}`}</p>;
 }
 
-function CrawlDestination() {
-  const location = useLocation();
-  const state = location.state as { url?: string } | null;
-  return <p>{`crawl:${state?.url ?? "vazio"}`}</p>;
-}
-
-function heroForm() {
-  return screen.getByRole("textbox", { name: "Endereço do site" }).closest("form")!;
-}
-
 function renderHome() {
   render(
     <MemoryRouter initialEntries={["/"]}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/diagnostico" element={<Destination />} />
-        <Route path="/geo-aeo" element={<CrawlDestination />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -80,26 +69,15 @@ describe("HomePage", () => {
     ).toBeInTheDocument();
   });
 
-  it("sends the entered site to the diagnostic page", () => {
+  it("has no address field: the site is entered on the diagnostic page", () => {
     renderHome();
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Endereço do site" }), {
-      target: { value: "  exemplo.com.br/loja " },
-    });
-    fireEvent.click(within(heroForm()).getByRole("button", { name: "Diagnosticar meu site" }));
+    expect(screen.queryByRole("textbox", { name: "Endereço do site" })).not.toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByRole("main")).getAllByRole("link", { name: "Diagnosticar meu site" })[0],
+    );
 
-    expect(
-      screen.getByText("destino:/diagnostico?url=exemplo.com.br%2Floja"),
-    ).toBeInTheDocument();
-  });
-
-  it("does not navigate when the address is blank", () => {
-    renderHome();
-
-    fireEvent.submit(screen.getByRole("textbox", { name: "Endereço do site" }).closest("form")!);
-
-    expect(screen.queryByText(/^destino:/)).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(screen.getByText("destino:/diagnostico")).toBeInTheDocument();
   });
 
   it("does not offer the example diagnostic link", () => {
@@ -113,37 +91,35 @@ describe("HomePage", () => {
   it("records the start of a diagnostic from the home page", () => {
     renderHome();
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Endereço do site" }), {
-      target: { value: "exemplo.com.br" },
-    });
-    fireEvent.click(within(heroForm()).getByRole("button", { name: "Diagnosticar meu site" }));
+    fireEvent.click(
+      within(screen.getByRole("main")).getAllByRole("link", { name: "Diagnosticar meu site" })[0],
+    );
 
     expect(testWindow.dataLayer).toEqual([
       { event: "cta_click", cta_id: "home_diagnose", location: "home" },
     ]);
   });
 
-  it("sends the typed address to the Agent Crawl page", () => {
+  it("sends the diagnostic and Agent Crawl cards to the diagnostic page", () => {
     renderHome();
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Endereço do site" }), {
-      target: { value: "exemplo.com.br" },
-    });
-    fireEvent.click(screen.getByRole("link", { name: "Rodar Agent Crawl" }));
-
-    expect(screen.getByText("crawl:exemplo.com.br")).toBeInTheDocument();
+    for (const name of ["Diagnosticar desempenho", "Rodar Agent Crawl"]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", "/diagnostico");
+    }
   });
 
-  it("focuses the address field from the call-to-action buttons outside the hero", () => {
+  it("keeps only the quote button in the closing band", () => {
     renderHome();
-    const input = screen.getByRole("textbox", { name: "Endereço do site" });
 
-    for (const name of ["Diagnosticar desempenho", "Solicitar orçamento"]) {
-      input.blur();
-      fireEvent.click(screen.getByRole("button", { name }));
-      expect(input).toHaveFocus();
-    }
-    expect(screen.queryByText(/^destino:/)).not.toBeInTheDocument();
+    const band = screen
+      .getByRole("heading", { name: /Achou os problemas/ })
+      .closest("section")!;
+    expect(within(band).getByRole("link", { name: "Solicitar orçamento" })).toHaveAttribute(
+      "href",
+      "/diagnostico",
+    );
+    expect(within(band).queryByRole("link", { name: "Diagnosticar meu site" })).toBeNull();
+    expect(within(band).queryByRole("button", { name: "Diagnosticar meu site" })).toBeNull();
   });
 
   it("does not show the PageSpeed note under the address field", () => {

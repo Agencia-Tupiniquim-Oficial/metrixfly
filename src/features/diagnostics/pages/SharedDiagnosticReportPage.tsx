@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import QuoteBand from "@/components/quote-band";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -175,6 +176,7 @@ export default function SharedDiagnosticReportPage() {
           </>
         )}
       </main>
+      <QuoteBand location="relatorio-compartilhado" />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, FormEvent } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
@@ -43,7 +43,6 @@ const DiagnosticPage = () => {
     setDiagnostic,
     diagnosticReportId,
     setDiagnosticReportId,
-    isHydrated,
   } = useDiagnosis();
 
   const [searchParams] = useSearchParams();
@@ -59,8 +58,6 @@ const DiagnosticPage = () => {
     requestedUrl || (diagnostic?.geo?.domain ?? ""),
   );
   const [loading, setLoading] = useState(false);
-  // Set once a diagnostic was started here, so a failed run keeps the form on screen.
-  const [attempted, setAttempted] = useState(false);
   const [diagnosticProgress, setDiagnosticProgress] =
     useState<DiagnosticProgressState>(initialDiagnosticProgress);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -114,7 +111,6 @@ const DiagnosticPage = () => {
     if (!/^https?:\/\//i.test(normalized)) normalized = "https://" + normalized;
 
     setLoading(true);
-    setAttempted(true);
     // The GEO/AEO crawl runs alongside, so opening GEO/AEO later does not repeat it.
     // A failure here is silent: the GEO/AEO page crawls on demand instead.
     if (searchParams.get("demo") !== "1") void startGeoCrawl(normalized).catch(() => undefined);
@@ -471,11 +467,6 @@ const DiagnosticPage = () => {
   };
 
   const isDemo = searchParams.get("demo") === "1";
-
-  // The home page is the only entry point: with nothing to show, go there.
-  if (isHydrated && !isDemo && !loading && !attempted && !requestedUrl && !result && !diagnostic) {
-    return <Navigate to="/" replace />;
-  }
 
   const activeResult = result ?? (isDemo ? sampleDiagnosticResult : null);
   const activeBusinessSummary = businessSummary ?? (isDemo ? sampleBusinessSummary : null);
