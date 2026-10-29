@@ -33,5 +33,8 @@ export type DiagnosticPageProps = {
   onQuoteDialogOpen?: (interest: ServiceInterest) => void;
   quoteSending: boolean;
   reportUrl?: string | null;
+  /** The finished report stays blurred until the visitor gives an e-mail. */
+  reportLocked?: boolean;
+  onUnlockReport?: (email: string) => Promise<void>;
   openGeoDashboard?: (crawl?: unknown) => void;
 };

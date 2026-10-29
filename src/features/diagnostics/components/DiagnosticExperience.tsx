@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import QuoteBand from "@/components/quote-band";
 import { CheckCircle2, Calculator } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -13,6 +13,7 @@ import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
 import { DiagnosticProgress } from "./DiagnosticProgress";
 import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
 import { DiagnosticReportShareCard } from "./DiagnosticReportShareCard";
+import ReportEmailGate from "./ReportEmailGate";
 
 const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
 
@@ -58,7 +59,18 @@ export function DiagnosticExperience({
   onQuoteDialogOpen,
   quoteSending,
   reportUrl,
+  reportLocked = false,
+  onUnlockReport,
 }: DiagnosticPageProps) {
+  const reportContent = useRef<HTMLDivElement>(null);
+  // While locked the report is blurred and unreachable by pointer or keyboard.
+  useEffect(() => {
+    const element = reportContent.current;
+    if (!element) return;
+    if (reportLocked) element.setAttribute("inert", "");
+    else element.removeAttribute("inert");
+  }, [reportLocked, result]);
+
   const mobileScore = result?.summary.mobile.scores.performance ?? 43;
   const desktopScore = result?.summary.desktop.scores.performance ?? 71;
   const optimized = isDiagnosticOptimized(result);
@@ -106,7 +118,13 @@ export function DiagnosticExperience({
             {form}
           </div>
         ) : (
-          <div className="motion-stagger space-y-8">
+          <div
+            ref={reportContent}
+            aria-hidden={reportLocked || undefined}
+            className={`motion-stagger space-y-8 transition-[filter] duration-500 motion-reduce:transition-none ${
+              reportLocked ? "pointer-events-none select-none blur-md" : ""
+            }`}
+          >
             <div className="space-y-5">
               <div className="min-w-0 space-y-1">
                 <p className={eyebrow}>Diagnóstico de desempenho</p>
@@ -293,6 +311,9 @@ export function DiagnosticExperience({
         )}
       </main>
       {!loading && !result && <QuoteBand location="diagnostico" />}
+      {result && onUnlockReport && (
+        <ReportEmailGate open={reportLocked} domain={domain} onSubmit={onUnlockReport} />
+      )}
     </div>
   );
 }

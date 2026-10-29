@@ -74,6 +74,20 @@ export type Database = {
           quote_submitted: number
         }[]
       }
+      submit_report_lead: {
+        Args: { lead_email: string; lead_domain: string; lead_report_id?: string | null }
+        Returns: undefined
+      }
+      admin_list_report_leads: {
+        Args: { limit_rows?: number }
+        Returns: {
+          id: string
+          email: string
+          domain: string
+          report_id: string | null
+          created_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
