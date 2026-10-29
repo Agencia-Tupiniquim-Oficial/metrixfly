@@ -587,7 +587,7 @@ const GeoAeoDashboard = () => {
             </p>
           </div>
           <Card
-            className="motion-card w-full max-w-3xl border-border bg-card p-2"
+            className="motion-card w-full border-border bg-card p-2"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <form onSubmit={runCrawl} className="flex flex-col gap-2 sm:flex-row">
