@@ -139,3 +139,7 @@ O e-mail deixou de ser lembrado no navegador: cada relatorio novo (inclusive de 
 ### feat/admin-panel-redesign (2026-10-29)
 
 Painel `/admin` redesenhado (so frontend, sem mudar banco nem RPCs): filtros de periodo (Hoje, 7 dias, 30 dias, Tudo e datas De/Ate em horario local), filtro por status de orcamento e busca; cards de resumo (analises, pedidos, conversao, desempenho medio no celular, e-mails unicos); grafico de analises por dia (ultimos 45 dias do periodo); abas Analises e Contatos com ordenacao por dominio, data e desempenho e paginacao de 10; botoes Atualizar e Exportar CSV (analises e contatos, com protecao contra formulas de planilha). Logica pura em `services/admin-insights.ts`. Limite: o painel ainda carrega as 200 analises mais recentes (`admin_list_analyses`) e 1000 e-mails; filtros e totais valem sobre esse conjunto. Largura do painel passou para `max-w-7xl`.
+
+### feat/add-agency-admins (2026-10-29)
+
+Migration `20261029180000_add_agency_admins.sql` inclui `suporte@agenciatupiniquim.com.br` e `ferramentas@agenciatupiniquim.com.br` em `agency_admins`. O segundo e-mail foi informado sem o dominio completo; assumido `.com.br`. Para entrar, cada e-mail tambem precisa existir em Supabase Auth > Users (o app nao cria contas). A migration so vale depois de `supabase db push` rodado pelo usuario.
