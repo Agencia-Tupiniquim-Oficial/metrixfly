@@ -116,3 +116,7 @@ O card "Rodar Agent Crawl" da home leva a `/geo-aeo` quando ja existe um diagnos
 ### fix/layout-proportions (2026-10-29, na `develop`)
 
 Prints do usuario mostraram a faixa verde mais larga que o conteudo das paginas internas (a faixa usava `container`, 1336 px, e o conteudo `max-w-6xl`, 1088 px) e o formulario do GEO solto no canto direito. `QuoteBand` ganhou `width` (`wide` na home, `page` = `max-w-6xl` por padrao em diagnostico/GEO/calculadora, `narrow` = `max-w-4xl` no relatorio compartilhado) e o cabecalho do GEO/AEO empilha titulo e formulario como o do diagnostico. Nao alterados por falta de causa clara: cabecalho do relatorio HTML com os dois logos e largura do formulario em relacao ao boletim no resultado (aguardam resposta do usuario).
+
+### fix/quote-popup-keeps-blur (2026-10-29, na `develop`)
+
+Correcao de `feat/quote-band-flow`: com o formulario de orcamento aberto (pedido feito pela faixa antes de ter diagnostico), o relatorio ficava visivel porque o desfoque era retirado junto com o popup de e-mail. Agora o desfoque so some quando um e-mail e informado (popup de e-mail ou formulario de orcamento); o popup de e-mail so fica escondido enquanto o formulario esta aberto (`emailGateOpen`). O estado `openQuote` do roteador e limpo na primeira renderizacao, para um recarregamento da pagina nao reabrir o formulario.

@@ -146,6 +146,10 @@ describe("quote asked for before the diagnostic", () => {
 
     expect(await screen.findByRole("dialog", { name: "Solicitar orçamento" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "Seu relatório está pronto" })).not.toBeInTheDocument();
+    // The report behind the quote form stays blurred and out of reach.
+    const report = document.querySelector(".motion-stagger");
+    expect(report).toHaveClass("blur-md");
+    expect(report).toHaveAttribute("inert");
   });
 
   it("releases the report with the e-mail of the quote form", async () => {
