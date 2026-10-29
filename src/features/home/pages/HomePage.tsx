@@ -1,6 +1,7 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  ArrowUp,
   Briefcase,
   Check,
   FileText,
@@ -16,8 +17,11 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import logoColored from "@/assets/logo-colored.png";
 import { pushDataLayerEvent } from "@/lib/analytics";
+import { enableAnchorSmoothScroll } from "@/lib/smooth-scroll";
 import PdfMockup from "../components/PdfMockup";
 import ReportPreview from "../components/ReportPreview";
+
+const BACK_TO_TOP_OFFSET = 400;
 
 const navLinks = [
   { href: "#diagnosticos", label: "Diagnósticos" },
@@ -92,6 +96,16 @@ const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
 export default function HomePage() {
   const [address, setAddress] = useState("");
   const addressInput = useRef<HTMLInputElement>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => enableAnchorSmoothScroll(), []);
+
+  useEffect(() => {
+    const update = () => setShowBackToTop(window.scrollY > BACK_TO_TOP_OFFSET);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
   const navigate = useNavigate();
 
   const focusAddress = () => {
@@ -113,7 +127,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <nav
           aria-label="Principal"
           className="container flex flex-wrap items-center justify-between gap-4 py-4"
@@ -332,6 +346,19 @@ export default function HomePage() {
           </p>
         </div>
       </footer>
+
+      {showBackToTop && (
+        <Button
+          asChild
+          variant="hero"
+          size="icon"
+          className="fixed bottom-4 right-4 z-40 rounded-full shadow-lg md:bottom-6 md:right-6"
+        >
+          <a href="#topo" aria-label="Voltar ao topo">
+            <ArrowUp aria-hidden="true" />
+          </a>
+        </Button>
+      )}
     </div>
   );
 }
