@@ -113,7 +113,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <nav
           aria-label="Principal"
           className="container flex flex-wrap items-center justify-between gap-4 py-4"
