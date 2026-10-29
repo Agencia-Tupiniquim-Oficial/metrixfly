@@ -177,7 +177,7 @@ export default function SharedDiagnosticReportPage() {
           </>
         )}
       </main>
-      <QuoteBand>
+      <QuoteBand width="narrow">
         <QuoteBandAction location="relatorio-compartilhado" />
       </QuoteBand>
     </div>

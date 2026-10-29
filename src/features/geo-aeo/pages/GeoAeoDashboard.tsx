@@ -574,8 +574,8 @@ const GeoAeoDashboard = () => {
     <div className="min-h-screen bg-secondary/40">
       <AppHeader />
       <main className="container max-w-6xl space-y-8 py-10 md:py-12">
-        <section className="flex flex-wrap items-end justify-between gap-7">
-          <div className="motion-enter min-w-0 flex-1 basis-96 space-y-2.5">
+        <section className="space-y-6">
+          <div className="motion-enter min-w-0 space-y-2.5">
             <p className={eyebrow}>Agent Crawl · GEO/AEO</p>
             <h1 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
               Descubra se sua marca é encontrada e citada por IAs.
@@ -587,7 +587,7 @@ const GeoAeoDashboard = () => {
             </p>
           </div>
           <Card
-            className="motion-card flex-1 basis-96 border-border bg-card p-2"
+            className="motion-card w-full max-w-3xl border-border bg-card p-2"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <form onSubmit={runCrawl} className="flex flex-col gap-2 sm:flex-row">
