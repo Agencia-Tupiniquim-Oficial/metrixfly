@@ -17,3 +17,9 @@ Registre aqui somente fatos tecnicos duradouros, nao obvios e ainda nao document
 - Tipos compartilhados do diagnostico ficam em `src/features/diagnostics/model/diagnose.ts`.
 - Logica especifica de cada dominio pertence a `src/features/<dominio>`; componentes UI compartilhados ficam em `src/components/`.
 - Segredos de integracoes externas nao pertencem ao frontend; use o ambiente de backend das Supabase Edge Functions.
+
+## Ambiente Windows
+
+- As copias de trabalho usam CRLF (`core.autocrlf=true`); o Git avisa "LF will be replaced by CRLF" ao fazer commit, o que e normal. Ao editar por script, normalize com `replace(/\r\n/g, "\n")` antes de casar texto.
+- Python nao esta instalado; use Node (`node script.cjs`) para edicoes em lote. Scripts com muitas aspas devem ser gravados com a ferramenta Write em arquivo e executados, nao em heredoc no Bash (um heredoc com aspas misturadas falhou com "unexpected EOF").
+- `.claude/settings.json` e `.claude/agents/` fazem parte do repositorio (permissoes liberadas e subagente `metrixfly-design-review`).
