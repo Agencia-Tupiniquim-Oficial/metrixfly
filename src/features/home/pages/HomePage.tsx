@@ -271,7 +271,7 @@ export default function HomePage() {
 
         <FaqSection />
 
-        <QuoteBand>
+        <QuoteBand width="wide">
         <QuoteBandAction location="home" />
       </QuoteBand>
       </main>
