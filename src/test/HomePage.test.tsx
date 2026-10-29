@@ -1,7 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { HomePage } from "@/features/home";
+import { sampleDiagnosticResult } from "@/features/diagnostics/demo/diagnosticMock";
+import { DiagnosisProvider } from "@/features/diagnostics/state/DiagnosisContext";
 
 type TestWindow = Window & { dataLayer?: Record<string, unknown>[] };
 const testWindow = window as TestWindow;
@@ -105,6 +107,38 @@ describe("HomePage", () => {
 
     for (const name of ["Diagnosticar desempenho", "Rodar Agent Crawl"]) {
       expect(screen.getByRole("link", { name })).toHaveAttribute("href", "/diagnostico");
+    }
+  });
+
+  it("sends the Agent Crawl card to the GEO/AEO page once a diagnostic was run", async () => {
+    sessionStorage.setItem(
+      "diagnosis:result",
+      JSON.stringify({ ...sampleDiagnosticResult, geo: { domain: "https://loja-exemplo.com.br/" } }),
+    );
+    try {
+      render(
+        <DiagnosisProvider>
+          <MemoryRouter initialEntries={["/"]}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+            </Routes>
+          </MemoryRouter>
+        </DiagnosisProvider>,
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole("link", { name: "Rodar Agent Crawl" })).toHaveAttribute(
+          "href",
+          "/geo-aeo",
+        ),
+      );
+      // The performance card still starts from the diagnostic page.
+      expect(screen.getByRole("link", { name: "Diagnosticar desempenho" })).toHaveAttribute(
+        "href",
+        "/diagnostico",
+      );
+    } finally {
+      sessionStorage.clear();
     }
   });
 

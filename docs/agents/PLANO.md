@@ -108,3 +108,7 @@ Pedido do usuario: o "Solicitar orcamento" da faixa final passa a depender de ha
 - O e-mail digitado no formulario de orcamento tambem libera o relatorio e grava o lead (mesma funcao `submit_report_lead`; depende da migration pendente). Se o formulario for fechado sem enviar, o popup de e-mail aparece.
 - Na propria `/diagnostico` sem resultado, o botao da faixa registra a intencao, rola ate o campo do site e foca nele.
 - Divida: paginas de outros dominios (home, geo-aeo, calculadora) importam `QuoteBandAction` de `features/diagnostics`; `useOptionalDiagnosis` foi adicionado ao contexto para o botao nao quebrar fora do provedor.
+
+### feat/home-crawl-link (2026-10-29, na `develop`)
+
+O card "Rodar Agent Crawl" da home leva a `/geo-aeo` quando ja existe um diagnostico salvo na sessao (o GEO usa o dominio dele e o crawl em cache); sem diagnostico continua levando a `/diagnostico`. O card "Diagnosticar desempenho" nao muda.

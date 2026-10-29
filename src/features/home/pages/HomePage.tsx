@@ -18,6 +18,7 @@ import { pushDataLayerEvent } from "@/lib/analytics";
 import { enableAnchorSmoothScroll } from "@/lib/smooth-scroll";
 import QuoteBand from "@/components/quote-band";
 import QuoteBandAction from "@/features/diagnostics/components/QuoteBandAction";
+import { useOptionalDiagnosis } from "@/features/diagnostics/state/DiagnosisContext";
 import FaqSection from "../components/FaqSection";
 import PdfMockup from "../components/PdfMockup";
 import ReportPreview from "../components/ReportPreview";
@@ -97,6 +98,8 @@ const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
 
 export default function HomePage() {
   const [showBackToTop, setShowBackToTop] = useState(false);
+  // With a diagnostic already run, the Agent Crawl opens its own page instead of asking for the site.
+  const hasDiagnostic = Boolean(useOptionalDiagnosis()?.diagnostic);
 
   useEffect(() => enableAnchorSmoothScroll(), []);
 
@@ -205,7 +208,10 @@ export default function HomePage() {
                     </Button>
                   ) : (
                     <Button asChild variant="outline">
-                      <Link to="/diagnostico" onClick={trackDiagnose("home_card_crawl")}>
+                      <Link
+                        to={hasDiagnostic ? "/geo-aeo" : "/diagnostico"}
+                        onClick={trackDiagnose("home_card_crawl")}
+                      >
                         Rodar Agent Crawl
                       </Link>
                     </Button>
