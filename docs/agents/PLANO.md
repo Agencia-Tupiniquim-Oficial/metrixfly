@@ -143,3 +143,9 @@ Painel `/admin` redesenhado (so frontend, sem mudar banco nem RPCs): filtros de 
 ### feat/add-agency-admins (2026-10-29)
 
 Migration `20261029180000_add_agency_admins.sql` inclui `suporte@agenciatupiniquim.com.br` e `ferramentas@agenciatupiniquim.com.br` em `agency_admins`. O segundo e-mail foi informado sem o dominio completo; assumido `.com.br`. Para entrar, cada e-mail tambem precisa existir em Supabase Auth > Users (o app nao cria contas). A migration so vale depois de `supabase db push` rodado pelo usuario.
+
+### Estado ao encerrar a sessao de 2026-10-29
+
+- `main` = `c51ddc6` (producao): develop inteira, painel admin redesenhado, e-mail pedido a cada relatorio, migration de admins. `develop` ja contem tudo (a `main` so tem a mais o merge).
+- Migration `report_leads` aplicada. Migration `20261029180000_add_agency_admins.sql` NAO aplicada: o usuario deve rodar `npx supabase db push` e criar `suporte@` e `ferramentas@agenciatupiniquim.com.br` em Supabase Auth > Users (e-mail do ferramentas assumido com `.com.br`; confirmar).
+- Pendencias: confirmar deploy `c51ddc6` READY na Vercel; validar painel admin (celular, tema escuro, grafico); aprovar frases do progresso e textos do popup/consentimento; retencao e limite de taxa dos e-mails; destino de "Solicitar orcamento" fora do relatorio; quebra de dominio longo no card de score do GEO; painel limitado a 200 analises/1000 e-mails (filtro no banco exigiria mudar RPCs).
