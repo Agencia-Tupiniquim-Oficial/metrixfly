@@ -4,17 +4,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import FaqVisual from "./FaqVisual";
 
 const faqs = [
   {
     question: "O que o Metricfly analisa no meu site?",
     answer:
       "Dois diagnósticos. O de desempenho mede velocidade, acessibilidade, boas práticas e SEO com o PageSpeed Insights, no celular e no computador. O Agent Crawl GEO/AEO verifica se o site está pronto para ser lido e citado por agentes de IA e mecanismos de resposta.",
-  },
-  {
-    question: "Preciso criar uma conta ou instalar alguma coisa?",
-    answer:
-      "Não. Basta informar o endereço do site na página inicial. A análise é feita de fora, como um visitante, e não altera nada no seu site.",
   },
   {
     question: "Quanto tempo leva a análise?",
@@ -47,11 +43,6 @@ const faqs = [
       "Cada diagnóstico fica salvo e gera um link que pode ser aberto por quem você enviar. Também é possível baixar o relatório técnico em PDF ou a versão corporativa, que traz um resumo para quem decide, sem jargão.",
   },
   {
-    question: "Corrigir os pontos do relatório coloca meu site no topo do Google ou das IAs?",
-    answer:
-      "Não podemos prometer uma posição. O relatório mostra o que está atrapalhando o desempenho e a visibilidade do site e quais correções priorizar. O resultado nos buscadores e nas IAs depende de vários outros fatores.",
-  },
-  {
     question: "Vocês podem fazer as melhorias no meu site?",
     answer:
       "Sim. Depois do diagnóstico, a equipe da Agência Tupiniquim pode priorizar e executar as melhorias. Use o botão “Solicitar orçamento” para falar com a gente.",
@@ -61,27 +52,36 @@ const faqs = [
 export default function FaqSection() {
   return (
     <section id="duvidas" className="container py-16 md:py-24">
-      <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr] lg:gap-16">
-        <div className="flex flex-col gap-3 lg:sticky lg:top-24 lg:self-start">
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">
-            Dúvidas frequentes
-          </p>
-          <h2 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
-            Ficou com alguma pergunta? Veja as respostas.
-          </h2>
+      <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="hidden lg:block">
+          <FaqVisual />
         </div>
-        <Accordion type="single" collapsible className="min-w-0">
-          {faqs.map(({ question, answer }, index) => (
-            <AccordionItem key={question} value={`faq-${index}`}>
-              <AccordionTrigger className="gap-4 text-left text-base font-bold">
-                {question}
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground md:text-base">
-                {answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        <div className="flex min-w-0 flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-primary">
+              Dúvidas frequentes
+            </p>
+            <h2 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
+              Ficou com alguma pergunta? Veja as respostas.
+            </h2>
+          </div>
+          <Accordion type="single" collapsible className="space-y-3">
+            {faqs.map(({ question, answer }, index) => (
+              <AccordionItem
+                key={question}
+                value={`faq-${index}`}
+                className="rounded-xl border bg-card px-5 transition-colors data-[state=open]:border-primary/60 data-[state=open]:shadow-md"
+              >
+                <AccordionTrigger className="gap-4 text-left text-base font-bold hover:no-underline data-[state=open]:text-primary">
+                  {question}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground md:text-base">
+                  {answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
       </div>
     </section>
   );

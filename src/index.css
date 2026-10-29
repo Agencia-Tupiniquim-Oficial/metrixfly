@@ -22,7 +22,36 @@
   }
 }
 
+@keyframes faq-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -0.6rem, 0);
+  }
+}
+
+@keyframes faq-bar {
+  0% {
+    transform: scaleX(0.15);
+  }
+  60%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+
 @layer utilities {
+  .animate-faq-float {
+    animation: faq-float 4s ease-in-out infinite;
+  }
+
+  .animate-faq-bar {
+    transform-origin: left;
+    animation: faq-bar 3.2s ease-in-out infinite alternate;
+  }
+
   .animate-diagnostic-progress {
     animation: diagnostic-progress 1.5s ease-in-out infinite;
   }

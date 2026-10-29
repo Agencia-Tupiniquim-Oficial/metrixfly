@@ -54,12 +54,12 @@ describe("HomePage", () => {
     ).toBeInTheDocument();
 
     const question = screen.getByRole("button", {
-      name: /Preciso criar uma conta ou instalar alguma coisa/,
+      name: /Quanto tempo leva a análise/,
     });
     expect(question).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(question);
     expect(question).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText(/Basta informar o endereço do site/)).toBeVisible();
+    expect(screen.getByText(/de 15 a 45 segundos/)).toBeVisible();
   });
 
   it("explains what the tool does and how a diagnostic works", () => {
