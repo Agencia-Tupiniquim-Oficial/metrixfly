@@ -135,3 +135,7 @@ Ainda abertos: aprovar frases do progresso e textos do popup/consentimento; rete
 ### fix/email-gate-every-report (2026-10-29)
 
 O e-mail deixou de ser lembrado no navegador: cada relatorio novo (inclusive de outro site) volta a pedir o e-mail no popup, com o relatorio desfocado. Removidos `readRememberedLeadEmail`/`rememberLeadEmail` e a chave `metrixfly:report-lead-email`; o lead de cada analise e gravado pelo popup (ou pelo formulario de orcamento). Substitui a regra anterior de "nao pedir de novo" descrita em feat/report-email-gate. Um recarregamento da pagina com o relatorio salvo na sessao pede o e-mail de novo.
+
+### feat/admin-panel-redesign (2026-10-29)
+
+Painel `/admin` redesenhado (so frontend, sem mudar banco nem RPCs): filtros de periodo (Hoje, 7 dias, 30 dias, Tudo e datas De/Ate em horario local), filtro por status de orcamento e busca; cards de resumo (analises, pedidos, conversao, desempenho medio no celular, e-mails unicos); grafico de analises por dia (ultimos 45 dias do periodo); abas Analises e Contatos com ordenacao por dominio, data e desempenho e paginacao de 10; botoes Atualizar e Exportar CSV (analises e contatos, com protecao contra formulas de planilha). Logica pura em `services/admin-insights.ts`. Limite: o painel ainda carrega as 200 analises mais recentes (`admin_list_analyses`) e 1000 e-mails; filtros e totais valem sobre esse conjunto. Largura do painel passou para `max-w-7xl`.
