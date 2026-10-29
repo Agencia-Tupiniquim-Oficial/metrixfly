@@ -42,6 +42,26 @@ describe("HomePage", () => {
     delete testWindow.dataLayer;
   });
 
+  it("answers common questions in an accordion linked from the menu", () => {
+    renderHome();
+
+    expect(screen.getByRole("link", { name: "Dúvidas" })).toHaveAttribute(
+      "href",
+      "#duvidas",
+    );
+    expect(
+      screen.getByRole("heading", { name: /Ficou com alguma pergunta/ }),
+    ).toBeInTheDocument();
+
+    const question = screen.getByRole("button", {
+      name: /Quanto tempo leva a análise/,
+    });
+    expect(question).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(question);
+    expect(question).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/de 15 a 45 segundos/)).toBeVisible();
+  });
+
   it("explains what the tool does and how a diagnostic works", () => {
     renderHome();
 
