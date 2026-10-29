@@ -138,7 +138,7 @@ export function DiagnosticExperience({
                   {domain}
                 </h1>
               </div>
-              <div className="w-full max-w-3xl">{form}</div>
+              <div className="w-full">{form}</div>
             </div>
 
             <Card className="space-y-7 border-border bg-card p-6 shadow-md md:p-8">
