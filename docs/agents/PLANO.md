@@ -120,3 +120,7 @@ Prints do usuario mostraram a faixa verde mais larga que o conteudo das paginas 
 ### fix/quote-popup-keeps-blur (2026-10-29, na `develop`)
 
 Correcao de `feat/quote-band-flow`: com o formulario de orcamento aberto (pedido feito pela faixa antes de ter diagnostico), o relatorio ficava visivel porque o desfoque era retirado junto com o popup de e-mail. Agora o desfoque so some quando um e-mail e informado (popup de e-mail ou formulario de orcamento); o popup de e-mail so fica escondido enquanto o formulario esta aberto (`emailGateOpen`). O estado `openQuote` do roteador e limpo na primeira renderizacao, para um recarregamento da pagina nao reabrir o formulario.
+
+### fix/remove-band-diagnostic-page (2026-10-29, na `develop`)
+
+A faixa verde "Achou os problemas?" saiu da `/diagnostico` quando ainda nao ha resultado (pedido do usuario); no resultado ela ja nao aparecia fora do card proprio do relatorio. Continua na home, GEO/AEO, calculadora e relatorio compartilhado. Removido o codigo que so servia a esse caso (`onQuoteIntent`, `onRequestDiagnostic`).

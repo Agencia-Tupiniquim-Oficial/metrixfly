@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import QuoteBand from "@/components/quote-band";
 import { CheckCircle2, Calculator } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -14,7 +13,6 @@ import { DiagnosticProgress } from "./DiagnosticProgress";
 import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
 import { DiagnosticReportShareCard } from "./DiagnosticReportShareCard";
 import ReportEmailGate from "./ReportEmailGate";
-import QuoteBandAction from "./QuoteBandAction";
 import QuoteRequestDialog from "./QuoteRequestDialog";
 
 const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
@@ -66,7 +64,6 @@ export function DiagnosticExperience({
   onUnlockReport,
   quoteDialogOpen = false,
   onQuoteDialogOpenChange,
-  onQuoteIntent,
 }: DiagnosticPageProps) {
   const reportContent = useRef<HTMLDivElement>(null);
   // While locked the report is blurred and unreachable by pointer or keyboard.
@@ -316,18 +313,6 @@ export function DiagnosticExperience({
           </div>
         )}
       </main>
-      {!loading && !result && (
-        <QuoteBand>
-          <QuoteBandAction
-            location="diagnostico"
-            onRequestDiagnostic={() => {
-              onQuoteIntent?.();
-              window.scrollTo({ top: 0, behavior: "smooth" });
-              document.getElementById("diagnostic-url")?.focus({ preventScroll: true });
-            }}
-          />
-        </QuoteBand>
-      )}
       {result && sendQuoteRequest && (
         <QuoteRequestDialog
           open={quoteDialogOpen}
