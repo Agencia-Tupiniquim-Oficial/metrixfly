@@ -55,6 +55,31 @@ const rows = [
   },
 ];
 
+const leadRows = [
+  {
+    id: "aaaa1111-1111-4111-8111-111111111111",
+    email: "ana@empresa.com.br",
+    domain: "https://loja-exemplo.com.br/",
+    report_id: "11111111-1111-4111-8111-111111111111",
+    created_at: "2026-10-27T15:56:00.000Z",
+  },
+  {
+    id: "bbbb2222-2222-4222-8222-222222222222",
+    email: "ana@empresa.com.br",
+    domain: "https://clinica-exemplo.com.br/",
+    report_id: "22222222-2222-4222-8222-222222222222",
+    created_at: "2026-10-26T10:13:00.000Z",
+  },
+];
+
+function answerRpc(name: string) {
+  return Promise.resolve(
+    name === "admin_list_report_leads"
+      ? { data: leadRows, error: null }
+      : { data: rows, error: null },
+  );
+}
+
 function signedIn(email = "suporte@agenciatupiniquim.com.br") {
   mocks.getSession.mockResolvedValue({ data: { session: { user: { email } } } });
 }
@@ -79,7 +104,7 @@ describe("Agency admin area", () => {
       data: { subscription: { unsubscribe: vi.fn() } },
     });
     mocks.signOut.mockResolvedValue({ error: null });
-    mocks.rpc.mockResolvedValue({ data: rows, error: null });
+    mocks.rpc.mockImplementation(answerRpc);
   });
 
   it("sends a visitor without a session to the login page", async () => {
@@ -98,7 +123,7 @@ describe("Agency admin area", () => {
     expect(screen.getByText("suporte@agenciatupiniquim.com.br")).toBeInTheDocument();
     expect(screen.getByText(/3 análises salvas · 1 pedido de orçamento/)).toBeInTheDocument();
 
-    const table = screen.getByRole("table");
+    const [table] = screen.getAllByRole("table");
     expect(within(table).getByText("Pediu orçamento")).toBeInTheDocument();
     expect(within(table).getByText("Abriu o formulário")).toBeInTheDocument();
     expect(within(table).getByText("Endereço não informado")).toBeInTheDocument();
@@ -107,19 +132,61 @@ describe("Agency admin area", () => {
     ).toHaveAttribute("href", "/diagnostico/11111111-1111-4111-8111-111111111111");
   });
 
+  it("shows the e-mail of each analysis and groups the contacts with their analysis count", async () => {
+    signedIn();
+    renderAdmin();
+    await screen.findByText("https://loja-exemplo.com.br/");
+
+    expect(mocks.rpc).toHaveBeenCalledWith("admin_list_report_leads", { limit_rows: 1000 });
+    const [analysesTable, contactsTable] = screen.getAllByRole("table");
+    expect(within(analysesTable).getAllByText("ana@empresa.com.br")).toHaveLength(2);
+
+    const contactRow = within(contactsTable).getByText("ana@empresa.com.br").closest("tr")!;
+    expect(within(contactRow).getByText("2")).toBeInTheDocument();
+    expect(contactRow).toHaveTextContent(
+      "https://loja-exemplo.com.br/, https://clinica-exemplo.com.br/",
+    );
+  });
+
+  it("finds an analysis by the e-mail that unlocked it", async () => {
+    signedIn();
+    renderAdmin();
+    await screen.findByText("https://loja-exemplo.com.br/");
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar domínio ou e-mail" }), {
+      target: { value: "ana@empresa" },
+    });
+
+    expect(screen.getByText("https://loja-exemplo.com.br/")).toBeInTheDocument();
+    expect(screen.queryByText("Endereço não informado")).not.toBeInTheDocument();
+  });
+
+  it("still lists the analyses when the e-mails cannot be loaded", async () => {
+    signedIn();
+    mocks.rpc.mockImplementation((name: string) =>
+      name === "admin_list_report_leads"
+        ? Promise.resolve({ data: null, error: { code: "XX000", message: "sem migração" } })
+        : answerRpc(name),
+    );
+    renderAdmin();
+
+    expect(await screen.findByText("https://loja-exemplo.com.br/")).toBeInTheDocument();
+    expect(screen.getByText("Não foi possível carregar os e-mails agora.")).toBeInTheDocument();
+  });
+
   it("filters the analyses by domain", async () => {
     signedIn();
     renderAdmin();
     await screen.findByText("https://loja-exemplo.com.br/");
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar domínio" }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar domínio ou e-mail" }), {
       target: { value: "clinica" },
     });
 
     expect(screen.queryByText("https://loja-exemplo.com.br/")).not.toBeInTheDocument();
     expect(screen.getByText("https://clinica-exemplo.com.br/")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar domínio" }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar domínio ou e-mail" }), {
       target: { value: "nada" },
     });
     expect(screen.getByText("Nenhum domínio encontrado para essa busca.")).toBeInTheDocument();

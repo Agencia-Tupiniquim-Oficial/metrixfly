@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { CheckCircle2, Calculator } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -12,6 +12,8 @@ import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
 import { DiagnosticProgress } from "./DiagnosticProgress";
 import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
 import { DiagnosticReportShareCard } from "./DiagnosticReportShareCard";
+import ReportEmailGate from "./ReportEmailGate";
+import QuoteRequestDialog from "./QuoteRequestDialog";
 
 const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
 
@@ -57,7 +59,21 @@ export function DiagnosticExperience({
   onQuoteDialogOpen,
   quoteSending,
   reportUrl,
+  reportLocked = false,
+  emailGateOpen = reportLocked,
+  onUnlockReport,
+  quoteDialogOpen = false,
+  onQuoteDialogOpenChange,
 }: DiagnosticPageProps) {
+  const reportContent = useRef<HTMLDivElement>(null);
+  // While locked the report is blurred and unreachable by pointer or keyboard.
+  useEffect(() => {
+    const element = reportContent.current;
+    if (!element) return;
+    if (reportLocked) element.setAttribute("inert", "");
+    else element.removeAttribute("inert");
+  }, [reportLocked, result]);
+
   const mobileScore = result?.summary.mobile.scores.performance ?? 43;
   const desktopScore = result?.summary.desktop.scores.performance ?? 71;
   const optimized = isDiagnosticOptimized(result);
@@ -105,15 +121,21 @@ export function DiagnosticExperience({
             {form}
           </div>
         ) : (
-          <div className="motion-stagger space-y-8">
-            <div className="flex flex-wrap items-end justify-between gap-5">
-              <div className="min-w-0 flex-1 basis-80 space-y-1">
+          <div
+            ref={reportContent}
+            aria-hidden={reportLocked || undefined}
+            className={`motion-stagger space-y-8 transition-[filter] duration-500 motion-reduce:transition-none ${
+              reportLocked ? "pointer-events-none select-none blur-md" : ""
+            }`}
+          >
+            <div className="space-y-5">
+              <div className="min-w-0 space-y-1">
                 <p className={eyebrow}>Diagnóstico de desempenho</p>
                 <h1 className="break-words text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
                   {domain}
                 </h1>
               </div>
-              <div className="w-full lg:w-[40rem]">{form}</div>
+              <div className="w-full">{form}</div>
             </div>
 
             <Card className="space-y-7 border-border bg-card p-6 shadow-md md:p-8">
@@ -291,6 +313,19 @@ export function DiagnosticExperience({
           </div>
         )}
       </main>
+      {result && sendQuoteRequest && (
+        <QuoteRequestDialog
+          open={quoteDialogOpen}
+          onOpenChange={onQuoteDialogOpenChange}
+          showTrigger={false}
+          onSubmitRequest={sendQuoteRequest}
+          onOpened={onQuoteDialogOpen}
+          sending={quoteSending}
+        />
+      )}
+      {result && onUnlockReport && (
+        <ReportEmailGate open={emailGateOpen} domain={domain} onSubmit={onUnlockReport} />
+      )}
     </div>
   );
 }

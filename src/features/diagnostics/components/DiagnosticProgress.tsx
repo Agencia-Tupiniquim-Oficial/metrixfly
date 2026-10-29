@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Check, Circle, Minus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
+  diagnosticWaitingPhrases,
+  estimateDiagnosticPercent,
   initialDiagnosticProgress,
+  resolvedStageCount,
   type DiagnosticProgressState,
   type DiagnosticProgressStatus,
 } from "@/features/diagnostics/model/diagnostic-progress";
@@ -91,6 +94,32 @@ function StepIcon({ status }: { status: DiagnosticProgressStatus }) {
   );
 }
 
+const RING_RADIUS = 52;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+const PHRASE_SECONDS = 5;
+
+function PercentRing({ percent }: { percent: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-32 w-32 -rotate-90"
+      viewBox="0 0 120 120"
+    >
+      <circle cx="60" cy="60" r={RING_RADIUS} fill="none" strokeWidth="8" className="stroke-primary/15" />
+      <circle
+        cx="60"
+        cy="60"
+        r={RING_RADIUS}
+        fill="none"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeDasharray={`${(percent / 100) * RING_LENGTH} ${RING_LENGTH}`}
+        className="stroke-primary transition-[stroke-dasharray] duration-700 motion-reduce:transition-none"
+      />
+    </svg>
+  );
+}
+
 export function DiagnosticProgress({
   progress = initialDiagnosticProgress,
   domain,
@@ -109,9 +138,29 @@ export function DiagnosticProgress({
   }, []);
 
   const activeStep = steps.find(({ id }) => progress[id] === "running");
-  const resolvedStepCount = Object.values(progress).filter(
-    (status) => status !== "pending" && status !== "running",
-  ).length;
+  const resolvedStepCount = resolvedStageCount(progress);
+  const stageKey = steps.map(({ id }) => progress[id]).join("|");
+  const [stageMark, setStageMark] = useState({ key: stageKey, at: 0 });
+  useEffect(() => {
+    setStageMark((current) =>
+      current.key === stageKey ? current : { key: stageKey, at: elapsedSeconds },
+    );
+    // Only a change of stage restarts the clock; the seconds themselves must not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageKey]);
+  const peakPercent = useRef(0);
+  peakPercent.current = Math.max(
+    peakPercent.current,
+    estimateDiagnosticPercent(
+      progress,
+      stageMark.key === stageKey ? elapsedSeconds - stageMark.at : 0,
+    ),
+  );
+  const percent = peakPercent.current;
+  const phrase =
+    diagnosticWaitingPhrases[
+      Math.floor(elapsedSeconds / PHRASE_SECONDS) % diagnosticWaitingPhrases.length
+    ];
   const hasProgressData = Object.values(progress).some(
     (status) => status !== "pending",
   );
@@ -126,6 +175,12 @@ export function DiagnosticProgress({
       className="mx-auto max-w-3xl space-y-7"
     >
       <div className="flex flex-col items-center gap-2 text-center">
+        <div className="relative mb-2 flex h-32 w-32 items-center justify-center">
+          <PercentRing percent={percent} />
+          <span className="absolute text-3xl font-extrabold tabular-nums text-foreground">
+            {percent}%
+          </span>
+        </div>
         <p className="text-xs font-bold uppercase tracking-widest text-primary">
           Diagnóstico de desempenho
         </p>
@@ -135,9 +190,19 @@ export function DiagnosticProgress({
         >
           {domain ? `Analisando ${domain}` : "Estamos analisando seu site"}
         </h2>
+        <p className="text-lg font-semibold text-foreground">
+          Aguarde enquanto o Metricfly finaliza a análise.
+        </p>
         <p className="text-muted-foreground">
           Pode deixar a aba aberta: o relatório aparece aqui assim que ficar
           pronto.
+        </p>
+        <p
+          key={phrase}
+          aria-hidden="true"
+          className="motion-enter mt-1 min-h-[1.5rem] text-sm text-primary"
+        >
+          {phrase}
         </p>
       </div>
 
@@ -163,32 +228,18 @@ export function DiagnosticProgress({
               </p>
             )}
             <div
-              aria-label={
-                hasProgressData
-                  ? "Progresso das etapas do diagnóstico"
-                  : "Progresso indeterminado"
-              }
-              aria-valuemax={steps.length}
+              aria-label="Progresso do diagnóstico"
+              aria-valuemax={100}
               aria-valuemin={0}
-              aria-valuenow={hasProgressData ? resolvedStepCount : undefined}
-              aria-valuetext={
-                hasProgressData
-                  ? `${resolvedStepCount} de ${steps.length} etapas processadas`
-                  : undefined
-              }
+              aria-valuenow={percent}
+              aria-valuetext={`${percent}% concluído`}
               className="h-1.5 overflow-hidden rounded-full bg-primary/10"
               role="progressbar"
             >
-              {hasProgressData ? (
-                <div
-                  className="h-full rounded-full bg-primary transition-[width] duration-500 motion-reduce:transition-none"
-                  style={{
-                    width: `${(resolvedStepCount / steps.length) * 100}%`,
-                  }}
-                />
-              ) : (
-                <div className="h-full w-1/3 rounded-full bg-primary animate-diagnostic-progress motion-reduce:animate-none" />
-              )}
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-700 motion-reduce:transition-none"
+                style={{ width: `${percent}%` }}
+              />
             </div>
           </div>
 

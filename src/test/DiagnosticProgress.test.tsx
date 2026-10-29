@@ -1,10 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { DiagnosticProgress } from "@/features/diagnostics/components/DiagnosticProgress";
-import { initialDiagnosticProgress } from "@/features/diagnostics/model/diagnostic-progress";
+import {
+  diagnosticWaitingPhrases,
+  initialDiagnosticProgress,
+} from "@/features/diagnostics/model/diagnostic-progress";
 
 describe("DiagnosticProgress", () => {
-  it("shows pending labels and indeterminate progress before receiving stage updates", () => {
+  it("shows pending labels and an overall percentage that starts at zero", () => {
     render(<DiagnosticProgress progress={initialDiagnosticProgress} />);
 
     expect(screen.getByText("Iniciando a análise do site")).toBeTruthy();
@@ -15,10 +18,14 @@ describe("DiagnosticProgress", () => {
     expect(screen.queryByText(/Decorrido/)).toBeNull();
     expect(screen.queryByLabelText(/Tempo decorrido/)).toBeNull();
     const progressbar = screen.getByRole("progressbar", {
-      name: "Progresso indeterminado",
+      name: "Progresso do diagnóstico",
     });
-    expect(progressbar).not.toHaveAttribute("aria-valuenow");
-    expect(screen.queryByText(/%/)).toBeNull();
+    expect(progressbar).toHaveAttribute("aria-valuenow", "0");
+    expect(screen.getByText("0%")).toBeTruthy();
+    expect(
+      screen.getByText("Aguarde enquanto o Metricfly finaliza a análise."),
+    ).toBeTruthy();
+    expect(screen.getByText(diagnosticWaitingPhrases[0])).toBeTruthy();
   });
 
   it("reflects confirmed stage progress and keeps in-flight and pending states distinct", () => {
@@ -46,13 +53,10 @@ describe("DiagnosticProgress", () => {
     ).toBeTruthy();
 
     const progressbar = screen.getByRole("progressbar", {
-      name: "Progresso das etapas do diagnóstico",
+      name: "Progresso do diagnóstico",
     });
-    expect(progressbar).toHaveAttribute("aria-valuenow", "1");
-    expect(progressbar).toHaveAttribute(
-      "aria-valuetext",
-      "1 de 5 etapas processadas",
-    );
+    expect(progressbar).toHaveAttribute("aria-valuenow", "20");
+    expect(progressbar).toHaveAttribute("aria-valuetext", "20% concluído");
     expect(screen.getByText("1 de 5 etapas processadas")).toBeTruthy();
     expect(progressbar.firstElementChild).toHaveStyle({ width: "20%" });
   });

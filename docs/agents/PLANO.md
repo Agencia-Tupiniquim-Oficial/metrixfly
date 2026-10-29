@@ -79,3 +79,48 @@ Achados:
 - Nao existe login no app: so um formulario de link magico oculto na pagina de GEO (`signInWithOtp`). `/geo-admin` e um placeholder e `/reports` e publica; ela le `geo_crawl_snapshots` e `geo_projects`, tabelas que NAO estao nas migrations do repositorio (existem so no Supabase), entao nao se sabe se a RLS delas protege os dados. Risco a conferir.
 - O sistema nao guarda quem fez a analise: `diagnostic_reports` tem so o relatorio (dominio em `report.geo.domain`) e a data; `quote_interest_events` tem dominio, tipo de evento e sessao anonima; o contato de quem pede orcamento so vai por e-mail. Mostrar "pessoas" exigiria passar a guardar dados pessoais (decisao de privacidade).
 - Autenticacao nao e autorizacao: qualquer conta com link magico entraria (por isso a checagem fica no banco). A autorizacao fica no banco (`agency_admins` + `is_agency_admin()`), e o login usa `shouldCreateUser: false`.
+
+## Fluxo develop e captura de e-mail (2026-10-29)
+
+Fluxo: branches de tarefa partem da `develop`, voltam por merge (`--no-ff`) e a `develop` gera o preview fixo na Vercel. Da `develop` para a `main` so com OK explicito do usuario. A `main` publicada em 2026-10-29 estava em `5b76740` (FAQ).
+
+Entregue na `develop` (validacao do usuario pendente no preview):
+- `fix/diagnostic-layout-overflow`: dominio em linha propria acima da barra de busca no resultado.
+- `feat/home-cta-flow`: home sem campo de URL (botoes levam a `/diagnostico`); `/diagnostico` e `/geo-aeo` sem site nao redirecionam mais para a home (o GEO vai para `/diagnostico`); faixa "Achou os problemas?" so com "Solicitar orcamento" em todas as paginas publicas (`components/quote-band.tsx`). Fora do relatorio, "Solicitar orcamento" leva a `/diagnostico`, porque o pedido de orcamento depende de um diagnostico (PDF e resumo). Decisao de nivel B; alternativa descartada: formulario geral sem diagnostico (exige mudar a Edge Function `quote-request`).
+- `feat/diagnostic-progress`: porcentagem geral estimada (etapas confirmadas + avanco por tempo, teto de 99%), mensagem "Aguarde enquanto o Metricfly finaliza a analise" e frases rotativas (rascunho do texto: usuario deve aprovar). Marca grafada "Metricfly", conforme decisao registrada.
+- `feat/report-email-gate`: popup obrigatorio de e-mail com o relatorio desfocado ate informar (so visual: o relatorio ja esta no navegador). O e-mail fica salvo com o site e o id do relatorio e aparece no painel admin (coluna "E-mail" e tabela de contatos com a contagem de analises). O e-mail fica lembrado no navegador (`localStorage`, chave `metrixfly:report-lead-email`); novas analises do mesmo navegador sao registradas sem pedir de novo. Se o registro falhar, o relatorio e liberado mesmo assim e o aviso aparece. Nao se aplica ao modo demo nem ao relatorio compartilhado.
+
+PENDENTE (autorizacao do usuario): aplicar a migration `20261029120000_create_report_leads.sql` (tabela `report_leads`, funcoes `submit_report_lead` para anon e `admin_list_report_leads` para a agencia). Ate la, o popup libera o relatorio mas nao grava o e-mail, e o painel mostra "Nao foi possivel carregar os e-mails agora". O Supabase e unico (producao): a migration vale tambem para o site publicado. Riscos: a funcao publica nao tem limite de taxa (volume de e-mails falsos possivel); o texto de consentimento do popup e um rascunho a aprovar; retencao dos e-mails nao definida.
+
+### Estado ao fim de 2026-10-29 (para retomar sem o historico do chat)
+
+- `main` = `5b76740` (publicada em producao: FAQ, menu fixo, rolagem suave, botao de voltar ao topo). `develop` = branch de integracao com as 4 branches acima ja mescladas (ultimo merge `5ed581c`). Branches de tarefa remotas: `fix/diagnostic-layout-overflow`, `feat/home-cta-flow`, `feat/diagnostic-progress`, `feat/report-email-gate`, `feat/home-faq`, `feat/home-sticky-header-smooth-scroll`.
+- Proximo passo do usuario: validar o preview da `develop` na Vercel (menu, home sem campo, `/diagnostico`, progresso, popup de e-mail, admin). Depois: decidir sobre a migration `20261029120000`, aprovar textos e pedir o merge `develop` -> `main`.
+- Vercel: projeto `metrixfly` no time `tupinquim`; o conector MCP da Vercel esta autenticado e permite consultar deploys e previews (somente leitura nesta iniciativa).
+- Skill `metrixfly-design` e subagente `metrixfly-design-review` criados para avaliar pedidos visuais antes de implementar; nao foram usados na rodada das 4 branches.
+- Itens ainda abertos: lista de decisoes pendentes acima (migration, textos, retencao, limite de taxa, destino do "Solicitar orcamento" fora do relatorio, formulario geral de orcamento, link da faixa nas paginas internas).
+
+### feat/quote-band-flow (2026-10-29, na `develop`)
+
+Pedido do usuario: o "Solicitar orcamento" da faixa final passa a depender de haver diagnostico. Com diagnostico rodado, abre no proprio lugar o mesmo formulario (Nome, Empresa, E-mail, Telefone) da pagina de resultado, que envia o e-mail com o PDF. Sem diagnostico, leva a `/diagnostico` (router state `openQuote`) e, assim que o relatorio fica pronto, o formulario abre sozinho; o popup de e-mail do relatorio nao aparece nesse caso.
+- `hooks/use-quote-request.ts` (novo): logica de envio do orcamento extraida da `DiagnosticPage`, sem mudar o comportamento; usada pela pagina e pelo botao da faixa.
+- `components/QuoteBandAction.tsx` (novo) e `components/quote-band.tsx` (agora recebe o botao como filho). `QuoteRequestDialog` ganhou modo controlado (`open`, `onOpenChange`, `showTrigger`).
+- O e-mail digitado no formulario de orcamento tambem libera o relatorio e grava o lead (mesma funcao `submit_report_lead`; depende da migration pendente). Se o formulario for fechado sem enviar, o popup de e-mail aparece.
+- Na propria `/diagnostico` sem resultado, o botao da faixa registra a intencao, rola ate o campo do site e foca nele.
+- Divida: paginas de outros dominios (home, geo-aeo, calculadora) importam `QuoteBandAction` de `features/diagnostics`; `useOptionalDiagnosis` foi adicionado ao contexto para o botao nao quebrar fora do provedor.
+
+### feat/home-crawl-link (2026-10-29, na `develop`)
+
+O card "Rodar Agent Crawl" da home leva a `/geo-aeo` quando ja existe um diagnostico salvo na sessao (o GEO usa o dominio dele e o crawl em cache); sem diagnostico continua levando a `/diagnostico`. O card "Diagnosticar desempenho" nao muda.
+
+### fix/layout-proportions (2026-10-29, na `develop`)
+
+Prints do usuario mostraram a faixa verde mais larga que o conteudo das paginas internas (a faixa usava `container`, 1336 px, e o conteudo `max-w-6xl`, 1088 px) e o formulario do GEO solto no canto direito. `QuoteBand` ganhou `width` (`wide` na home, `page` = `max-w-6xl` por padrao em diagnostico/GEO/calculadora, `narrow` = `max-w-4xl` no relatorio compartilhado) e o cabecalho do GEO/AEO empilha titulo e formulario como o do diagnostico. Nao alterados por falta de causa clara: cabecalho do relatorio HTML com os dois logos e largura do formulario em relacao ao boletim no resultado (aguardam resposta do usuario).
+
+### fix/quote-popup-keeps-blur (2026-10-29, na `develop`)
+
+Correcao de `feat/quote-band-flow`: com o formulario de orcamento aberto (pedido feito pela faixa antes de ter diagnostico), o relatorio ficava visivel porque o desfoque era retirado junto com o popup de e-mail. Agora o desfoque so some quando um e-mail e informado (popup de e-mail ou formulario de orcamento); o popup de e-mail so fica escondido enquanto o formulario esta aberto (`emailGateOpen`). O estado `openQuote` do roteador e limpo na primeira renderizacao, para um recarregamento da pagina nao reabrir o formulario.
+
+### fix/remove-band-diagnostic-page (2026-10-29, na `develop`)
+
+A faixa verde "Achou os problemas?" saiu da `/diagnostico` quando ainda nao ha resultado (pedido do usuario); no resultado ela ja nao aparecia fora do card proprio do relatorio. Continua na home, GEO/AEO, calculadora e relatorio compartilhado. Removido o codigo que so servia a esse caso (`onQuoteIntent`, `onRequestDiagnostic`).

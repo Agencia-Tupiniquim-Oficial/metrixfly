@@ -1,24 +1,15 @@
 import { useEffect, useRef, useState, FormEvent } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 import { useDiagnosis } from "@/features/diagnostics/state/DiagnosisContext";
 import { getDiagnosticErrorMessage } from "@/features/diagnostics/services/error-handler";
 import { DiagnosticExperience } from "@/features/diagnostics/components/DiagnosticExperience";
 import type { DiagnoseResult, Improvement } from "@/features/diagnostics/model/diagnose";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
-import {
-  buildDiagnosticSummary,
-  validateDiagnosticPdf,
-  type QuoteEmailRequest,
-  type QuoteRequest,
-  type ServiceInterest,
-} from "@/features/diagnostics/model/quote-request";
-import {
-  buildCampaignTrackingForSubmission,
-  clearCampaignTracking,
-} from "@/features/diagnostics/model/campaign-tracking";
+import type { QuoteRequest } from "@/features/diagnostics/model/quote-request";
+import { normalizeLeadEmail } from "@/features/diagnostics/model/report-lead";
+import { useQuoteRequest } from "@/features/diagnostics/hooks/use-quote-request";
 import { isPublicDiagnosticReportId } from "@/features/diagnostics/services/diagnostic-reports";
 import {
   sampleDiagnosticResult,
@@ -27,8 +18,11 @@ import {
 import { importPdfReports } from "@/lib/dynamic-import";
 import { startGeoCrawl } from "@/lib/geo-crawl-cache";
 import { runDiagnosticWithProgress } from "@/features/diagnostics/services/diagnose-site";
-import { trackQuoteRequestLead } from "@/features/diagnostics/services/quote-analytics";
-import { recordQuoteInterest } from "@/features/diagnostics/services/quote-interest";
+import {
+  readRememberedLeadEmail,
+  rememberLeadEmail,
+  submitReportLead,
+} from "@/features/diagnostics/services/report-lead";
 import {
   applyDiagnosticProgress,
   initialDiagnosticProgress,
@@ -43,7 +37,6 @@ const DiagnosticPage = () => {
     setDiagnostic,
     diagnosticReportId,
     setDiagnosticReportId,
-    isHydrated,
   } = useDiagnosis();
 
   const [searchParams] = useSearchParams();
@@ -59,8 +52,23 @@ const DiagnosticPage = () => {
     requestedUrl || (diagnostic?.geo?.domain ?? ""),
   );
   const [loading, setLoading] = useState(false);
-  // Set once a diagnostic was started here, so a failed run keeps the form on screen.
-  const [attempted, setAttempted] = useState(false);
+  // "Solicitar orçamento" before any diagnostic leads here: the quote form opens when the report is ready.
+  const routerLocation = useLocation();
+  const [quoteIntent, setQuoteIntent] = useState(
+    () => (routerLocation.state as { openQuote?: boolean } | null)?.openQuote === true,
+  );
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  useEffect(() => {
+    if ((routerLocation.state as { openQuote?: boolean } | null)?.openQuote) {
+      navigate(`${routerLocation.pathname}${routerLocation.search}`, { replace: true, state: null });
+    }
+    // Runs once: the intent was already read into state above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // The report opens at once for a visitor whose e-mail is already known in this browser.
+  const [reportUnlocked, setReportUnlocked] = useState(
+    () => readRememberedLeadEmail() !== null,
+  );
   const [diagnosticProgress, setDiagnosticProgress] =
     useState<DiagnosticProgressState>(initialDiagnosticProgress);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -74,7 +82,6 @@ const DiagnosticPage = () => {
   );
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   const [downloading, setDownloading] = useState(false);
-  const [quoteSending, setQuoteSending] = useState(false);
   const [businessDownloading, setBusinessDownloading] = useState(false);
   const [businessSummary, setBusinessSummary] = useState<BusinessSummary | null>(null);
   const [businessLoading, setBusinessLoading] = useState(false);
@@ -114,7 +121,6 @@ const DiagnosticPage = () => {
     if (!/^https?:\/\//i.test(normalized)) normalized = "https://" + normalized;
 
     setLoading(true);
-    setAttempted(true);
     // The GEO/AEO crawl runs alongside, so opening GEO/AEO later does not repeat it.
     // A failure here is silent: the GEO/AEO page crawls on demand instead.
     if (searchParams.get("demo") !== "1") void startGeoCrawl(normalized).catch(() => undefined);
@@ -138,6 +144,20 @@ const DiagnosticPage = () => {
       ownRunDone.current = true;
       setResult(diagnosticResult);
       setDiagnostic(diagnosticResult);
+      const rememberedEmail = readRememberedLeadEmail();
+      setReportUnlocked(rememberedEmail !== null);
+      if (quoteIntent) {
+        setQuoteIntent(false);
+        setQuoteDialogOpen(true);
+      }
+      if (rememberedEmail) {
+        // Same visitor, new analysis: record it so the agency sees how many they ran.
+        void submitReportLead({
+          email: rememberedEmail,
+          domain: diagnosticResult.geo?.domain?.trim() || normalized,
+          reportId: completed.reportId ?? null,
+        }).catch((error: unknown) => console.error(error));
+      }
       if (
         completed.reportId &&
         isPublicDiagnosticReportId(completed.reportId)
@@ -246,110 +266,40 @@ const DiagnosticPage = () => {
     }
   };
 
-  const publicReportId =
-    diagnosticReportId && isPublicDiagnosticReportId(diagnosticReportId)
-      ? diagnosticReportId
-      : null;
+  const isDemoMode = searchParams.get("demo") === "1";
+  const { sendQuoteRequest, recordQuoteDialogOpen, quoteSending } = useQuoteRequest({
+    result,
+    url,
+    reportId: diagnosticReportId,
+    enabled: !isDemoMode,
+  });
 
-  const recordQuoteDialogOpen = (interest: ServiceInterest) => {
-    const analyzedUrl = result?.geo?.domain?.trim() || url.trim();
-    if (!analyzedUrl) return;
-    void recordQuoteInterest({
-      eventType: "dialog_opened",
-      domain: /^https?:\/\//i.test(analyzedUrl) ? analyzedUrl : `https://${analyzedUrl}`,
-      reportId: publicReportId,
-      serviceInterest: interest,
-    });
+  // The report stays blurred until an e-mail is given, also while the quote form (which asks for one) is open.
+  const reportLocked = !isDemoMode && result !== null && !reportUnlocked;
+
+  const unlockReport = async (email: string) => {
+    rememberLeadEmail(email);
+    try {
+      await submitReportLead({
+        email,
+        domain: result?.geo?.domain?.trim() || url.trim(),
+        reportId: diagnosticReportId,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Relatório liberado",
+        description: "Não conseguimos registrar o seu e-mail agora, mas você já pode ver o diagnóstico.",
+      });
+    }
+    setReportUnlocked(true);
   };
 
-  const sendQuoteRequest = async (request: QuoteRequest) => {
-    if (!result) {
-      throw new Error("Gere um diagnóstico antes de solicitar um orçamento.");
-    }
-    if (isDemo) {
-      throw new Error("Solicitações de orçamento não estão disponíveis no modo de demonstração.");
-    }
-
-    setQuoteSending(true);
-    try {
-      const analyzedUrl = result.geo?.domain?.trim() || url.trim();
-      const normalizedUrl = /^https?:\/\//i.test(analyzedUrl)
-        ? analyzedUrl
-        : `https://${analyzedUrl}`;
-      let parsedUrl: URL;
-      try {
-        parsedUrl = new URL(normalizedUrl);
-      } catch {
-        throw new Error("Não foi possível identificar o domínio analisado.");
-      }
-      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-        throw new Error("O domínio analisado precisa usar HTTP ou HTTPS.");
-      }
-
-      const { createDiagnosticReportPdf } = await importPdfReports();
-      const pdf = await createDiagnosticReportPdf(normalizedUrl, result);
-      validateDiagnosticPdf(pdf);
-      const payload: QuoteEmailRequest = {
-        ...request,
-        domain: normalizedUrl,
-        diagnosticSummary: buildDiagnosticSummary(result),
-        campaignTracking: buildCampaignTrackingForSubmission({
-          search: window.location.search,
-          href: window.location.href,
-        }),
-      };
-      const formData = new FormData();
-      formData.append("form-name", payload["form-name"]);
-      formData.append("name", payload.name);
-      formData.append("company", payload.company);
-      formData.append("email", payload.email);
-      formData.append("phone", payload.phone);
-      formData.append("domain", payload.domain);
-      if (payload.serviceInterest) {
-        formData.append("serviceInterest", payload.serviceInterest);
-      }
-      formData.append("diagnosticSummary", payload.diagnosticSummary);
-      formData.append(
-        "campaignTracking",
-        JSON.stringify(payload.campaignTracking),
-      );
-      formData.append("report", pdf, "diagnostico.pdf");
-      const { data, error } = await supabase.functions.invoke("quote-request", {
-        body: formData,
-      });
-      if (error) {
-        if (error instanceof FunctionsHttpError) {
-          let responseBody: unknown;
-          try {
-            responseBody = await error.context.json();
-          } catch {
-            responseBody = null;
-          }
-          if (
-            responseBody &&
-            typeof responseBody === "object" &&
-            "error" in responseBody &&
-            typeof responseBody.error === "string"
-          ) {
-            throw new Error(responseBody.error);
-          }
-        }
-        throw error;
-      }
-      if (data?.success !== true) {
-        throw new Error("O serviço não confirmou o envio da solicitação.");
-      }
-      clearCampaignTracking();
-      trackQuoteRequestLead(normalizedUrl);
-      void recordQuoteInterest({
-        eventType: "request_submitted",
-        domain: normalizedUrl,
-        reportId: publicReportId,
-        serviceInterest: request.serviceInterest,
-      });
-    } finally {
-      setQuoteSending(false);
-    }
+  // The e-mail typed in the quote form also releases the report, so the popup is not asked twice.
+  const submitQuoteRequest = async (request: QuoteRequest) => {
+    await sendQuoteRequest(request);
+    const email = normalizeLeadEmail(request.email);
+    if (email && !reportUnlocked) await unlockReport(email);
   };
 
   const fetchBusinessSummary = async (): Promise<BusinessSummary | null> => {
@@ -472,11 +422,6 @@ const DiagnosticPage = () => {
 
   const isDemo = searchParams.get("demo") === "1";
 
-  // The home page is the only entry point: with nothing to show, go there.
-  if (isHydrated && !isDemo && !loading && !attempted && !requestedUrl && !result && !diagnostic) {
-    return <Navigate to="/" replace />;
-  }
-
   const activeResult = result ?? (isDemo ? sampleDiagnosticResult : null);
   const activeBusinessSummary = businessSummary ?? (isDemo ? sampleBusinessSummary : null);
 
@@ -503,10 +448,15 @@ const DiagnosticPage = () => {
       updateImprovement(index, field as keyof Improvement, value);
     }}
     updateUiuxOverview={updateUiuxOverview}
-    sendQuoteRequest={isDemo ? undefined : sendQuoteRequest}
+    sendQuoteRequest={isDemo ? undefined : submitQuoteRequest}
     onQuoteDialogOpen={isDemo ? undefined : recordQuoteDialogOpen}
+    quoteDialogOpen={quoteDialogOpen}
+    onQuoteDialogOpenChange={setQuoteDialogOpen}
     quoteSending={quoteSending}
     reportUrl={isDemo ? null : reportUrl}
+    reportLocked={reportLocked}
+    emailGateOpen={reportLocked && !quoteDialogOpen}
+    onUnlockReport={isDemo ? undefined : unlockReport}
     openGeoDashboard={openGeoDashboard}
   />;
 };

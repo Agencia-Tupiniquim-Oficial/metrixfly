@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ChangeEvent } from "react";
+import { useEffect, useState, type FormEvent, type ChangeEvent } from "react";
 import { Loader2, Mail } from "lucide-react";
 import { useInRouterContext } from "react-router-dom";
 import QuoteExitGuard from "@/features/diagnostics/components/QuoteExitGuard";
@@ -29,6 +29,11 @@ type Props = {
   triggerLabel?: string;
   /** Lets a colored surface restyle the trigger (e.g. the closing band). */
   triggerClassName?: string;
+  /** Controlled mode: the caller opens and closes the dialog (e.g. from another button). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** False when another button opens the dialog. */
+  showTrigger?: boolean;
 };
 
 export default function QuoteRequestDialog({
@@ -38,8 +43,17 @@ export default function QuoteRequestDialog({
   onOpened,
   triggerLabel = "Solicitar orçamento",
   triggerClassName,
+  open: controlledOpen,
+  onOpenChange,
+  showTrigger = true,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
   const [request, setRequest] = useState<QuoteRequest>({
     "form-name": "form-contato",
     name: "",
@@ -107,25 +121,34 @@ export default function QuoteRequestDialog({
     request.phone,
   ].some((value) => value.trim() !== "");
 
+  // A controlled dialog opens without a click inside it, so the interest signal is sent here.
+  useEffect(() => {
+    if (isControlled && controlledOpen) onOpened?.(serviceInterest ?? "general");
+    // Only the moment it opens counts, not later renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isControlled, controlledOpen]);
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (nextOpen && !open) onOpened?.(serviceInterest ?? "general");
+    if (nextOpen && !open && !isControlled) onOpened?.(serviceInterest ?? "general");
     setOpen(nextOpen);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {insideRouter && <QuoteExitGuard active={hasUnsentData} />}
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          size="lg"
-          variant="outline"
-          className={cn("w-full font-semibold", triggerClassName)}
-        >
-          <Mail className="mr-2 h-5 w-5" />
-          {triggerLabel}
-        </Button>
-      </DialogTrigger>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            className={cn("w-full font-semibold", triggerClassName)}
+          >
+            <Mail className="mr-2 h-5 w-5" />
+            {triggerLabel}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Solicitar orçamento</DialogTitle>

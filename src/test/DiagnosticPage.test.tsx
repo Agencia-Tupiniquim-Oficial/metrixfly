@@ -41,11 +41,12 @@ function renderWithProviders(initialEntries: string[] = ["/diagnostico"]) {
 }
 
 describe("Diagnostic experience", () => {
-  it("sends a visit with no site and no saved diagnostic to the home page", async () => {
+  it("asks for the site when a visit has no site and no saved diagnostic", async () => {
     runDiagnosticWithProgress.mockClear();
     renderWithProviders(["/diagnostico"]);
 
-    expect(await screen.findByText("pagina inicial")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("exemplo.com.br")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Diagnosticar/ })).toBeInTheDocument();
     expect(runDiagnosticWithProgress).not.toHaveBeenCalled();
   });
 
@@ -152,6 +153,8 @@ describe("Diagnostic result address bar", () => {
         geo: { domain: "https://safetyrentalsplataformas.com.br/" },
       }),
     );
+    // A known e-mail opens the report at once (otherwise it stays blurred behind the e-mail popup).
+    localStorage.setItem("metrixfly:report-lead-email", "visitante@exemplo.com.br");
     try {
       renderWithProviders(["/diagnostico"]);
 
@@ -163,6 +166,7 @@ describe("Diagnostic result address bar", () => {
       );
     } finally {
       sessionStorage.clear();
+      localStorage.clear();
     }
   });
 });

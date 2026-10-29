@@ -1,4 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import QuoteBand from "@/components/quote-band";
+import QuoteBandAction from "@/features/diagnostics/components/QuoteBandAction";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
@@ -539,7 +541,7 @@ const GeoAeoDashboard = () => {
       });
   };
 
-  // The home page is the only entry point: with nothing to show, go there.
+  // The diagnostic page is the entry point: with nothing to show, go there.
   if (
     isHydrated &&
     !result &&
@@ -548,7 +550,7 @@ const GeoAeoDashboard = () => {
     !diagnosedSite &&
     !lastGeoCrawlKey()
   ) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/diagnostico" replace />;
   }
 
   const subscores: [string, number, string][] = result
@@ -572,8 +574,8 @@ const GeoAeoDashboard = () => {
     <div className="min-h-screen bg-secondary/40">
       <AppHeader />
       <main className="container max-w-6xl space-y-8 py-10 md:py-12">
-        <section className="flex flex-wrap items-end justify-between gap-7">
-          <div className="motion-enter min-w-0 flex-1 basis-96 space-y-2.5">
+        <section className="space-y-6">
+          <div className="motion-enter min-w-0 space-y-2.5">
             <p className={eyebrow}>Agent Crawl · GEO/AEO</p>
             <h1 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
               Descubra se sua marca é encontrada e citada por IAs.
@@ -585,7 +587,7 @@ const GeoAeoDashboard = () => {
             </p>
           </div>
           <Card
-            className="motion-card flex-1 basis-96 border-border bg-card p-2"
+            className="motion-card w-full border-border bg-card p-2"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <form onSubmit={runCrawl} className="flex flex-col gap-2 sm:flex-row">
@@ -893,6 +895,9 @@ const GeoAeoDashboard = () => {
           </div>
         )}
       </main>
+      <QuoteBand>
+        <QuoteBandAction location="geo-aeo" />
+      </QuoteBand>
     </div>
   );
 };

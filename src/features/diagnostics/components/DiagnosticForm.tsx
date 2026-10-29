@@ -31,6 +31,7 @@ export default function DiagnosticForm({
         <div className="flex flex-1 items-center gap-2 px-3">
           <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
           <Input
+            id="diagnostic-url"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
             placeholder="exemplo.com.br"
