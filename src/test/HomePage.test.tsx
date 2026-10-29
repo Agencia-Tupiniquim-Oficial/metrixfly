@@ -42,6 +42,26 @@ describe("HomePage", () => {
     delete testWindow.dataLayer;
   });
 
+  it("answers common questions in an accordion linked from the menu", () => {
+    renderHome();
+
+    expect(screen.getByRole("link", { name: "Dúvidas" })).toHaveAttribute(
+      "href",
+      "#duvidas",
+    );
+    expect(
+      screen.getByRole("heading", { name: /Ficou com alguma pergunta/ }),
+    ).toBeInTheDocument();
+
+    const question = screen.getByRole("button", {
+      name: /Preciso criar uma conta ou instalar alguma coisa/,
+    });
+    expect(question).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(question);
+    expect(question).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/Basta informar o endereço do site/)).toBeVisible();
+  });
+
   it("explains what the tool does and how a diagnostic works", () => {
     renderHome();
 

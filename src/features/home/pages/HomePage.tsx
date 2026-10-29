@@ -18,6 +18,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import logoColored from "@/assets/logo-colored.png";
 import { pushDataLayerEvent } from "@/lib/analytics";
 import { enableAnchorSmoothScroll } from "@/lib/smooth-scroll";
+import FaqSection from "../components/FaqSection";
 import PdfMockup from "../components/PdfMockup";
 import ReportPreview from "../components/ReportPreview";
 
@@ -27,6 +28,7 @@ const navLinks = [
   { href: "#diagnosticos", label: "Diagnósticos" },
   { href: "#como", label: "Como funciona" },
   { href: "#recebe", label: "O que você recebe" },
+  { href: "#duvidas", label: "Dúvidas" },
 ];
 
 const diagnostics = [
@@ -298,6 +300,8 @@ export default function HomePage() {
             <PdfMockup />
           </div>
         </section>
+
+        <FaqSection />
 
         <section className="container pb-16 md:pb-24">
           <div className="flex flex-wrap items-center justify-between gap-8 rounded-3xl bg-primary px-6 py-12 text-primary-foreground md:px-12 md:py-16">
