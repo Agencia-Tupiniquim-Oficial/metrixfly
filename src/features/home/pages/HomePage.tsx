@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import logoColored from "@/assets/logo-colored.png";
 import { pushDataLayerEvent } from "@/lib/analytics";
+import { enableAnchorSmoothScroll } from "@/lib/smooth-scroll";
 import PdfMockup from "../components/PdfMockup";
 import ReportPreview from "../components/ReportPreview";
 
@@ -96,6 +97,8 @@ export default function HomePage() {
   const [address, setAddress] = useState("");
   const addressInput = useRef<HTMLInputElement>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => enableAnchorSmoothScroll(), []);
 
   useEffect(() => {
     const update = () => setShowBackToTop(window.scrollY > BACK_TO_TOP_OFFSET);
