@@ -60,7 +60,18 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   logo: { width: 88, height: 48, objectFit: "contain", marginRight: 10 },
-  clientLogo: { width: 88, height: 48, objectFit: "contain", marginLeft: 10 },
+  logoDivider: { width: 1, height: 28, backgroundColor: "#DDE8DF", marginHorizontal: 10 },
+  clientLogoFrame: {
+    width: 40,
+    height: 40,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: "#DDE8DF",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clientLogo: { width: "100%", height: "100%", objectFit: "contain" },
   brandCaption: { color: MUTED, fontSize: 8 },
   footer: {
     position: "absolute",
@@ -163,12 +174,23 @@ const diagnosticStyles = StyleSheet.create({
     height: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoHeight),
     objectFit: "contain",
   },
-  coverClientLogo: {
-    width: pxToPt(160),
-    height: pxToPt(DIAGNOSTIC_REPORT_LAYOUT.coverLogoHeight),
-    objectFit: "contain",
-    marginLeft: pxToPt(24),
+  coverLogoDivider: {
+    width: 1,
+    height: pxToPt(64),
+    backgroundColor: "#DDE8DF",
+    marginHorizontal: pxToPt(24),
   },
+  coverClientLogoFrame: {
+    width: pxToPt(80),
+    height: pxToPt(80),
+    padding: pxToPt(14),
+    borderWidth: 1,
+    borderColor: "#DDE8DF",
+    borderRadius: pxToPt(16),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coverClientLogo: { width: "100%", height: "100%", objectFit: "contain" },
   title: {
     color: DIAGNOSTIC_REPORT_COLORS.green,
     fontSize: pxToPt(DIAGNOSTIC_REPORT_TYPOGRAPHY.title.fontSize),
@@ -398,13 +420,18 @@ function numberedTitle(index: number, title: string): string {
 function Header({ logos }: { logos: ReportLogo[] }) {
   return (
     <View style={styles.header}>
-      {logos.map((logo, index) => (
-        <Image
-          key={`${logo.role}-${index}`}
-          src={logo.src}
-          style={logo.role === "agency" ? styles.logo : styles.clientLogo}
-        />
-      ))}
+      {logos.map((logo, index) =>
+        logo.role === "agency" ? (
+          <Image key={`${logo.role}-${index}`} src={logo.src} style={styles.logo} />
+        ) : (
+          <View key={`${logo.role}-${index}`} style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={styles.logoDivider} />
+            <View style={styles.clientLogoFrame}>
+              <Image src={logo.src} style={styles.clientLogo} />
+            </View>
+          </View>
+        ),
+      )}
       <View>
         <Text style={styles.brandCaption}>Diagnóstico e estratégia digital</Text>
       </View>
@@ -458,17 +485,25 @@ function DiagnosticReportPage({
     >
       {cover ? (
         <View style={diagnosticStyles.coverLogoRow}>
-          {logos.map((logo, index) => (
-            <Image
-              key={`${logo.role}-${index}`}
-              src={logo.src}
-              style={
-                logo.role === "agency"
-                  ? diagnosticStyles.coverLogo
-                  : diagnosticStyles.coverClientLogo
-              }
-            />
-          ))}
+          {logos.map((logo, index) =>
+            logo.role === "agency" ? (
+              <Image
+                key={`${logo.role}-${index}`}
+                src={logo.src}
+                style={diagnosticStyles.coverLogo}
+              />
+            ) : (
+              <View
+                key={`${logo.role}-${index}`}
+                style={{ flexDirection: "row", alignItems: "center" }}
+              >
+                <View style={diagnosticStyles.coverLogoDivider} />
+                <View style={diagnosticStyles.coverClientLogoFrame}>
+                  <Image src={logo.src} style={diagnosticStyles.coverClientLogo} />
+                </View>
+              </View>
+            ),
+          )}
         </View>
       ) : null}
       {children}
