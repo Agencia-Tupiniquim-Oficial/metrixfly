@@ -1,3 +1,5 @@
+import { useReveal } from "@/hooks/use-reveal";
+
 const RADIUS = 27;
 const LENGTH = 2 * Math.PI * RADIUS;
 
@@ -24,12 +26,17 @@ type ScoreRingProps = {
 
 export function ScoreRing({ label, score, size = 64 }: ScoreRingProps) {
   const tone = toneClasses[scoreTone(score)];
+  const { ref, visible } = useReveal<SVGSVGElement>();
+  const filled = visible
+    ? (Math.min(Math.max(score, 0), 100) / 100) * LENGTH
+    : 0;
   return (
     <div className="flex flex-col items-center gap-2">
       <svg
         width={size}
         height={size}
         viewBox="0 0 64 64"
+        ref={ref}
         role="img"
         aria-label={`${label}: ${score} de 100`}
       >
@@ -48,9 +55,9 @@ export function ScoreRing({ label, score, size = 64 }: ScoreRingProps) {
           fill="none"
           strokeWidth="5"
           strokeLinecap="round"
-          strokeDasharray={`${(Math.min(Math.max(score, 0), 100) / 100) * LENGTH} ${LENGTH}`}
+          strokeDasharray={`${filled} ${LENGTH}`}
           transform="rotate(-90 32 32)"
-          className={tone.stroke}
+          className={`${tone.stroke} transition-[stroke-dasharray] duration-[900ms] ease-out motion-reduce:transition-none`}
         />
         <text
           x="32"
