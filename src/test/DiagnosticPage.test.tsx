@@ -45,8 +45,8 @@ describe("Diagnostic experience", () => {
     runDiagnosticWithProgress.mockClear();
     renderWithProviders(["/diagnostico"]);
 
-    expect(await screen.findByPlaceholderText("exemplo.com.br")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Diagnosticar/ })).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("example.com")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Run diagnostic/ })).toBeInTheDocument();
     expect(runDiagnosticWithProgress).not.toHaveBeenCalled();
   });
 
@@ -159,7 +159,7 @@ describe("Diagnostic result address bar", () => {
       expect(
         await screen.findByRole("heading", { level: 1, name: "safetyrentalsplataformas.com.br", hidden: true }),
       ).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("exemplo.com.br")).toHaveValue(
+      expect(screen.getByPlaceholderText("example.com")).toHaveValue(
         "safetyrentalsplataformas.com.br",
       );
     } finally {

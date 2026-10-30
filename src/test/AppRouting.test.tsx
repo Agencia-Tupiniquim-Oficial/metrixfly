@@ -55,7 +55,7 @@ describe("application route fallback", () => {
       window.history.replaceState({}, "", path);
       const { unmount } = render(<App />);
 
-      expect(await screen.findByPlaceholderText("exemplo.com.br")).toBeInTheDocument();
+      expect(await screen.findByPlaceholderText("example.com")).toBeInTheDocument();
       expect(window.location.pathname).toBe("/diagnostico");
       unmount();
     }
