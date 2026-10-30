@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Check, Circle, Minus } from "lucide-react";
+import { AlertCircle, Check, Circle, Minus, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   diagnosticWaitingPhrases,
@@ -197,13 +197,16 @@ export function DiagnosticProgress({
           Pode deixar a aba aberta: o relatório aparece aqui assim que ficar
           pronto.
         </p>
-        <p
-          key={phrase}
-          aria-hidden="true"
-          className="motion-enter mt-1 min-h-[1.5rem] text-sm text-primary"
-        >
-          {phrase}
-        </p>
+        <div className="mt-4 flex min-h-[4.5rem] w-full items-center justify-center">
+          <p
+            key={phrase}
+            aria-hidden="true"
+            className="motion-enter inline-flex max-w-xl items-center gap-2.5 rounded-2xl border border-primary/20 bg-primary/10 px-5 py-3 text-lg font-bold leading-snug text-primary md:text-xl"
+          >
+            <Sparkles aria-hidden="true" className="h-5 w-5 shrink-0" />
+            {phrase}
+          </p>
+        </div>
       </div>
 
       <Card
