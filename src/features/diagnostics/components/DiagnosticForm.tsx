@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Loader2, Gauge, Globe } from "lucide-react";
+import { portugueseRequired } from "@/lib/validation-messages";
 
 type Props = {
   url: string;
@@ -38,6 +39,7 @@ export default function DiagnosticForm({
             className="border-0 bg-transparent text-base focus-visible:ring-0"
             disabled={loading}
             required
+            {...portugueseRequired}
           />
         </div>
 
