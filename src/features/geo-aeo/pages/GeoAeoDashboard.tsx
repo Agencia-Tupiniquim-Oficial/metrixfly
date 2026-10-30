@@ -5,6 +5,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { DiagnoseResult } from "@/features/diagnostics/model/diagnose";
 import { importPdfReports } from "@/lib/dynamic-import";
+import { portugueseRequired } from "@/lib/validation-messages";
 import {
   analyzeRobotsTxt,
   type RobotsDocument,
@@ -600,6 +601,7 @@ const GeoAeoDashboard = () => {
                   placeholder="suaempresa.com.br"
                   className="border-0 bg-transparent focus-visible:ring-0"
                   required
+                  {...portugueseRequired}
                   disabled={loading}
                 />
               </div>

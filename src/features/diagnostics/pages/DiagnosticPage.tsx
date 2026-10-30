@@ -29,6 +29,26 @@ import {
 } from "@/features/diagnostics/model/diagnostic-progress";
 type Result = DiagnoseResult;
 
+// Lives as long as the saved diagnostic (same tab session), so navigating or refreshing keeps the report open.
+const UNLOCKED_KEY = "diagnosis:report-unlocked";
+
+const readUnlocked = () => {
+  try {
+    return sessionStorage.getItem(UNLOCKED_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const writeUnlocked = (unlocked: boolean) => {
+  try {
+    if (unlocked) sessionStorage.setItem(UNLOCKED_KEY, "1");
+    else sessionStorage.removeItem(UNLOCKED_KEY);
+  } catch {
+    // Storage unavailable: the report just asks again after a reload.
+  }
+};
+
 const DiagnosticPage = () => {
   const {
     diagnostic,
@@ -63,9 +83,8 @@ const DiagnosticPage = () => {
     // Runs once: the intent was already read into state above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // The report opens at once for a visitor whose e-mail is already known in this browser.
-  // Every report asks for an e-mail: nothing is remembered between analyses.
-  const [reportUnlocked, setReportUnlocked] = useState(false);
+  // The e-mail is asked once per diagnostic: it is remembered across pages and reloads until a new one runs.
+  const [reportUnlocked, setReportUnlocked] = useState(() => !requestedUrl && readUnlocked());
   const [diagnosticProgress, setDiagnosticProgress] =
     useState<DiagnosticProgressState>(initialDiagnosticProgress);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -141,6 +160,7 @@ const DiagnosticPage = () => {
       ownRunDone.current = true;
       setResult(diagnosticResult);
       setDiagnostic(diagnosticResult);
+      writeUnlocked(false);
       setReportUnlocked(false);
       if (quoteIntent) {
         setQuoteIntent(false);
@@ -279,6 +299,7 @@ const DiagnosticPage = () => {
         description: "Não conseguimos registrar o seu e-mail agora, mas você já pode ver o diagnóstico.",
       });
     }
+    writeUnlocked(true);
     setReportUnlocked(true);
   };
 
