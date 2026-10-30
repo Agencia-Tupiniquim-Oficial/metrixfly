@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Check, Circle, Minus } from "lucide-react";
+import { AlertCircle, Check, Circle, Minus, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   diagnosticWaitingPhrases,
@@ -102,7 +102,7 @@ function PercentRing({ percent }: { percent: number }) {
   return (
     <svg
       aria-hidden="true"
-      className="h-32 w-32 -rotate-90"
+      className="h-24 w-24 -rotate-90 sm:h-28 sm:w-28"
       viewBox="0 0 120 120"
     >
       <circle cx="60" cy="60" r={RING_RADIUS} fill="none" strokeWidth="8" className="stroke-primary/15" />
@@ -172,12 +172,12 @@ export function DiagnosticProgress({
   return (
     <section
       aria-labelledby="diagnostic-progress-title"
-      className="mx-auto max-w-3xl space-y-7"
+      className="mx-auto max-w-3xl space-y-4 sm:space-y-5"
     >
       <div className="flex flex-col items-center gap-2 text-center">
-        <div className="relative mb-2 flex h-32 w-32 items-center justify-center">
+        <div className="relative mb-1 flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28">
           <PercentRing percent={percent} />
-          <span className="absolute text-3xl font-extrabold tabular-nums text-foreground">
+          <span className="absolute text-2xl font-extrabold tabular-nums text-foreground">
             {percent}%
           </span>
         </div>
@@ -185,33 +185,36 @@ export function DiagnosticProgress({
           Diagnóstico de desempenho
         </p>
         <h2
-          className="break-words text-3xl font-extrabold leading-tight tracking-tight md:text-4xl"
+          className="break-words text-2xl font-extrabold leading-tight tracking-tight md:text-3xl"
           id="diagnostic-progress-title"
         >
           {domain ? `Analisando ${domain}` : "Estamos analisando seu site"}
         </h2>
-        <p className="text-lg font-semibold text-foreground">
+        <p className="text-base font-semibold text-foreground">
           Aguarde enquanto o Metricfly finaliza a análise.
         </p>
         <p className="text-muted-foreground">
           Pode deixar a aba aberta: o relatório aparece aqui assim que ficar
           pronto.
         </p>
-        <p
-          key={phrase}
-          aria-hidden="true"
-          className="motion-enter mt-1 min-h-[1.5rem] text-sm text-primary"
-        >
-          {phrase}
-        </p>
+        <div className="mt-2 flex min-h-[3.75rem] w-full items-center justify-center">
+          <p
+            key={phrase}
+            aria-hidden="true"
+            className="motion-enter inline-flex max-w-xl items-center gap-2.5 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-2 text-base font-bold leading-snug text-primary md:text-lg"
+          >
+            <Sparkles aria-hidden="true" className="h-5 w-5 shrink-0" />
+            {phrase}
+          </p>
+        </div>
       </div>
 
       <Card
         className="motion-enter overflow-hidden border-border bg-card text-left"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
-        <div className="p-5 sm:p-7">
-          <div className="mb-5">
+        <div className="p-4 sm:p-5">
+          <div className="mb-3">
             <p
               aria-live="polite"
               className="text-base font-semibold text-foreground"
@@ -221,7 +224,7 @@ export function DiagnosticProgress({
             </p>
           </div>
 
-          <div className="mb-6">
+          <div className="mb-3">
             {hasProgressData && (
               <p className="mb-1.5 text-right text-xs text-muted-foreground">
                 {resolvedStepCount} de {steps.length} etapas processadas
@@ -243,13 +246,13 @@ export function DiagnosticProgress({
             </div>
           </div>
 
-          <ol className="space-y-4">
+          <ol className="space-y-1">
             {steps.map(({ id, label }) => {
               const status = progress[id];
               return (
                 <li
                   aria-current={status === "running" ? "step" : undefined}
-                  className={`-mx-3 flex items-start gap-3 rounded-lg p-3 transition-colors duration-300 motion-reduce:transition-none sm:items-center ${
+                  className={`-mx-3 flex items-start gap-3 rounded-lg px-3 py-2 transition-colors duration-300 motion-reduce:transition-none sm:items-center ${
                     status === "running" ? "bg-primary/[0.06]" : ""
                   }`}
                   key={id}
