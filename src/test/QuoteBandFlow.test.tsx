@@ -214,10 +214,10 @@ describe("quote asked for from the band, then the site typed in the form", () =>
       </QueryClientProvider>,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("example.com"), {
+    fireEvent.change(screen.getByPlaceholderText("exemplo.com.br"), {
       target: { value: "loja-exemplo.com.br" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Run diagnostic/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Diagnosticar/ }));
 
     expect(await screen.findByRole("dialog", { name: "Solicitar orçamento" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByRole("dialog")).toHaveLength(1));

@@ -34,7 +34,7 @@ export default function DiagnosticForm({
             id="diagnostic-url"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
-            placeholder="example.com"
+            placeholder="exemplo.com.br"
             className="border-0 bg-transparent text-base focus-visible:ring-0"
             disabled={loading}
             required
@@ -51,11 +51,11 @@ export default function DiagnosticForm({
           >
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing…
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analisando…
               </>
             ) : (
               <>
-                <Gauge className="mr-2 h-4 w-4" /> Run diagnostic
+                <Gauge className="mr-2 h-4 w-4" /> Diagnosticar
               </>
             )}
           </Button>

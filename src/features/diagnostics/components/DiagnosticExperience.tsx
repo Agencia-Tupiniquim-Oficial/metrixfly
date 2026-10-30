@@ -104,17 +104,17 @@ export function DiagnosticExperience({
           <div className="mx-auto max-w-3xl">
             <header className="motion-enter mb-8 flex flex-col items-center text-center">
               <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
-                Diagnostics &{" "}
+                Diagnóstico &{" "}
                 <span
                   className="bg-clip-text text-transparent"
                   style={{ backgroundImage: "var(--gradient-primary)" }}
                 >
-                  Performance
+                  Desempenho
                 </span>
               </h1>
               <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
-                Review your PageSpeed Insights scores and metrics and identify
-                technical opportunities to optimize your site.
+                Analise as notas e métricas do PageSpeed Insights e identifique
+                oportunidades técnicas para otimizar seu site.
               </p>
             </header>
 
