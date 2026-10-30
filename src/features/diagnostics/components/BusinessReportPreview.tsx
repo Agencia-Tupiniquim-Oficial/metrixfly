@@ -1,4 +1,4 @@
-import { tupiniquimLogo } from "@/assets/brand";
+import { ReportLogoLockup } from "@/features/diagnostics/components/ReportLogoLockup";
 import { useClientLogo } from "@/features/diagnostics/hooks/useClientLogo";
 import type { BusinessSummary, Priority } from "@/features/diagnostics/model/business-report";
 import React, { useState, useEffect } from "react";
@@ -29,20 +29,7 @@ function Page({
       style={{ width: "100%", maxWidth: 780, minHeight: 1100, fontFamily: "Arial, Helvetica, sans-serif" }}
     >
       {withHeader && (
-        <div className="flex items-center justify-center gap-6 px-[92px] pt-8">
-          <img
-            src={tupiniquimLogo}
-            alt="Logo Tupiniquim"
-            className="h-24 w-auto max-w-[220px] object-contain"
-          />
-          {clientLogo ? (
-            <img
-              src={clientLogo}
-              alt="Logo do cliente"
-              className="h-20 w-auto max-w-[180px] object-contain"
-            />
-          ) : null}
-        </div>
+        <ReportLogoLockup clientLogo={clientLogo} className="px-[92px] pt-8" />
       )}
       <div className={withHeader ? "px-[92px] pt-12 pb-16" : "px-[92px] py-16"}>{children}</div>
     </div>
