@@ -1,4 +1,4 @@
-import { tupiniquimLogo } from "@/assets/brand";
+import { ReportLogoLockup } from "@/features/diagnostics/components/ReportLogoLockup";
 import { useClientLogo } from "@/features/diagnostics/hooks/useClientLogo";
 import LighthouseCard from "@/features/diagnostics/components/LighthouseCard";
 import React, { useState, useEffect, useRef } from "react";
@@ -187,25 +187,13 @@ function Page({
     >
       {withHeader && (
         <div
-          className="flex flex-wrap items-center justify-center gap-4 sm:gap-6"
           style={{
             paddingLeft: PAGE_PADDING_X,
             paddingRight: PAGE_PADDING_X,
             paddingTop: DIAGNOSTIC_REPORT_LAYOUT.coverTopPadding,
           }}
         >
-          <img
-            src={tupiniquimLogo}
-            alt="Logo Tupiniquim"
-            className="h-16 w-auto max-w-[180px] object-contain sm:h-24 sm:max-w-[220px]"
-          />
-          {clientLogo ? (
-            <img
-              src={clientLogo}
-              alt="Logo do cliente"
-              className="h-14 w-auto max-w-[140px] object-contain sm:h-20 sm:max-w-[180px]"
-            />
-          ) : null}
+          <ReportLogoLockup clientLogo={clientLogo} />
         </div>
       )}
       <div
