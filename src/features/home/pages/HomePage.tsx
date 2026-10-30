@@ -22,6 +22,7 @@ import { useOptionalDiagnosis } from "@/features/diagnostics/state/DiagnosisCont
 import FaqSection from "../components/FaqSection";
 import PdfMockup from "../components/PdfMockup";
 import ReportPreview from "../components/ReportPreview";
+import { Reveal } from "@/components/reveal";
 
 const BACK_TO_TOP_OFFSET = 400;
 
@@ -76,23 +77,26 @@ const steps = [
   },
 ];
 
-const deliverables: { icon: LucideIcon; title: string; description: string }[] = [
-  {
-    icon: FileText,
-    title: "Relatório técnico em PDF",
-    description: "Cada sugestão com descrição, impacto, causas comuns e recomendação.",
-  },
-  {
-    icon: Briefcase,
-    title: "Versão corporativa",
-    description: "Resumo para quem decide, sem jargão técnico.",
-  },
-  {
-    icon: Link2,
-    title: "Link para compartilhar",
-    description: "O diagnóstico fica salvo e pode ser aberto pela sua equipe.",
-  },
-];
+const deliverables: { icon: LucideIcon; title: string; description: string }[] =
+  [
+    {
+      icon: FileText,
+      title: "Relatório técnico em PDF",
+      description:
+        "Cada sugestão com descrição, impacto, causas comuns e recomendação.",
+    },
+    {
+      icon: Briefcase,
+      title: "Versão corporativa",
+      description: "Resumo para quem decide, sem jargão técnico.",
+    },
+    {
+      icon: Link2,
+      title: "Link para compartilhar",
+      description:
+        "O diagnóstico fica salvo e pode ser aberto pela sua equipe.",
+    },
+  ];
 
 const eyebrow = "text-xs font-bold uppercase tracking-widest text-primary";
 
@@ -120,9 +124,19 @@ export default function HomePage() {
           aria-label="Principal"
           className="container flex flex-wrap items-center justify-between gap-4 py-4"
         >
-          <Link to="/" aria-label="Metricfly, página inicial" className="flex items-center gap-2.5">
-            <img src={logoColored} alt="" className="h-10 w-10 object-contain" />
-            <span className="text-xl font-extrabold tracking-tight">Metricfly</span>
+          <Link
+            to="/"
+            aria-label="Metricfly, página inicial"
+            className="flex items-center gap-2.5"
+          >
+            <img
+              src={logoColored}
+              alt=""
+              className="h-10 w-10 object-contain"
+            />
+            <span className="text-xl font-extrabold tracking-tight">
+              Metricfly
+            </span>
           </Link>
           <div className="flex items-center gap-7">
             {navLinks.map(({ href, label }) => (
@@ -135,7 +149,10 @@ export default function HomePage() {
               </a>
             ))}
             <Button asChild variant="hero" className="hidden sm:inline-flex">
-              <Link to="/diagnostico" onClick={trackDiagnose("home_header_diagnose")}>
+              <Link
+                to="/diagnostico"
+                onClick={trackDiagnose("home_header_diagnose")}
+              >
                 Diagnosticar meu site
               </Link>
             </Button>
@@ -156,13 +173,16 @@ export default function HomePage() {
                 <span className="text-primary">citado por IAs</span>?
               </h1>
               <p className="max-w-xl text-base text-muted-foreground md:text-lg">
-                Receba notas, métricas e oportunidades de melhoria
-                explicadas para quem não é técnico, com relatório em PDF pronto para
+                Receba notas, métricas e oportunidades de melhoria explicadas
+                para quem não é técnico, com relatório em PDF pronto para
                 compartilhar.
               </p>
 
               <Button asChild size="lg" variant="hero" className="self-start">
-                <Link to="/diagnostico" onClick={trackDiagnose("home_diagnose")}>
+                <Link
+                  to="/diagnostico"
+                  onClick={trackDiagnose("home_diagnose")}
+                >
                   <Gauge aria-hidden="true" className="mr-2 h-4 w-4" />
                   Diagnosticar meu site
                 </Link>
@@ -173,72 +193,92 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="diagnosticos" className="container space-y-10 py-16 md:py-24">
-          <div className="max-w-2xl space-y-3">
+        <section
+          id="diagnosticos"
+          className="container space-y-10 py-16 md:py-24"
+        >
+          <Reveal className="max-w-2xl space-y-3">
             <p className={eyebrow}>Dois diagnósticos</p>
             <h2 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
               Como o site funciona hoje, e se ele vai ser encontrado amanhã.
             </h2>
-          </div>
+          </Reveal>
           <div className="grid gap-6 md:grid-cols-2">
-            {diagnostics.map(({ icon: Icon, title, description, items }, index) => (
-              <Card key={title} className="flex flex-col gap-4 border-border bg-card p-8">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <Icon aria-hidden="true" className="h-6 w-6 text-primary" />
-                </span>
-                <h3 className="text-2xl font-extrabold tracking-tight">{title}</h3>
-                <p className="text-muted-foreground">{description}</p>
-                <ul className="space-y-2.5 text-sm">
-                  {items.map((item) => (
-                    <li key={item} className="flex items-start gap-2.5">
-                      <Check
+            {diagnostics.map(
+              ({ icon: Icon, title, description, items }, index) => (
+                <Reveal key={title} delay={index * 100} className="flex">
+                  <Card className="motion-card flex w-full flex-col gap-4 border-border bg-card p-8">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                      <Icon
                         aria-hidden="true"
-                        className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                        className="h-6 w-6 text-primary"
                       />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-auto pt-2">
-                  {index === 0 ? (
-                    <Button asChild variant="hero">
-                      <Link to="/diagnostico" onClick={trackDiagnose("home_card_performance")}>
-                        Diagnosticar desempenho
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button asChild variant="outline">
-                      <Link
-                        to={hasDiagnostic ? "/geo-aeo" : "/diagnostico"}
-                        onClick={trackDiagnose("home_card_crawl")}
-                      >
-                        Rodar Agent Crawl
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            ))}
+                    </span>
+                    <h3 className="text-2xl font-extrabold tracking-tight">
+                      {title}
+                    </h3>
+                    <p className="text-muted-foreground">{description}</p>
+                    <ul className="space-y-2.5 text-sm">
+                      {items.map((item) => (
+                        <li key={item} className="flex items-start gap-2.5">
+                          <Check
+                            aria-hidden="true"
+                            className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                          />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-auto pt-2">
+                      {index === 0 ? (
+                        <Button asChild variant="hero">
+                          <Link
+                            to="/diagnostico"
+                            onClick={trackDiagnose("home_card_performance")}
+                          >
+                            Diagnosticar desempenho
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button asChild variant="outline">
+                          <Link
+                            to={hasDiagnostic ? "/geo-aeo" : "/diagnostico"}
+                            onClick={trackDiagnose("home_card_crawl")}
+                          >
+                            Rodar Agent Crawl
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                </Reveal>
+              ),
+            )}
           </div>
         </section>
 
         <section id="como" className="border-y border-border bg-secondary/60">
           <div className="container space-y-10 py-16 md:py-24">
-            <div className="max-w-2xl space-y-3">
+            <Reveal className="max-w-2xl space-y-3">
               <p className={eyebrow}>Como funciona</p>
               <h2 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
                 Do endereço ao relatório em três passos.
               </h2>
-            </div>
+            </Reveal>
             <ol className="grid gap-8 md:grid-cols-3">
               {steps.map(({ title, description }, index) => (
-                <li key={title} className="flex flex-col gap-3">
+                <Reveal
+                  as="li"
+                  key={title}
+                  delay={index * 80}
+                  className="flex flex-col gap-3"
+                >
                   <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-lg font-extrabold text-primary-foreground">
                     {index + 1}
                   </span>
                   <h3 className="text-xl font-bold">{title}</h3>
                   <p className="text-sm text-muted-foreground">{description}</p>
-                </li>
+                </Reveal>
               ))}
             </ol>
           </div>
@@ -255,11 +295,16 @@ export default function HomePage() {
                 {deliverables.map(({ icon: Icon, title, description }) => (
                   <li key={title} className="flex items-start gap-3.5">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <Icon aria-hidden="true" className="h-5 w-5 text-primary" />
+                      <Icon
+                        aria-hidden="true"
+                        className="h-5 w-5 text-primary"
+                      />
                     </span>
                     <div className="flex flex-col">
                       <span className="font-bold">{title}</span>
-                      <span className="text-sm text-muted-foreground">{description}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {description}
+                      </span>
                     </div>
                   </li>
                 ))}
@@ -272,8 +317,8 @@ export default function HomePage() {
         <FaqSection />
 
         <QuoteBand width="wide">
-        <QuoteBandAction location="home" />
-      </QuoteBand>
+          <QuoteBandAction location="home" />
+        </QuoteBand>
       </main>
 
       <footer className="border-t border-border">
@@ -283,8 +328,8 @@ export default function HomePage() {
             <span>Metricfly · uma ferramenta da Agência Tupiniquim</span>
           </div>
           <p className="max-w-lg">
-            O PageSpeed Insights é um serviço do Google. Os resultados refletem o
-            momento da análise e podem variar entre medições.
+            O PageSpeed Insights é um serviço do Google. Os resultados refletem
+            o momento da análise e podem variar entre medições.
           </p>
         </div>
       </footer>
