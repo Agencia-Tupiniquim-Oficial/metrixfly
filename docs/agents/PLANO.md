@@ -165,3 +165,16 @@ Arquivos: `supabase/functions/_shared/tech-stack.ts` (novo, puro), `supabase/fun
 Decisoes (nivel B): endpoint e timeout por env opcional `STACKFLY_API_URL` e `STACKFLY_TIMEOUT_MS` (padrao 50000 ms); sem segredo; sem nova etapa na tela de progresso.
 
 Riscos: limite de 10 req/min por IP no Stackfly (IPs das Edge Functions sao compartilhados); versao do WordPress normalmente nao exposta; deploy das funcoes `diagnose-site` e `business-summary` depende de autorizacao.
+
+Estado em 2026-11-04:
+- Implementado no commit `05fd300`. Verificacoes antes do merge: `vitest` 46 arquivos / 257 testes aprovados, `tsc --noEmit -p tsconfig.app.json` sem erros, `eslint` sem erros (10 avisos preexistentes de `react-refresh`).
+- Usuario validou a secao "Tecnologias do site" no modo demo (`/diagnostico?demo=1`) e autorizou merge e deploy.
+- `develop` = `fc1a488` (merge `--no-ff`, push feito). `main` = `45b31dc` (merge da `develop`, push feito); deploy de producao na Vercel `dpl_FgWjxKuePuHpm1e89zb3iytF5G41` iniciado (estava em BUILDING na ultima checagem; confirmar READY).
+- Deploy das Edge Functions `diagnose-site` e `business-summary` FALHOU com 403: a conta logada no Supabase CLI nao tem permissao no projeto `ocrjjlblxfgrvsnfalhp`. Ate o deploy, diagnosticos reais saem sem a secao (o front trata `techStack` como opcional; nada quebra).
+- Compatibilidade: front novo com funcao antiga apenas omite a secao; funcao nova com front antigo ignora o campo `techStack`; `business-summary` antiga ignora o campo `stack`.
+
+Pendencias:
+- Usuario: `npx supabase login` com conta com acesso ao projeto e `npx supabase functions deploy diagnose-site business-summary`.
+- Depois do deploy, rodar um diagnostico real e conferir a secao no relatorio e no PDF.
+- Avaliar reduzir `STACKFLY_TIMEOUT_MS` se o Stackfly passar a atrasar o diagnostico (hoje espera ate 50 s, em paralelo ao PageSpeed).
+- Worktrees nao tem `.env`: rodar o dev server com variaveis placeholder (nao copiar o `.env`).
