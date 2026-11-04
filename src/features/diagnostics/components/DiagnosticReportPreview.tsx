@@ -11,8 +11,10 @@ import {
 import type {
   Improvement,
   PageSummary,
+  TechStack,
   UiUxSummary,
 } from "@/features/diagnostics/model/diagnose";
+import { groupTechStack, hasTechStack } from "@/features/diagnostics/model/tech-stack";
 
 type Props = {
   url: string;
@@ -21,6 +23,7 @@ type Props = {
   improvements: Improvement[];
   uiux?: UiUxSummary | null;
   extras?: { title: string; description: string }[];
+  techStack?: TechStack | null;
   editable?: boolean;
   onImprovementChange?: (index: number, field: keyof Improvement, value: string | string[]) => void;
   onUiuxOverviewChange?: (value: string) => void;
@@ -217,6 +220,7 @@ export default function DiagnosticReportPreview({
   improvements,
   uiux,
   extras,
+  techStack,
   editable = false,
   onImprovementChange,
   onUiuxOverviewChange,
@@ -408,6 +412,45 @@ export default function DiagnosticReportPreview({
                 </p>
               </div>
             ))}
+          </>
+        )}
+
+        {hasTechStack(techStack) && (
+          <>
+            <SectionTitle>Tecnologias do site</SectionTitle>
+            {groupTechStack(techStack).map((group) => (
+              <div key={group.label}>
+                <SubTitle>{group.label}</SubTitle>
+                <Bullets items={group.items} />
+              </div>
+            ))}
+            {Array.isArray(techStack.insights) && techStack.insights.length > 0 && (
+              <>
+                <SubTitle>Pontos de atenção</SubTitle>
+                {techStack.insights.map((insight, i) => (
+                  <div key={i} className="mb-4">
+                    <h3
+                      className="font-bold mb-1"
+                      style={{
+                        color: DIAGNOSTIC_REPORT_COLORS.heading,
+                        ...DIAGNOSTIC_REPORT_TYPOGRAPHY.extraTitle,
+                        marginTop: 0,
+                      }}
+                    >
+                      {insight.title}
+                    </h3>
+                    <p
+                      style={{
+                        color: DIAGNOSTIC_REPORT_COLORS.text,
+                        ...DIAGNOSTIC_REPORT_TYPOGRAPHY.description,
+                      }}
+                    >
+                      {insight.description}
+                    </p>
+                  </div>
+                ))}
+              </>
+            )}
           </>
         )}
       </Page>

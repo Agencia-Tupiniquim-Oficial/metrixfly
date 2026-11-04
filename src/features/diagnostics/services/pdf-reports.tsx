@@ -18,6 +18,8 @@ import type {
   PageSummary,
 } from "@/features/diagnostics/model/diagnose";
 import { isDiagnosticOptimized } from "@/features/diagnostics/model/diagnose";
+import type { TechStack } from "@/features/diagnostics/model/diagnose";
+import { groupTechStack, hasTechStack } from "@/features/diagnostics/model/tech-stack";
 import type { BusinessSummary } from "@/features/diagnostics/model/business-report";
 import {
   resolveReportLogos,
@@ -818,6 +820,37 @@ function GeoSections({ geo }: { geo: GeoReportData }) {
   );
 }
 
+function TechStackSections({ techStack }: { techStack: TechStack }) {
+  const insights = Array.isArray(techStack.insights) ? techStack.insights : [];
+  return (
+    <>
+      <DiagnosticSection>Tecnologias do site</DiagnosticSection>
+      {groupTechStack(techStack).map((group) => (
+        <View key={group.label}>
+          <Text style={diagnosticStyles.subheading}>{group.label}</Text>
+          <DiagnosticBulletList items={group.items} />
+        </View>
+      ))}
+      {insights.length ? (
+        <>
+          <Text style={diagnosticStyles.subheading}>Pontos de atenção</Text>
+          {insights.map((insight, index) => (
+            <View key={`${index}-${insight.title}`} style={diagnosticStyles.improvement}>
+              <Text style={diagnosticStyles.extraTitle}>{insight.title}</Text>
+              <Text
+                style={diagnosticStyles.paragraph}
+                hyphenationCallback={keepWordsIntact}
+              >
+                {insight.description}
+              </Text>
+            </View>
+          ))}
+        </>
+      ) : null}
+    </>
+  );
+}
+
 function TechnicalReport({
   url,
   result,
@@ -908,6 +941,9 @@ function TechnicalReport({
               </>
             ) : null}
           </>
+        ) : null}
+        {hasTechStack(result.techStack) ? (
+          <TechStackSections techStack={result.techStack} />
         ) : null}
         {geo ? <GeoSections geo={geo} /> : null}
       </DiagnosticReportPage>

@@ -149,3 +149,19 @@ Migration `20261029180000_add_agency_admins.sql` inclui `suporte@agenciatupiniqu
 - `main` = `c51ddc6` (producao): develop inteira, painel admin redesenhado, e-mail pedido a cada relatorio, migration de admins. `develop` ja contem tudo (a `main` so tem a mais o merge).
 - Migration `report_leads` aplicada. Migration `20261029180000_add_agency_admins.sql` NAO aplicada: o usuario deve rodar `npx supabase db push` e criar `suporte@` e `ferramentas@agenciatupiniquim.com.br` em Supabase Auth > Users (e-mail do ferramentas assumido com `.com.br`; confirmar).
 - Pendencias: confirmar deploy `c51ddc6` READY na Vercel; validar painel admin (celular, tema escuro, grafico); aprovar frases do progresso e textos do popup/consentimento; retencao e limite de taxa dos e-mails; destino de "Solicitar orcamento" fora do relatorio; quebra de dominio longo no card de score do GEO; painel limitado a 200 analises/1000 e-mails (filtro no banco exigiria mudar RPCs).
+
+### feat/tech-stack-detection (2026-11-04)
+
+Objetivo: o diagnostico passa a consultar o Stackfly (ferramenta interna, `GET https://stackfly.vercel.app/api/v1/stack?url=`) alem do PageSpeed, para identificar CMS, plugins, linguagens, servidor e CDN do site. Pesquisa da API em `docs/research/2026-11-04-stackfly-api.md`.
+
+Criterios de aceitacao:
+- A Edge Function `diagnose-site` chama o Stackfly em paralelo ao PageSpeed; falha, limite (429) ou demora do Stackfly nunca quebram o diagnostico, apenas omitem a secao.
+- O resultado ganha o campo opcional `techStack` (tecnologias + recomendacoes por regras simples), salvo no jsonb `diagnostic_reports.report` sem migration. Relatorios antigos continuam abrindo.
+- Relatorio na tela e PDF mostram a secao "Tecnologias do site" (agrupada por categoria, versao quando houver, recomendacoes) com a mesma divisao de paginas.
+- A lista de tecnologias entra no prompt da analise por IA e no `business-summary`.
+
+Arquivos: `supabase/functions/_shared/tech-stack.ts` (novo, puro), `supabase/functions/diagnose-site/index.ts`, `supabase/functions/business-summary/index.ts`, `src/features/diagnostics/model/diagnose.ts`, `DiagnosticReportPreview.tsx`, `pdf-reports.tsx`, `DiagnosticPreview.tsx`, `SharedDiagnosticReportPage.tsx`, `DiagnosticPage.tsx`, `demo/diagnosticMock.ts`.
+
+Decisoes (nivel B): endpoint e timeout por env opcional `STACKFLY_API_URL` e `STACKFLY_TIMEOUT_MS` (padrao 50000 ms); sem segredo; sem nova etapa na tela de progresso.
+
+Riscos: limite de 10 req/min por IP no Stackfly (IPs das Edge Functions sao compartilhados); versao do WordPress normalmente nao exposta; deploy das funcoes `diagnose-site` e `business-summary` depende de autorizacao.

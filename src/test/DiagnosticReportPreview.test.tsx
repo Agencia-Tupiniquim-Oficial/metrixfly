@@ -207,4 +207,48 @@ describe("DiagnosticReportPreview", () => {
     expect(pages[1].textContent).not.toContain("Performance");
     expect(pages[2].textContent).toContain("Performance");
   });
+
+  it("shows the site technologies grouped on the content page, and hides the section without data", () => {
+    const scores = { performance: 40, accessibility: 90, bestPractices: 90, seo: 90 };
+    const techStack = {
+      source: "stackfly" as const,
+      analyzedAt: null,
+      technologies: [
+        { name: "WordPress", categories: ["CMS"], version: null, implied: false },
+        { name: "WP Rocket", categories: ["Caching", "WordPress plugins"], version: "3.23.3.3", implied: false },
+        { name: "PHP", categories: ["Programming languages"], version: null, implied: true },
+      ],
+      insights: [{ title: "Rede de distribuição de conteúdo (CDN) não identificada", description: "Use uma CDN." }],
+    };
+    const { container, rerender } = render(
+      <DiagnosticReportPreview
+        url="https://site.test"
+        mobile={{ scores, metrics: {} }}
+        desktop={{ scores, metrics: {} }}
+        improvements={[]}
+        techStack={techStack}
+      />,
+    );
+
+    const pages = Array.from(container.querySelectorAll(".shadow-lg"));
+    expect(pages[1].textContent).toContain("Tecnologias do site");
+    expect(pages[1].textContent).toContain("Plataforma");
+    expect(pages[1].textContent).toContain("WordPress");
+    expect(pages[1].textContent).toContain("Cache e entrega de conteúdo");
+    expect(pages[1].textContent).toContain("WP Rocket 3.23.3.3");
+    expect(pages[1].textContent).toContain("Linguagens e banco de dados");
+    expect(pages[1].textContent).toContain("Pontos de atenção");
+    expect(pages[1].textContent).toContain("Rede de distribuição de conteúdo (CDN) não identificada");
+
+    rerender(
+      <DiagnosticReportPreview
+        url="https://site.test"
+        mobile={{ scores, metrics: {} }}
+        desktop={{ scores, metrics: {} }}
+        improvements={[]}
+        techStack={{ ...techStack, technologies: [] }}
+      />,
+    );
+    expect(screen.queryByText("Tecnologias do site")).toBeNull();
+  });
 });

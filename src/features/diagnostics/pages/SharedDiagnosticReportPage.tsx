@@ -160,6 +160,7 @@ export default function SharedDiagnosticReportPage() {
                 improvements={report.report.improvements}
                 uiux={report.report.uiux}
                 extras={report.report.extras}
+                techStack={report.report.techStack}
               />
             </div>
 
