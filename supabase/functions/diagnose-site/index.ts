@@ -16,6 +16,13 @@ import {
   type PageSpeedTranslationField,
   type PageSpeedTranslationRequest,
 } from "../_shared/pagespeed-translations.ts";
+import {
+  buildTechStackInsights,
+  fetchTechStack,
+  summarizeTechStackForPrompt,
+  type DetectedTechStack,
+  type TechStack,
+} from "../_shared/tech-stack.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY =
@@ -40,6 +47,9 @@ const corsHeaders = {
 };
 
 const PAGESPEED = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
+// Stackfly (deteccao de tecnologias): opcional, sem chave. Ver docs/research/2026-11-04-stackfly-api.md
+const STACKFLY_API_URL = Deno.env.get("STACKFLY_API_URL") ?? undefined;
+const STACKFLY_TIMEOUT_MS = Number(Deno.env.get("STACKFLY_TIMEOUT_MS")) || undefined;
 const MAX_PUBLIC_REPORT_BYTES = 1_000_000;
 
 type JsonRecord = Record<string, unknown>;
@@ -1322,6 +1332,7 @@ async function aiAnalysis(
   mobile: any,
   desktop: any,
   screenshotDataUrl: string | null,
+  techStack: DetectedTechStack | null = null,
 ) {
   if (!OPENROUTER_API_KEY)
     throw new Error("OPENROUTER_API_KEY não configurada");
@@ -1403,6 +1414,12 @@ async function aiAnalysis(
     _analysisStatus: "fallback" as const,
   });
 
+  const techStackLines = summarizeTechStackForPrompt(techStack);
+  const techStackPrompt =
+    techStackLines.length > 0
+      ? `\nTecnologias detectadas no site (Stackfly; versão só aparece quando exposta publicamente):\n${techStackLines.map((line) => `- ${line}`).join("\n")}\nUse essas tecnologias para tornar causas e recomendações específicas (por exemplo, plugins de cache ou construtores visuais detectados). Não cite tecnologias que não estejam nesta lista.\n`
+      : "";
+
   // Prepara prompt único para a análise (mesma estrutura que antes, mas usando OpenRouter)
   const userContent: any[] = [
     {
@@ -1410,7 +1427,7 @@ async function aiAnalysis(
       text: `Analise este site (${url}) e gere um diagnóstico exclusivamente em PORTUGUÊS BRASILEIRO no estilo dos relatórios da agência Tupiniquim. Não use inglês, mesmo em títulos técnicos; quando necessário, mantenha apenas a sigla original entre parênteses.
 Dados do PageSpeed:
 ${JSON.stringify(finalSummary, null, 2)}
-
+${techStackPrompt}
 ${screenshotDataUrl ? "Você também recebeu um screenshot da home mobile do site para análise visual." : ""}
 
 Retorne JSON com EXATAMENTE este formato:
@@ -1548,6 +1565,22 @@ async function generateDiagnosis(url: string, reportProgress: ReportProgress) {
   reportProgress("mobile", "running");
   reportProgress("desktop", "running");
 
+  // Roda em paralelo ao PageSpeed; nunca rejeita (falha so omite a secao de tecnologias).
+  const techStackPromise: Promise<DetectedTechStack | null> = fetchTechStack(
+    url,
+    { fetch, endpoint: STACKFLY_API_URL, timeoutMs: STACKFLY_TIMEOUT_MS },
+  ).then(
+    (result) => {
+      if (result.ok) return result.stack;
+      console.warn("Stackfly indisponivel; seguindo sem tecnologias:", result.error);
+      return null;
+    },
+    (error: unknown) => {
+      console.warn("Stackfly falhou; seguindo sem tecnologias:", errorMessage(error));
+      return null;
+    },
+  );
+
   const pageSpeedResults = await Promise.all([
     runPageSpeed(url, "mobile").then(
       (result) => {
@@ -1616,17 +1649,31 @@ async function generateDiagnosis(url: string, reportProgress: ReportProgress) {
   );
 
   reportProgress("ai", "running");
-  const pageSpeedTranslations = await translatePageSpeedOpportunities(
-    mobileResult,
-    desktopResult,
-  );
+  const [pageSpeedTranslations, detectedTechStack] = await Promise.all([
+    translatePageSpeedOpportunities(mobileResult, desktopResult),
+    techStackPromise,
+  ]);
+  const techStack: TechStack | null = detectedTechStack
+    ? {
+        ...detectedTechStack,
+        insights: buildTechStackInsights(detectedTechStack.technologies, {
+          mobilePerformance: mobile ? mobile.scores?.performance : null,
+        }),
+      }
+    : null;
   const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
   let ai: AiAnalysisResult;
 
   console.log("Gerando IA… (se configurada)");
   if (openRouterApiKey) {
     try {
-      ai = await aiAnalysis(url, mobileResult, desktopResult, mobileResult.screenshot);
+      ai = await aiAnalysis(
+        url,
+        mobileResult,
+        desktopResult,
+        mobileResult.screenshot,
+        detectedTechStack,
+      );
       console.log("IA ok via OpenRouter.");
       reportProgress("ai", ai._analysisStatus ?? "completed");
     } catch (error) {
@@ -1659,6 +1706,7 @@ async function generateDiagnosis(url: string, reportProgress: ReportProgress) {
   const diagnosis = {
     ...buildSummaryResponse(mobileResult, desktopResult, ai),
     scoreAvailability,
+    techStack,
   };
   reportProgress("finalizing", "completed");
   return diagnosis;

@@ -259,6 +259,7 @@ export default function DiagnosticPreview({
             improvements={result.improvements}
             uiux={result.uiux}
             extras={result.extras}
+            techStack={result.techStack}
             editable={previewMode === "edit"}
             onImprovementChange={updateImprovement}
             onUiuxOverviewChange={updateUiuxOverview}
