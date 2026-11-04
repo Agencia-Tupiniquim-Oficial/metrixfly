@@ -142,6 +142,32 @@ export const sampleDiagnosticResult: DiagnoseResult = {
         "O site não apresenta botão flutuante de WhatsApp visível na interface. Recomenda-se implementar um ícone fixo no canto inferior direito da tela, sempre visível em todas as páginas, que abre uma conversa direta com a empresa no WhatsApp. Esse recurso reduz a fricção para o contato inicial, agiliza o atendimento e aumenta a taxa de conversão de visitantes em leads qualificados.",
     },
   ],
+  techStack: {
+    source: "stackfly",
+    analyzedAt: "2026-11-04T17:20:30.099Z",
+    technologies: [
+      { name: "WordPress", categories: ["CMS", "Blogs"], version: null, implied: false },
+      { name: "Elementor", categories: ["Page builders", "WordPress plugins"], version: "3.25.4", implied: false },
+      { name: "Contact Form 7", categories: ["WordPress plugins"], version: null, implied: false },
+      { name: "Nginx", categories: ["Web servers", "Reverse proxies"], version: null, implied: false },
+      { name: "PHP", categories: ["Programming languages"], version: null, implied: true },
+      { name: "MySQL", categories: ["Databases"], version: null, implied: true },
+      { name: "jQuery", categories: ["JavaScript libraries"], version: "3.7.1", implied: false },
+      { name: "Google Tag Manager", categories: ["Tag managers"], version: null, implied: false },
+    ],
+    insights: [
+      {
+        title: "Cache de páginas não identificado",
+        description:
+          "O site usa WordPress e não foi detectado um plugin de cache. Um plugin de cache de páginas (como WP Rocket, LiteSpeed Cache ou W3 Total Cache) reduz o tempo de resposta do servidor e acelera o carregamento.",
+      },
+      {
+        title: "Construtor visual pode estar pesando no celular",
+        description:
+          "O site usa Elementor e o desempenho no celular está abaixo de 50. Construtores visuais costumam carregar estilos e scripts extras em todas as páginas; vale revisar widgets não usados, ativar os recursos de otimização do construtor e carregar apenas o necessário.",
+      },
+    ],
+  },
 };
 
 export const sampleBusinessSummary: BusinessSummary = {

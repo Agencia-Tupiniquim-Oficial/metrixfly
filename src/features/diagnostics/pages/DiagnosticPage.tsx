@@ -328,6 +328,7 @@ const DiagnosticPage = () => {
             desktop: result.summary.desktop.metrics,
           },
           improvements: result.improvements,
+          stack: result.techStack?.technologies.map((item) => item.name) ?? [],
         },
       });
       if (error) throw error;

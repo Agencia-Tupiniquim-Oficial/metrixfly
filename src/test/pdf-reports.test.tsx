@@ -587,6 +587,42 @@ describe("PDF reports", () => {
     expect(pdfSource).toContain("/Helvetica-Bold");
   });
 
+  it("exports the site technologies on the content page, like the preview", async () => {
+    const report: DiagnoseResult = {
+      ...diagnostic,
+      techStack: {
+        source: "stackfly",
+        analyzedAt: null,
+        technologies: [
+          { name: "WordPress", categories: ["CMS"], version: null, implied: false },
+          { name: "WP Rocket", categories: ["Caching", "WordPress plugins"], version: "3.23.3.3", implied: false },
+        ],
+        insights: [{ title: "Versões de componentes expostas publicamente", description: "Atualize os plugins." }],
+      },
+    };
+    const blob = await createDiagnosticReportPdf("https://site.test", report);
+    const pages = await readPdfPageItems(blob);
+    const pageTexts = pages.map((page) =>
+      page
+        .map((item) => item.text)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .toLocaleUpperCase("pt-BR"),
+    );
+
+    expect(pageTexts).toHaveLength(3);
+    expect(pageTexts[1]).toContain("TECNOLOGIAS DO SITE");
+    expect(pageTexts[1]).toContain("PLATAFORMA");
+    expect(pageTexts[1]).toContain("WP ROCKET 3.23.3.3");
+    expect(pageTexts[1]).toContain("VERSÕES DE COMPONENTES EXPOSTAS PUBLICAMENTE");
+    expect(pageTexts[2]).not.toContain("TECNOLOGIAS DO SITE");
+
+    const withoutStack = await readPdfText(
+      await createDiagnosticReportPdf("https://site.test", diagnostic),
+    );
+    expect(withoutStack).not.toContain("TECNOLOGIAS DO SITE");
+  });
+
   it("generates a readable executive PDF with the business summary", async () => {
     const blob = await createBusinessReportPdf("https://site.test", businessSummary);
 

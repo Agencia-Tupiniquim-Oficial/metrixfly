@@ -19,7 +19,20 @@ type SummaryRequest = {
   scores: unknown;
   metrics: unknown;
   improvements: unknown[];
+  stack?: unknown;
 };
+
+const MAX_STACK_ITEMS = 40;
+
+// Nomes das tecnologias detectadas pelo Stackfly (opcional).
+function parseStack(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.replace(/\s+/g, " ").trim().slice(0, 80))
+    .filter(Boolean)
+    .slice(0, MAX_STACK_ITEMS);
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -59,6 +72,8 @@ serve(async (req: Request) => {
       );
     }
 
+    const stack = parseStack(input.stack);
+
     const prompt = `Crie um relatório executivo detalhado em português do Brasil para o proprietário do site abaixo.
 
 Regras obrigatórias:
@@ -73,6 +88,7 @@ Regras obrigatórias:
 - Relacione as métricas e oportunidades fornecidas à experiência de uso, identificando claramente quando uma consequência é apenas possível.
 - Não afirme perdas de visitantes, conversões, vendas, receita, custos de campanha ou mudanças de posição em buscas sem dados específicos que as comprovem.
 - Não invente números, problemas ou resultados que não estejam nos dados.
+- Quando "tecnologias" vier preenchido, use apenas como contexto (por exemplo, dizer que o site é feito em WordPress) e não cite tecnologias fora dessa lista.
 
 Dados do diagnóstico:
 ${JSON.stringify({
@@ -80,6 +96,7 @@ ${JSON.stringify({
       scores: input.scores,
       metrics: input.metrics,
       improvements: input.improvements.slice(0, 8),
+      ...(stack.length > 0 ? { tecnologias: stack } : {}),
     })}`;
 
     const response = await fetch(`${OPENROUTER_API_BASE}/v1/chat/completions`, {

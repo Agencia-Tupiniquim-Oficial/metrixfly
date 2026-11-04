@@ -67,6 +67,27 @@ export type DiagnoseResult = {
   uiux?: UiUxSummary | null;
   extras?: { title: string; description: string }[];
   geo?: { domain?: string } | null;
+  techStack?: TechStack | null;
+};
+
+// Espelha `TechStack` de supabase/functions/_shared/tech-stack.ts (dados do Stackfly).
+export type TechStackItem = {
+  name: string;
+  categories: string[];
+  version: string | null;
+  implied: boolean;
+};
+
+export type TechStackInsight = {
+  title: string;
+  description: string;
+};
+
+export type TechStack = {
+  source: "stackfly";
+  analyzedAt: string | null;
+  technologies: TechStackItem[];
+  insights: TechStackInsight[];
 };
 
 export function isDiagnosticOptimized(
